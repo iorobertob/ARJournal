@@ -1,0 +1,54 @@
+{% extends "account/base.html" %}
+{% load allauth account %}
+
+{% block title %}Sign In — {{ journal.name }}{% endblock %}
+
+{% block auth_content %}
+<div class="auth-card__header">
+  <h1 class="auth-card__title">Sign in</h1>
+  <p class="auth-card__subtitle">{{ journal.name }}</p>
+</div>
+
+{% if form.errors %}
+<div class="alert alert--error">Please correct the errors below.</div>
+{% endif %}
+
+<form method="post" action="{% url 'account_login' %}" class="auth-form">
+  {% csrf_token %}
+  {% if redirect_field_value %}
+  <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+  {% endif %}
+
+  <div class="form-group">
+    <label for="{{ form.login.id_for_label }}">Email address</label>
+    {{ form.login }}
+    {% if form.login.errors %}
+    <ul class="errorlist">{% for e in form.login.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+
+  <div class="form-group">
+    <label for="{{ form.password.id_for_label }}">Password</label>
+    {{ form.password }}
+    {% if form.password.errors %}
+    <ul class="errorlist">{% for e in form.password.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+
+  {% if form.remember %}
+  <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;">
+    {{ form.remember }}
+    <label for="{{ form.remember.id_for_label }}" style="margin:0;font-weight:400;">Remember me</label>
+  </div>
+  {% endif %}
+
+  <button type="submit" class="auth-submit">Sign in</button>
+</form>
+
+<div class="auth-links">
+  <a href="{% url 'account_reset_password' %}">Forgot your password?</a>
+</div>
+<div class="auth-links" style="margin-top:var(--space-3);">
+  Don't have an account? <a href="{% url 'account_signup' %}">Register</a>
+</div>
+{% endblock %}

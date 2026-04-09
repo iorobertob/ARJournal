@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}New Submission — Step 2 — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="wizard container">
+  <div class="wizard__progress">
+    <span class="wizard__step wizard__step--done">1. Metadata</span>
+    <span class="wizard__step wizard__step--active">2. Manuscript</span>
+    <span class="wizard__step">3. Media</span>
+    <span class="wizard__step">4. Declarations</span>
+  </div>
+  <h1 class="wizard__title">Upload Manuscript</h1>
+  <p>Upload your <code>.tex</code> source file. The platform will parse it into a structured document.</p>
+  <form method="post" enctype="multipart/form-data" class="form">
+    {% csrf_token %}
+    <div class="form__group">
+      <label class="form__label" for="manuscript">Manuscript File (.tex) <span>*</span></label>
+      <input class="form__file" type="file" id="manuscript" name="manuscript" accept=".tex,.txt" required>
+    </div>
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary">Continue →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

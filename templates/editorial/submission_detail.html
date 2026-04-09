@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ submission.title|truncatechars:50 }} — Editorial — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="editorial-detail container">
+  <p><a href="{% url 'editorial_dashboard' %}">← Editorial Dashboard</a></p>
+  <div class="editorial-detail__header">
+    <h1>{{ submission.title }}</h1>
+    <span class="status-badge status-badge--{{ submission.status }}">{{ submission.get_status_display }}</span>
+  </div>
+  <div class="editorial-detail__meta">
+    <p><strong>Author:</strong> {{ submission.author.display_name }} ({{ submission.author.email }})</p>
+    <p><strong>Type:</strong> {{ submission.get_article_type_display }}</p>
+    <p><strong>Submitted:</strong> {{ submission.submission_date|date:"d M Y"|default:"—" }}</p>
+    {% if submission.keywords %}<p><strong>Keywords:</strong> {{ submission.keywords|join:", " }}</p>{% endif %}
+  </div>
+
+  <!-- Screening -->
+  <section class="editorial-section">
+    <h2>Technical Screening</h2>
+    {% if screening %}
+    <p>Result: <strong>{{ screening.get_result_display }}</strong> — {{ screening.checked_at|date:"d M Y" }}</p>
+    <p>Notes: {{ screening.notes }}</p>
+    {% else %}
+    <form method="post" action="{% url 'editorial_screen' submission.pk %}" class="form form--inline">
+      {% csrf_token %}
+      <div class="form__checkboxes">
+        <label><input type="checkbox" name="completeness_ok"> Completeness OK</label>
+        <label><input type="checkbox" name="scope_fit_ok"> Scope Fit</label>
+        <label><input type="checkbox" name="ethics_ok"> Ethics OK</label>
+      </div>
+      <textarea class="form__textarea" name="notes" placeholder="Screening notes..." rows="3"></textarea>
+      <select name="result" class="form__select" required>
+        <option value="">-- Select outcome --</option>
+        <option value="pass_to_desk">Pass to Desk Review</option>
+        <option value="return_to_author">Return to Author</option>
+        <option value="reject">Reject</option>
+      </select>
+      <button type="submit" class="btn btn--primary">Save Screening</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <!-- Reviewer suggestions -->
+  <section class="editorial-section">
+    <h2>Reviewer Suggestions</h2>
+    {% if suggestions %}
+    <div class="reviewer-suggestions">
+      {% for sug in suggestions %}
+      <div class="suggestion-card {% if not sug.is_primary %}suggestion-card--alternate{% endif %}">
+        <div class="suggestion-card__header">
+          <strong>{{ sug.reviewer.display_name }}</strong>
+          <span class="suggestion-score">{{ sug.score }}/100</span>
+          {% if not sug.is_primary %}<span class="badge badge--alt">Alternate</span>{% endif %}
+        </div>
+        <p class="suggestion-card__rationale">{{ sug.rationale }}</p>
+        <p class="suggestion-card__status">{{ sug.get_status_display }}</p>
+        {% if sug.status == 'suggested' %}
+        <a href="{% url 'approve_reviewer' sug.pk %}" class="btn btn--small btn--primary">Approve</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <a href="{% url 'generate_suggestions' submission.pk %}" class="btn btn--secondary">Generate / Refresh Suggestions</a>
+    {% if suggestions %}
+    <form method="post" action="{% url 'send_invitations' submission.pk %}" class="form form--inline" style="margin-top:1rem">
+      {% csrf_token %}
+      <label class="form__label">Review Deadline:</label>
+      <input type="date" name="deadline" class="form__input" required>
+      <button type="submit" class="btn btn--primary">Send Invitations to Approved Reviewers</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <!-- Reviews -->
+  {% if reviews %}
+  <section class="editorial-section">
+    <h2>Reviews</h2>
+    {% for review in reviews %}
+    <div class="review-summary">
+      <p><strong>{{ review.reviewer.display_name }}</strong> — {{ review.get_status_display }}</p>
+      {% if review.recommendation %}<p>Recommendation: <strong>{{ review.get_recommendation_display }}</strong></p>{% endif %}
+      {% if review.status == 'submitted' or review.status == 'moderation_required' %}
+      <a href="{% url 'moderate_review' review.pk %}" class="btn btn--small btn--secondary">Moderate</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <!-- Decision -->
+  <section class="editorial-section">
+    <h2>Editorial Decision</h2>
+    {% if decisions %}
+    {% for dec in decisions %}
+    <div class="decision-record">
+      <p>Round {{ dec.round }}: <strong>{{ dec.get_decision_type_display }}</strong> — {{ dec.sent_at|date:"d M Y" }}</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+    <details class="decision-form-details">
+      <summary>Record a Decision</summary>
+      <form method="post" action="{% url 'editorial_decide' submission.pk %}" class="form">
+        {% csrf_token %}
+        <div class="form__group">
+          <label class="form__label">Decision Type</label>
+          <select class="form__select" name="decision_type" required>
+            <option value="accept">Accept</option>
+            <option value="minor_revision">Minor Revision</option>
+            <option value="major_revision">Major Revision</option>
+            <option value="reject">Reject</option>
+            <option value="desk_reject">Desk Reject</option>
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Decision Letter</label>
+          <textarea class="form__textarea" name="letter" rows="8"></textarea>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Priority Issues</label>
+          <textarea class="form__textarea" name="priority_issues" rows="4"></textarea>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Instructions to Author</label>
+          <textarea class="form__textarea" name="instructions_to_author" rows="4"></textarea>
+        </div>
+        <button type="submit" class="btn btn--primary">Send Decision</button>
+      </form>
+    </details>
+  </section>
+
+  <!-- Production -->
+  {% if revision %}
+  <section class="editorial-section">
+    <h2>Production</h2>
+    {% if revision.canonical_document %}
+    <p>Canonical document: ready</p>
+    <a href="{% url 'build_html' revision.canonical_document.pk %}" class="btn btn--secondary">Rebuild HTML</a>
+    <a href="{% url 'publish_article' revision.canonical_document.pk %}" class="btn btn--primary" onclick="return confirm('Publish this article?')">Publish</a>
+    {% else %}
+    <form method="post" action="/api/v1/submissions/{{ submission.pk }}/ingest/">
+      {% csrf_token %}
+      <button type="submit" class="btn btn--secondary">Parse &amp; Ingest Manuscript</button>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
+</div>
+{% endblock %}

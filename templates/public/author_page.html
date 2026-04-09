@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}{{ author.display_name }} — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<section class="author-page container">
+  <div class="author-page__header">
+    {% if author.profile.photo %}<img src="{{ author.profile.photo.url }}" alt="{{ author.display_name }}" class="author-page__photo">{% endif %}
+    <div>
+      <h1 class="author-page__name">{{ author.display_name }}</h1>
+      {% if author.profile.institution %}<p class="author-page__institution">{{ author.profile.institution }}</p>{% endif %}
+      {% if author.profile.bio %}<p class="author-page__bio">{{ author.profile.bio }}</p>{% endif %}
+    </div>
+  </div>
+  <h2>Contributions</h2>
+  <ul class="contributions-list">
+    {% for build in articles %}
+    {% with submission=build.document.revision.submission %}
+    <li>
+      <a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a>
+      <span class="contributions-list__type">{{ submission.get_article_type_display }}</span>
+      {% if submission.issue %}<span>Issue #{{ submission.issue.number }}</span>{% endif %}
+    </li>
+    {% endwith %}
+    {% empty %}
+    <li>No published articles yet.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

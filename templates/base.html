@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ journal.name }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ journal.tagline }}{% endblock %}">
+  {% load static %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  {% block extra_css %}{% endblock %}
+  {% if journal.favicon %}<link rel="icon" href="{{ journal.favicon.url }}">{% endif %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+{% include 'partials/nav.html' %}
+
+{% if messages %}
+<div class="messages-bar">
+  {% for message in messages %}
+  <div class="message message--{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<main id="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+{% include 'partials/footer.html' %}
+
+<script src="{% static 'js/alpine.min.js' %}" defer></script>
+<script src="{% static 'js/htmx.min.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

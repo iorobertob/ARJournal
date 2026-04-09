@@ -1,0 +1,55 @@
+{% extends "account/base.html" %}
+{% load allauth account %}
+
+{% block title %}Register — {{ journal.name }}{% endblock %}
+
+{% block auth_content %}
+<div class="auth-card__header">
+  <h1 class="auth-card__title">Create account</h1>
+  <p class="auth-card__subtitle">Register to submit to {{ journal.name }}</p>
+</div>
+
+{% if form.errors %}
+<div class="alert alert--error">Please correct the errors below.</div>
+{% endif %}
+
+<form method="post" action="{% url 'account_signup' %}" class="auth-form">
+  {% csrf_token %}
+  {% if redirect_field_value %}
+  <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+  {% endif %}
+
+  <div class="form-group">
+    <label for="{{ form.email.id_for_label }}">Email address</label>
+    {{ form.email }}
+    {% if form.email.errors %}
+    <ul class="errorlist">{% for e in form.email.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+
+  <div class="form-group">
+    <label for="{{ form.password1.id_for_label }}">Password</label>
+    {{ form.password1 }}
+    {% if form.password1.help_text %}
+    <span class="helptext">{{ form.password1.help_text }}</span>
+    {% endif %}
+    {% if form.password1.errors %}
+    <ul class="errorlist">{% for e in form.password1.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+
+  <div class="form-group">
+    <label for="{{ form.password2.id_for_label }}">Confirm password</label>
+    {{ form.password2 }}
+    {% if form.password2.errors %}
+    <ul class="errorlist">{% for e in form.password2.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+
+  <button type="submit" class="auth-submit">Create account</button>
+</form>
+
+<div class="auth-links">
+  Already have an account? <a href="{% url 'account_login' %}">Sign in</a>
+</div>
+{% endblock %}

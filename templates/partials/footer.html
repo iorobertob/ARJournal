@@ -1,0 +1,33 @@
+<footer class="site-footer">
+  <div class="container site-footer__grid">
+    <div class="site-footer__col">
+      <p class="site-footer__label">Explore</p>
+      <ul>
+        <li><a href="{% url 'home' %}">Current Issue</a></li>
+        <li><a href="{% url 'archive' %}">Archive</a></li>
+        <li><a href="{% url 'about' %}">About</a></li>
+        <li><a href="{% url 'submit_info' %}">Submit</a></li>
+      </ul>
+    </div>
+    <div class="site-footer__col">
+      <p class="site-footer__label">Information</p>
+      <ul>
+        <li><a href="{% url 'about' %}">Editorial Board</a></li>
+        <li><a href="{% url 'submit_info' %}">Submission Guidelines</a></li>
+        <li><a href="#">Contact</a></li>
+        <li><a href="#">Partners</a></li>
+        {% if journal.instagram_url %}<li><a href="{{ journal.instagram_url }}" target="_blank" rel="noopener">Instagram</a></li>{% endif %}
+      </ul>
+    </div>
+    <div class="site-footer__col">
+      <p class="site-footer__label">Contact</p>
+      {% if journal.editorial_email %}<p><a href="mailto:{{ journal.editorial_email }}">{{ journal.editorial_email }}</a></p>{% endif %}
+      {% if journal.institution %}<p>{{ journal.institution }}</p>{% endif %}
+    </div>
+  </div>
+  <div class="site-footer__bottom container">
+    <p>{{ journal.name }} is published twice yearly and features essays, visual projects, multimedia research, and experimental contributions across artistic research practices.</p>
+    {% if journal.imprint %}<p class="site-footer__imprint">{{ journal.imprint }}</p>{% endif %}
+    <p class="site-footer__copy">&copy; {% now "Y" %} {{ journal.name }}. All rights reserved.</p>
+  </div>
+</footer>

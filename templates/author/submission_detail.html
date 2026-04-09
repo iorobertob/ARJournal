@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ submission.title|truncatechars:50 }} — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="submission-detail container">
+  <div class="submission-detail__header">
+    <p><a href="{% url 'author_dashboard' %}">← My Submissions</a></p>
+    <h1>{{ submission.title }}</h1>
+    <span class="status-badge status-badge--{{ submission.status }}">{{ submission.get_status_display }}</span>
+  </div>
+
+  <div class="submission-detail__meta">
+    <p><strong>Type:</strong> {{ submission.get_article_type_display }}</p>
+    <p><strong>Submitted:</strong> {{ submission.submission_date|date:"d M Y"|default:"Not yet submitted" }}</p>
+    {% if submission.keywords %}<p><strong>Keywords:</strong> {{ submission.keywords|join:", " }}</p>{% endif %}
+  </div>
+
+  {% if submission.abstract %}
+  <div class="submission-detail__abstract">
+    <h2>Abstract</h2>
+    <p>{{ submission.abstract }}</p>
+  </div>
+  {% endif %}
+
+  <div class="submission-detail__revisions">
+    <h2>Revisions</h2>
+    {% for rev in revisions %}
+    <div class="revision-row">
+      <p>Version {{ rev.version }} — {{ rev.get_status_display }} — {{ rev.created_at|date:"d M Y" }}</p>
+      <a href="{{ rev.manuscript_file.url }}">Download manuscript</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Edit User — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Edit User</h1>
+
+<div class="jadmin-card" style="max-width:520px;">
+  <div style="margin-bottom:var(--space-6);">
+    <div style="font-weight:600;font-size:1rem;">{{ edited_user.email }}</div>
+    <div style="color:var(--color-muted);font-size:0.875rem;margin-top:var(--space-1);">
+      {{ edited_user.get_full_name|default:"No name set" }}
+      &middot; Joined {{ edited_user.date_joined|date:"d M Y" }}
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="form-group" style="margin-bottom:var(--space-5);">
+      <label for="id_role">Platform role</label>
+      <select name="role" id="id_role" class="form-control">
+        {% for value, label in roles %}
+        <option value="{{ value }}" {% if edited_user.role == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <small style="color:var(--color-muted);font-size:0.78rem;margin-top:var(--space-1);display:block;">
+        Controls what sections of the platform this user can access.
+      </small>
+    </div>
+
+    <div class="form-group" style="margin-bottom:var(--space-6);display:flex;align-items:center;gap:var(--space-3);">
+      <input type="checkbox" name="is_active" id="id_is_active" {% if edited_user.is_active %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
+      <label for="id_is_active" style="margin:0;font-weight:400;">Account active (uncheck to suspend)</label>
+    </div>
+
+    <div style="display:flex;gap:var(--space-3);">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <a href="{% url 'journal_admin_users' %}" class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

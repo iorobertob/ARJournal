@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}New Submission — Step 4 — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="wizard container">
+  <div class="wizard__progress">
+    <span class="wizard__step wizard__step--done">1. Metadata</span>
+    <span class="wizard__step wizard__step--done">2. Manuscript</span>
+    <span class="wizard__step wizard__step--done">3. Media</span>
+    <span class="wizard__step wizard__step--active">4. Declarations</span>
+  </div>
+  <h1 class="wizard__title">Declarations &amp; Submit</h1>
+  <form method="post" class="form">
+    {% csrf_token %}
+    <div class="form__group">
+      <label class="form__label" for="funding">Funding Statement</label>
+      <textarea class="form__textarea" id="funding" name="funding" rows="3" placeholder="State funding sources or write 'None.'">{{ submission.funding_statement }}</textarea>
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="conflict_of_interest">Conflict of Interest</label>
+      <textarea class="form__textarea" id="conflict_of_interest" name="conflict_of_interest" rows="3">{{ submission.conflict_of_interest }}</textarea>
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="ai_use_statement">AI Use Statement</label>
+      <textarea class="form__textarea" id="ai_use_statement" name="ai_use_statement" rows="3" placeholder="Describe any use of AI tools in the preparation of this manuscript, or write 'None.'"></textarea>
+    </div>
+    <div class="form__group form__group--checkbox">
+      <input type="checkbox" id="originality_confirmed" name="originality_confirmed" required>
+      <label for="originality_confirmed">I confirm this submission is original work and has not been published elsewhere, nor is it under consideration elsewhere.</label>
+    </div>
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary">Submit Manuscript ↗</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

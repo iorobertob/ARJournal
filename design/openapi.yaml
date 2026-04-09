@@ -1,0 +1,165 @@
+openapi: 3.1.0
+info:
+  title: Artistic Research Journal Platform API
+  version: 1.0.0
+servers:
+  - url: https://api.example.org
+paths:
+  /api/submissions:
+    post:
+      summary: Create a new submission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, articleType]
+              properties:
+                title:
+                  type: string
+                articleType:
+                  type: string
+                metadata:
+                  type: object
+      responses:
+        '201':
+          description: Submission created
+
+  /api/submissions/{submissionId}/assets:
+    post:
+      summary: Upload an asset metadata record
+      parameters:
+        - in: path
+          name: submissionId
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Asset registered
+
+  /api/submissions/{submissionId}/ingest:
+    post:
+      summary: Start ingestion and canonicalization
+      parameters:
+        - in: path
+          name: submissionId
+          required: true
+          schema: { type: string }
+      responses:
+        '202':
+          description: Ingestion job queued
+
+  /api/editor/reviewer-suggestions/{submissionId}:
+    get:
+      summary: Get reviewer suggestions for a submission
+      parameters:
+        - in: path
+          name: submissionId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Reviewer suggestions returned
+
+  /api/editor/reviewer-invitations:
+    post:
+      summary: Send reviewer invitations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [submissionId, reviewerIds]
+              properties:
+                submissionId:
+                  type: string
+                reviewerIds:
+                  type: array
+                  items: { type: string }
+      responses:
+        '201':
+          description: Invitations sent
+
+  /api/reviews/{reviewId}:
+    get:
+      summary: Get a review
+      parameters:
+        - in: path
+          name: reviewId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Review returned
+
+  /api/reviews/{reviewId}/annotations:
+    post:
+      summary: Add anchored annotation
+      parameters:
+        - in: path
+          name: reviewId
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Annotation created
+
+  /api/editor/decisions:
+    post:
+      summary: Record editorial decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [submissionId, decisionType]
+              properties:
+                submissionId:
+                  type: string
+                decisionType:
+                  type: string
+                  enum: [accept, minor_revision, major_revision, reject]
+                editorSummary:
+                  type: string
+      responses:
+        '201':
+          description: Decision recorded
+
+  /api/documents/{documentId}/exports/pdf:
+    post:
+      summary: Create ephemeral PDF export
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum: [flat, interactive]
+                ttlMinutes:
+                  type: integer
+      responses:
+        '202':
+          description: Export requested
+
+  /api/public/articles/{documentId}:
+    get:
+      summary: Get public article projection
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Public article returned

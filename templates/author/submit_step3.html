@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}New Submission — Step 3 — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="wizard container">
+  <div class="wizard__progress">
+    <span class="wizard__step wizard__step--done">1. Metadata</span>
+    <span class="wizard__step wizard__step--done">2. Manuscript</span>
+    <span class="wizard__step wizard__step--active">3. Media</span>
+    <span class="wizard__step">4. Declarations</span>
+  </div>
+  <h1 class="wizard__title">Upload Media Assets</h1>
+  <p>Upload images, audio, video, datasets, and supplementary files referenced in your manuscript.</p>
+  <form method="post" enctype="multipart/form-data" class="form">
+    {% csrf_token %}
+    <div class="form__group">
+      <label class="form__label" for="assets">Files (multiple allowed)</label>
+      <input class="form__file" type="file" id="assets" name="assets" multiple>
+    </div>
+    {% if assets %}
+    <table class="assets-table">
+      <thead><tr><th>File</th><th>Type</th><th>Size</th></tr></thead>
+      <tbody>
+        {% for asset in assets %}
+        <tr><td>{{ asset.original_filename }}</td><td>{{ asset.get_kind_display }}</td><td>{{ asset.size_bytes|filesizeformat }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    <div class="form__actions">
+      <button type="submit" class="btn btn--secondary">Upload More</button>
+      <button type="submit" name="done" value="1" class="btn btn--primary">Continue →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Preparing PDF — {{ journal.name }}{% endblock %}
+{% block content %}
+<section class="container" style="padding: 4rem 0; text-align: center;">
+  <h1>Your PDF is being generated</h1>
+  <p>The PDF is being compiled. This usually takes under 30 seconds.</p>
+  {% if export.file %}
+  <a href="{% url 'download_pdf' export.download_token %}" class="btn btn--primary">Download PDF</a>
+  {% else %}
+  <p>Please wait a moment, then <a href="{% url 'download_pdf' export.download_token %}">click here to download</a>.</p>
+  <meta http-equiv="refresh" content="5">
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Journal Admin — {{ journal.name }}{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Overview</h1>
+
+<div class="stat-grid">
+  <div class="stat-box">
+    <div class="stat-box__num">{{ stats.users }}</div>
+    <div class="stat-box__label">Total users</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-box__num">{{ stats.reviewers }}</div>
+    <div class="stat-box__label">Reviewers</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-box__num">{{ stats.submissions_total }}</div>
+    <div class="stat-box__label">Submissions</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-box__num">{{ stats.submissions_active }}</div>
+    <div class="stat-box__label">In progress</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-box__num">{{ stats.published }}</div>
+    <div class="stat-box__label">Published</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-box__num">{{ stats.issues }}</div>
+    <div class="stat-box__label">Issues</div>
+  </div>
+</div>
+
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Users by role</div>
+  <table class="jadmin-table">
+    <thead><tr><th>Role</th><th>Count</th></tr></thead>
+    <tbody>
+    {% for row in users_by_role %}
+    <tr>
+      <td><span class="role-badge role-badge--{{ row.role }}">{{ row.role|title|cut:"_" }}</span></td>
+      <td>{{ row.count }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="2" style="color:var(--color-muted);">No users yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="jadmin-card">
+  <div class="jadmin-card__title" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>Recent registrations</span>
+    <a href="{% url 'journal_admin_users' %}" class="btn btn-primary btn-sm">All users</a>
+  </div>
+  <table class="jadmin-table">
+    <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Joined</th><th></th></tr></thead>
+    <tbody>
+    {% for u in recent_users %}
+    <tr>
+      <td>{{ u.email }}</td>
+      <td>{{ u.get_full_name|default:"—" }}</td>
+      <td><span class="role-badge role-badge--{{ u.role }}">{{ u.get_role_display }}</span></td>
+      <td style="color:var(--color-muted);">{{ u.date_joined|date:"d M Y" }}</td>
+      <td><a href="{% url 'journal_admin_user_edit' u.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Edit role</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Journal Settings — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Journal Settings</h1>
+
+<div class="jadmin-card" style="max-width:640px;">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_name">Journal name</label>
+        <input type="text" name="name" id="id_name" value="{{ journal.name }}" class="form-control">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_tagline">Tagline</label>
+        <input type="text" name="tagline" id="id_tagline" value="{{ journal.tagline }}" class="form-control">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_issn_print">ISSN (print)</label>
+        <input type="text" name="issn_print" id="id_issn_print" value="{{ journal.issn_print }}" class="form-control" placeholder="0000-0000">
+      </div>
+      <div class="form-group">
+        <label for="id_issn_online">ISSN (online)</label>
+        <input type="text" name="issn_online" id="id_issn_online" value="{{ journal.issn_online }}" class="form-control" placeholder="0000-0000">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:var(--space-5);">
+      <label for="id_description">Description</label>
+      <textarea name="description" id="id_description" rows="4" class="form-control">{{ journal.description }}</textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_contact_email">Contact email</label>
+        <input type="email" name="contact_email" id="id_contact_email" value="{{ journal.contact_email }}" class="form-control">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:var(--space-5);">
+      <label for="id_logo">Logo</label>
+      {% if journal.logo %}
+      <div style="margin-bottom:var(--space-3);">
+        <img src="{{ journal.logo.url }}" alt="Current logo" style="max-height:60px;">
+      </div>
+      {% endif %}
+      <input type="file" name="logo" id="id_logo" accept="image/*" class="form-control">
+    </div>
+
+    <div class="form-group" style="margin-bottom:var(--space-6);display:flex;align-items:center;gap:var(--space-3);">
+      <input type="checkbox" name="submission_open" id="id_submission_open" {% if journal.submission_open %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
+      <label for="id_submission_open" style="margin:0;font-weight:400;">Submissions open</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save settings</button>
+  </form>
+</div>
+{% endblock %}

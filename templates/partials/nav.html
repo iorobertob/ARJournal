@@ -1,0 +1,29 @@
+{% load static %}
+<header class="site-header" role="banner">
+  <nav class="site-nav container" aria-label="Main navigation">
+    <a href="{% url 'home' %}" class="site-nav__logo">{{ journal.name }}</a>
+    <ul class="site-nav__links" role="list">
+      <li><a href="{% url 'home' %}" {% if request.resolver_match.url_name == 'home' %}aria-current="page"{% endif %}>Current Issue</a></li>
+      <li><a href="{% url 'archive' %}" {% if request.resolver_match.url_name == 'archive' %}aria-current="page"{% endif %}>Archive</a></li>
+      <li><a href="{% url 'about' %}" {% if request.resolver_match.url_name == 'about' %}aria-current="page"{% endif %}>About</a></li>
+      <li><a href="{% url 'submit_info' %}" class="site-nav__cta">Submit</a></li>
+    </ul>
+    {% if user.is_authenticated %}
+    <div class="site-nav__user" x-data="{ open: false }">
+      <button @click="open = !open" class="site-nav__user-btn" aria-expanded="true">
+        {{ user.display_name|truncatechars:20 }}
+      </button>
+      <ul class="site-nav__dropdown" x-show="open" @click.away="open = false" role="menu">
+        {% if user.has_editorial_access %}
+        <li><a href="{% url 'editorial_dashboard' %}" role="menuitem">Editorial Dashboard</a></li>
+        {% endif %}
+        <li><a href="{% url 'author_dashboard' %}" role="menuitem">My Submissions</a></li>
+        <li><a href="{% url 'profile' %}" role="menuitem">Profile</a></li>
+        <li><a href="{% url 'account_logout' %}" role="menuitem">Sign out</a></li>
+      </ul>
+    </div>
+    {% else %}
+    <a href="{% url 'account_login' %}" class="site-nav__sign-in">Sign in</a>
+    {% endif %}
+  </nav>
+</header>

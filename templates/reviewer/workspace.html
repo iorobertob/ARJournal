@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Review Workspace — {{ journal.name }}{% endblock %}
+{% block body_class %}reviewer-workspace{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/article.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="workspace-layout">
+
+  <!-- Left nav -->
+  <aside class="workspace-nav" aria-label="Manuscript navigation">
+    <div class="workspace-nav__header">
+      <h2 class="workspace-nav__title">{{ submission.title|truncatechars:40 }}</h2>
+      <p class="workspace-nav__deadline">Deadline: {{ invitation.deadline }}</p>
+      <p class="workspace-nav__status" id="save-status">Unsaved</p>
+    </div>
+    <nav class="workspace-toc">
+      <p class="workspace-toc__label">Contents</p>
+      <ul>
+        <li><a href="#abstract">Abstract</a></li>
+        {% for item in toc %}
+        <li><a href="#{{ item.id }}">{{ item.text|truncatechars:40 }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+    {% if annotations %}
+    <div class="workspace-nav__annotations">
+      <p class="workspace-toc__label">My Annotations ({{ annotations.count }})</p>
+      {% for ann in annotations %}
+      <div class="annotation-thumb">
+        <a href="#{{ ann.block_id }}">{{ ann.comment|truncatechars:50 }}</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </aside>
+
+  <!-- Main manuscript pane -->
+  <main class="workspace-main" id="manuscript-pane">
+    <div class="workspace-main__toolbar">
+      <span class="workspace-main__article-type">{{ submission.get_article_type_display }}</span>
+      <button class="btn btn--small btn--secondary" id="annotate-toggle">+ Annotate</button>
+    </div>
+    <div class="workspace-article" id="article-content" data-review-id="{{ review.pk }}">
+      {{ article_html|safe }}
+    </div>
+  </main>
+
+  <!-- Right panel: annotations + review form -->
+  <aside class="workspace-panel" x-data="{ tab: 'form' }">
+    <div class="workspace-panel__tabs">
+      <button class="workspace-panel__tab" :class="{ active: tab === 'form' }" @click="tab = 'form'">Review Form</button>
+      <button class="workspace-panel__tab" :class="{ active: tab === 'annotations' }" @click="tab = 'annotations'">Annotations</button>
+    </div>
+
+    <!-- Review Form -->
+    <div x-show="tab === 'form'" class="workspace-review-form">
+      <form id="review-form" data-review-id="{{ review.pk }}">
+        {% csrf_token %}
+        <div class="form__group">
+          <label class="form__label">Expertise Self-Rating (1–5)</label>
+          <select class="form__select" name="expertise_self_rating">
+            <option value="5">5 — Expert</option>
+            <option value="4">4 — Knowledgeable</option>
+            <option value="3">3 — Familiar</option>
+            <option value="2">2 — Limited</option>
+            <option value="1">1 — Not my area</option>
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Summary <span>*</span></label>
+          <textarea class="form__textarea" name="summary" rows="4" required>{{ review.summary }}</textarea>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Strengths <span>*</span></label>
+          <textarea class="form__textarea" name="strengths" rows="4">{{ review.strengths }}</textarea>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Major Issues</label>
+          <textarea class="form__textarea" name="major_issues" rows="4">{{ review.major_issues }}</textarea>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Minor Issues</label>
+          <textarea class="form__textarea" name="minor_issues" rows="4">{{ review.minor_issues }}</textarea>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Ethical Concerns</label>
+          <textarea class="form__textarea" name="ethical_concerns" rows="3">{{ review.ethical_concerns }}</textarea>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Comments to Author</label>
+          <textarea class="form__textarea" name="comments_to_author" rows="5">{{ review.comments_to_author }}</textarea>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Confidential Comments to Editor</label>
+          <textarea class="form__textarea" name="comments_to_editor" rows="4">{{ review.comments_to_editor }}</textarea>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Recommendation <span>*</span></label>
+          <select class="form__select" name="recommendation" required>
+            <option value="" {% if not review.recommendation %}selected{% endif %}>-- Select --</option>
+            <option value="accept" {% if review.recommendation == 'accept' %}selected{% endif %}>Accept</option>
+            <option value="minor_revision" {% if review.recommendation == 'minor_revision' %}selected{% endif %}>Minor Revision</option>
+            <option value="major_revision" {% if review.recommendation == 'major_revision' %}selected{% endif %}>Major Revision</option>
+            <option value="reject" {% if review.recommendation == 'reject' %}selected{% endif %}>Reject</option>
+          </select>
+        </div>
+        <div class="form__actions">
+          <button type="button" id="save-draft-btn" class="btn btn--secondary">Save Draft</button>
+          <button type="button" id="submit-review-btn" class="btn btn--primary">Submit Review</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Annotations panel -->
+    <div x-show="tab === 'annotations'" class="workspace-annotations-panel">
+      <div id="annotations-list">
+        {% for ann in annotations %}
+        <div class="annotation-item" data-block-id="{{ ann.block_id }}">
+          <p class="annotation-item__block">Block: {{ ann.block_id }}</p>
+          <p class="annotation-item__comment">{{ ann.comment }}</p>
+        </div>
+        {% empty %}
+        <p>No annotations yet. Click on a paragraph or figure in the manuscript to add one.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/annotations.js' %}"></script>
+<script src="{% static 'js/autosave.js' %}"></script>
+{% endblock %}

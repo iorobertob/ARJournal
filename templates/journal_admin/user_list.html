@@ -1,0 +1,54 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Users &amp; Roles — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Users &amp; Roles</h1>
+
+<div class="jadmin-card">
+  <form method="get" style="display:flex;gap:var(--space-4);align-items:flex-end;flex-wrap:wrap;margin-bottom:var(--space-5);">
+    <div class="form-group" style="min-width:240px;">
+      <label>Search</label>
+      <input type="text" name="q" value="{{ search }}" placeholder="Email or name…" class="form-control">
+    </div>
+    <div class="form-group" style="min-width:180px;">
+      <label>Role</label>
+      <select name="role" class="form-control">
+        <option value="">All roles</option>
+        {% for value, label in roles %}
+        <option value="{{ value }}" {% if role_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    {% if search or role_filter %}<a href="{% url 'journal_admin_users' %}" class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Clear</a>{% endif %}
+  </form>
+
+  <table class="jadmin-table">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Name</th>
+        <th>Role</th>
+        <th>Active</th>
+        <th>Joined</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.email }}</td>
+      <td>{{ u.get_full_name|default:"—" }}</td>
+      <td><span class="role-badge role-badge--{{ u.role }}">{{ u.get_role_display }}</span></td>
+      <td>{% if u.is_active %}<span style="color:#16a34a;">Yes</span>{% else %}<span style="color:#dc2626;">No</span>{% endif %}</td>
+      <td style="color:var(--color-muted);">{{ u.date_joined|date:"d M Y" }}</td>
+      <td><a href="{% url 'journal_admin_user_edit' u.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Edit role</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="color:var(--color-muted);text-align:center;padding:var(--space-8);">No users found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

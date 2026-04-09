@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ journal.name }} — Artistic Research Journal{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+{% if current_issue %}
+<section class="hero">
+  <div class="container hero__inner">
+    <div class="hero__text">
+      <p class="hero__issue-label">Current Issue</p>
+      <p class="hero__issue-number">Issue #{{ current_issue.number }} &mdash; {{ current_issue.year }}</p>
+      <h1 class="hero__title">{{ current_issue.title|default:journal.name }}</h1>
+      {% if featured_articles %}
+      <p class="hero__bylines">
+        With {% for a in featured_articles %}{{ a.document.revision.submission.author.display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </p>
+      {% endif %}
+    </div>
+    {% if current_issue.cover_image %}
+    <div class="hero__image">
+      <img src="{{ current_issue.cover_image.url }}" alt="{{ current_issue.title }}" loading="eager">
+      <a href="{% url 'issue_detail' current_issue.number %}" class="hero__read-btn">Read Issue</a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Current Issue Articles -->
+<section class="current-issue container">
+  <div class="current-issue__editorial">
+    {% if current_issue.editorial_note %}
+    <p class="current-issue__note">{{ current_issue.editorial_note|truncatewords:50 }}</p>
+    {% endif %}
+  </div>
+  <div class="current-issue__grid">
+    {% for build in featured_articles %}
+    {% with submission=build.document.revision.submission %}
+    <article class="issue-article-item">
+      <p class="issue-article-item__title">
+        <a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a>
+      </p>
+      <p class="issue-article-item__author">{{ submission.author.display_name }}</p>
+    </article>
+    {% endwith %}
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<section class="hero hero--empty container">
+  <h1>{{ journal.name }}</h1>
+  <p>{{ journal.tagline }}</p>
+</section>
+{% endif %}
+
+<!-- Browse / Discovery -->
+<section class="browse-section">
+  <div class="container browse-section__inner">
+    <div class="browse-section__about">
+      <p>{{ journal.tagline|default:journal.name }} is a journal for artistic research, bringing together critical writing, visual practice, and experimental forms of knowledge.</p>
+      <a href="{% url 'about' %}" class="link-arrow">Find out more ↗</a>
+    </div>
+    <div class="browse-section__paths">
+      <div class="browse-path">
+        <h3 class="browse-path__label">Authors</h3>
+        <p class="browse-path__hint">Browse by researcher</p>
+      </div>
+      <div class="browse-path">
+        <h3 class="browse-path__label">Categories</h3>
+        <ul class="browse-path__categories">
+          <li>Aesthetics</li><li>Anthropology</li><li>Art and Theory</li>
+          <li>Avant-garde</li><li>Bodies</li><li>Performance</li>
+          <li>Sound</li><li>Visual Practice</li>
+        </ul>
+      </div>
+      <div class="browse-path">
+        <h3 class="browse-path__label">Years</h3>
+        {% for issue in recent_issues %}<p>{{ issue.year }}</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Archive strip -->
+{% if recent_issues %}
+<section class="archive-strip container">
+  <h2 class="archive-strip__heading">Read by Issue</h2>
+  <div class="archive-strip__grid">
+    {% for issue in recent_issues %}
+    <a href="{% url 'issue_detail' issue.number %}" class="issue-card">
+      {% if issue.cover_image %}<img src="{{ issue.cover_image.url }}" alt="Issue #{{ issue.number }}" loading="lazy">{% endif %}
+      <div class="issue-card__text">
+        <p class="issue-card__number">Issue #{{ issue.number }} &mdash; {{ issue.year }}</p>
+        <p class="issue-card__title">{{ issue.title }}</p>
+      </div>
+      <span class="issue-card__arrow">↗</span>
+    </a>
+    {% endfor %}
+  </div>
+  <a href="{% url 'archive' %}" class="link-arrow">Discover more ↗</a>
+</section>
+{% endif %}
+
+<!-- Submit CTA -->
+<section class="submit-cta">
+  <div class="container submit-cta__inner">
+    <h2>Contribute to {{ journal.name }}</h2>
+    <p>{{ journal.name }} welcomes contributions from artists, writers, and researchers working across critical, visual, and practice-based forms of artistic research. Submit essays, projects, or experimental formats that explore how knowledge can be made public through artistic practice.</p>
+    <a href="{% url 'submit_info' %}" class="btn btn--primary">Submit a contribution ↗</a>
+  </div>
+</section>
+
+{% endblock %}

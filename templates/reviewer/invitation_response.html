@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Review Invitation — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<section class="invitation container">
+  <h1>Review Invitation</h1>
+  <p>You have been invited to review the following submission:</p>
+  <div class="invitation__submission">
+    <h2>{{ invitation.submission.title }}</h2>
+    <p><strong>Type:</strong> {{ invitation.submission.get_article_type_display }}</p>
+    <p><strong>Keywords:</strong> {{ invitation.submission.keywords|join:", " }}</p>
+    <p><strong>Abstract:</strong> {{ invitation.submission.abstract|truncatewords:80 }}</p>
+    <p><strong>Review deadline:</strong> {{ invitation.deadline }}</p>
+  </div>
+  <p>Please accept or decline this invitation. If you have a conflict of interest, please decline and explain below.</p>
+  <form method="post" class="form">
+    {% csrf_token %}
+    <div class="form__group">
+      <label class="form__label" for="decline_reason">If declining, please provide a reason (optional):</label>
+      <textarea class="form__textarea" id="decline_reason" name="decline_reason" rows="3"></textarea>
+    </div>
+    <div class="form__actions">
+      <button type="submit" name="response" value="accept" class="btn btn--primary">Accept Invitation</button>
+      <button type="submit" name="response" value="decline" class="btn btn--ghost">Decline</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

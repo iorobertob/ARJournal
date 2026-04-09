@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Edit Profile — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="profile-page container">
+  <h1>Edit Profile</h1>
+  <form method="post" enctype="multipart/form-data" class="form">
+    {% csrf_token %}
+    <div class="form__group">
+      <label class="form__label" for="first_name">First Name</label>
+      <input class="form__input" type="text" id="first_name" name="first_name" value="{{ request.user.first_name }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="last_name">Last Name</label>
+      <input class="form__input" type="text" id="last_name" name="last_name" value="{{ request.user.last_name }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="institution">Institution</label>
+      <input class="form__input" type="text" id="institution" name="institution" value="{{ profile.institution }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="department">Department</label>
+      <input class="form__input" type="text" id="department" name="department" value="{{ profile.department }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="country">Country</label>
+      <input class="form__input" type="text" id="country" name="country" value="{{ profile.country }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="bio">Biography</label>
+      <textarea class="form__textarea" id="bio" name="bio" rows="4">{{ profile.bio }}</textarea>
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="website">Website</label>
+      <input class="form__input" type="url" id="website" name="website" value="{{ profile.website }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="photo">Profile Photo</label>
+      <input class="form__file" type="file" id="photo" name="photo" accept="image/*">
+    </div>
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary">Save</button>
+      <a href="{% url 'profile' %}" class="btn btn--ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

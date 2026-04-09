@@ -1,0 +1,24 @@
+{% extends "account/base.html" %}
+
+{% block title %}Confirm Email — {{ journal.name }}{% endblock %}
+
+{% block auth_content %}
+<div class="auth-card__header">
+  <h1 class="auth-card__title">Confirm email</h1>
+</div>
+
+{% if confirmation %}
+<p style="color:var(--color-muted);font-size:0.9rem;text-align:center;margin-bottom:var(--space-6);">
+  Please confirm that <strong>{{ confirmation.email_address.email }}</strong> is your email address.
+</p>
+<form method="post">
+  {% csrf_token %}
+  <button type="submit" class="auth-submit">Confirm</button>
+</form>
+{% else %}
+<div class="alert alert--error">
+  This confirmation link is invalid or has expired.
+  <a href="{% url 'account_email' %}">Request a new confirmation email.</a>
+</div>
+{% endif %}
+{% endblock %}

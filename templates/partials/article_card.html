@@ -1,0 +1,16 @@
+{% load static %}
+<article class="article-card">
+  {% if build.document.revision.submission.issue %}
+  <p class="article-card__issue">Issue #{{ build.document.revision.submission.issue.number }}</p>
+  {% endif %}
+  {% with submission=build.document.revision.submission %}
+  <h3 class="article-card__title">
+    <a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a>
+  </h3>
+  {% with author=submission.author %}
+  <p class="article-card__author">{{ author.display_name }}</p>
+  {% endwith %}
+  <p class="article-card__type">{{ submission.get_article_type_display }}</p>
+  {% endwith %}
+  <a href="{% url 'article_detail' build.slug %}" class="article-card__link" aria-hidden="true" tabindex="-1">↗</a>
+</article>

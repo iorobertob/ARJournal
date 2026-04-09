@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Moderate Review — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="moderate-review container">
+  <p><a href="{% url 'editorial_submission' review.submission.pk %}">← Back to submission</a></p>
+  <h1>Moderate Review</h1>
+  <p>Reviewer: <strong>{{ review.reviewer.display_name }}</strong></p>
+  <p>Recommendation: <strong>{{ review.get_recommendation_display }}</strong></p>
+
+  <div class="moderation-columns">
+    <div>
+      <h2>Original Comments to Author</h2>
+      <div class="review-text-box">{{ moderation.original_comments_to_author|linebreaks }}</div>
+    </div>
+    <div>
+      <h2>Moderated Comments (author-visible)</h2>
+      <form method="post" class="form">
+        {% csrf_token %}
+        <textarea class="form__textarea" name="moderated_comments" rows="12">{{ moderation.moderated_comments_to_author }}</textarea>
+        <div class="form__group form__group--checkbox">
+          <input type="checkbox" name="conflict_flagged" id="conflict_flagged" {% if moderation.conflict_flagged %}checked{% endif %}>
+          <label for="conflict_flagged">Flag as conflicting review</label>
+        </div>
+        <textarea class="form__textarea" name="conflict_note" rows="3" placeholder="Conflict note...">{{ moderation.conflict_note }}</textarea>
+        <div class="form__group">
+          <label class="form__label">Moderation Notes (internal)</label>
+          <textarea class="form__textarea" name="notes" rows="4">{{ moderation.moderation_notes }}</textarea>
+        </div>
+        <button type="submit" class="btn btn--primary">Save Moderation</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

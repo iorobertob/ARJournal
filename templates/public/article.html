@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ submission.title }} — {{ journal.name }}{% endblock %}
+{% block body_class %}article-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/article.css' %}">{% endblock %}
+
+{% block content %}
+<div class="article-layout container">
+
+  <!-- Left sidebar: navigation -->
+  <aside class="article-sidebar" aria-label="Article navigation">
+    <nav class="article-toc">
+      <p class="article-toc__label">Table of Contents</p>
+      <ul>
+        <li><a href="#abstract">Abstract</a></li>
+        {% for item in toc %}
+        <li style="padding-left: {{ item.level|add:"-1" }}rem">
+          <a href="#{{ item.id }}">{{ item.text }}</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+
+    <div class="article-meta-sidebar">
+      <p class="article-meta-sidebar__label">Author</p>
+      <a href="{% url 'author_page' submission.author.pk %}">{{ submission.author.display_name }}</a>
+
+      <p class="article-meta-sidebar__label">Category</p>
+      <p>{{ submission.get_article_type_display }}</p>
+
+      {% if submission.disciplines %}
+      <p class="article-meta-sidebar__label">Subject</p>
+      {% for d in submission.disciplines %}<p>{{ d }}</p>{% endfor %}
+      {% endif %}
+
+      {% if submission.issue %}
+      <p class="article-meta-sidebar__label">Year</p>
+      <p>{{ submission.issue.year }}</p>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Main article content -->
+  <main class="article-main" id="article-content">
+    {% if submission.issue %}
+    <p class="article-issue-label">Issue #{{ submission.issue.number }} &mdash; {{ submission.issue.year }}</p>
+    {% endif %}
+
+    <h1 class="article-title">{{ submission.title }}</h1>
+    {% if submission.subtitle %}<p class="article-subtitle">{{ submission.subtitle }}</p>{% endif %}
+    <p class="article-byline">{{ submission.author.display_name }}</p>
+
+    {% if build.document.revision.submission.issue.cover_image %}
+    <figure class="article-hero-image">
+      <img src="{{ build.document.revision.submission.issue.cover_image.url }}" alt="{{ submission.title }}">
+    </figure>
+    {% endif %}
+
+    <!-- Canonical HTML content -->
+    <div class="article-body-content">
+      {{ build.html_content|safe }}
+    </div>
+
+    <!-- PDF download -->
+    <div class="article-downloads">
+      <a href="{% url 'request_pdf' build.document.pk %}?mode=flat" class="btn btn--secondary">Download PDF</a>
+    </div>
+  </main>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/annotations.js' %}"></script>
+{% endblock %}

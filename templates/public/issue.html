@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Issue #{{ issue.number }} — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<section class="issue-header container">
+  <p class="issue-header__label">Issue #{{ issue.number }} &mdash; {{ issue.year }}</p>
+  <h1 class="issue-header__title">{{ issue.title }}</h1>
+  {% if issue.editorial_note %}
+  <div class="issue-header__editorial">
+    <p class="issue-header__editorial-label">Editorial</p>
+    <p>{{ issue.editorial_note }}</p>
+  </div>
+  {% endif %}
+</section>
+
+<section class="issue-articles container">
+  {% for build in articles %}
+  {% with submission=build.document.revision.submission %}
+  <article class="issue-article-row">
+    <div class="issue-article-row__meta">
+      <span class="issue-article-row__type">{{ submission.get_article_type_display }}</span>
+    </div>
+    <div class="issue-article-row__body">
+      <h2 class="issue-article-row__title">
+        <a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a>
+      </h2>
+      {% if submission.subtitle %}<p class="issue-article-row__subtitle">{{ submission.subtitle }}</p>{% endif %}
+      <p class="issue-article-row__author">{{ submission.author.display_name }}</p>
+    </div>
+    <a href="{% url 'article_detail' build.slug %}" class="issue-article-row__arrow">↗</a>
+  </article>
+  {% endwith %}
+  {% empty %}
+  <p>No articles published in this issue yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}New Submission — Step 1 — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="wizard container">
+  <div class="wizard__progress">
+    <span class="wizard__step wizard__step--active">1. Metadata</span>
+    <span class="wizard__step">2. Manuscript</span>
+    <span class="wizard__step">3. Media</span>
+    <span class="wizard__step">4. Declarations</span>
+  </div>
+  <h1 class="wizard__title">New Submission — Article Details</h1>
+  <form method="post" class="form">
+    {% csrf_token %}
+    <div class="form__group">
+      <label class="form__label" for="title">Title <span aria-hidden="true">*</span></label>
+      <input class="form__input" type="text" id="title" name="title" required maxlength="1000">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="subtitle">Subtitle</label>
+      <input class="form__input" type="text" id="subtitle" name="subtitle" maxlength="500">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="article_type">Article Type <span aria-hidden="true">*</span></label>
+      <select class="form__select" id="article_type" name="article_type" required>
+        {% for value, label in article_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="abstract">Abstract <span aria-hidden="true">*</span></label>
+      <textarea class="form__textarea" id="abstract" name="abstract" rows="6" required></textarea>
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="keywords">Keywords (semicolon-separated)</label>
+      <input class="form__input" type="text" id="keywords" name="keywords" placeholder="e.g. artistic research; performance; sound">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="cover_letter">Cover Letter</label>
+      <textarea class="form__textarea" id="cover_letter" name="cover_letter" rows="5"></textarea>
+    </div>
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary">Continue →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

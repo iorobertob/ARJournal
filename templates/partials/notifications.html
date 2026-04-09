@@ -1,0 +1,13 @@
+<div class="notifications-panel">
+  <h2>Notifications</h2>
+  {% for n in notifications %}
+  <div class="notification {% if n.read %}notification--read{% endif %}">
+    <p class="notification__message">{{ n.message }}</p>
+    <p class="notification__time">{{ n.created_at|timesince }} ago</p>
+    {% if n.url %}<a href="{{ n.url }}">View</a>{% endif %}
+  </div>
+  {% empty %}
+  <p>No notifications.</p>
+  {% endfor %}
+  <button hx-post="{% url 'mark_notifications_read' %}" hx-swap="none">Mark all read</button>
+</div>

@@ -16,10 +16,10 @@ class UserRole(models.TextChoices):
 
 
 class User(AbstractUser):
-    """Custom user model: email-based login, role-based access, ORCID linking."""
+    """Custom user model: email-based login, multi-role access, ORCID linking."""
     username = None
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=30, choices=UserRole.choices, default=UserRole.AUTHOR)
+    roles = models.JSONField(default=list, blank=True)
     orcid_id = models.CharField(max_length=50, blank=True, default='')
 
     USERNAME_FIELD = 'email'
@@ -34,18 +34,39 @@ class User(AbstractUser):
             return f'{self.first_name} {self.last_name}'.strip()
         return self.email
 
+    def has_role(self, *role_values):
+        """Return True if the user has any of the given roles."""
+        return bool(set(self.roles or []) & set(role_values))
+
+    @property
+    def primary_role(self):
+        """Return the most privileged role for display purposes."""
+        priority = [
+            UserRole.SYSTEM_ADMIN, UserRole.JOURNAL_ADMIN,
+            UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
+            UserRole.HANDLING_EDITOR, UserRole.EDITORIAL_ASSISTANT,
+            UserRole.PRODUCTION_EDITOR, UserRole.COPYEDITOR,
+            UserRole.REVIEWER, UserRole.AUTHOR,
+        ]
+        for r in priority:
+            if r in (self.roles or []):
+                return r
+        return UserRole.AUTHOR
+
+    def get_roles_display(self):
+        label = dict(UserRole.choices)
+        return [label.get(r, r) for r in (self.roles or [])]
+
     def has_editorial_access(self):
-        return self.role in (
-            UserRole.EDITORIAL_ASSISTANT,
-            UserRole.HANDLING_EDITOR,
-            UserRole.EDITOR_IN_CHIEF,
-            UserRole.MANAGING_EDITOR,
-            UserRole.JOURNAL_ADMIN,
-            UserRole.SYSTEM_ADMIN,
-        )
+        editorial = {
+            UserRole.EDITORIAL_ASSISTANT, UserRole.HANDLING_EDITOR,
+            UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
+            UserRole.JOURNAL_ADMIN, UserRole.SYSTEM_ADMIN,
+        }
+        return bool(editorial & set(self.roles or []))
 
     def has_reviewer_access(self):
-        return self.role == UserRole.REVIEWER or self.has_editorial_access()
+        return self.has_role(UserRole.REVIEWER) or self.has_editorial_access()
 
 
 class UserProfile(models.Model):

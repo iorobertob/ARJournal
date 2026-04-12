@@ -1,15 +1,19 @@
-/* ── Article Reading View ────────────────────────────────────── */
+/* ============================================================
+   Article Reading View
+   Refined typography and layout for long-form academic content
+   ============================================================ */
+
 .article-page { }
 
 .article-layout {
   display: grid;
   grid-template-columns: 240px 1fr;
   gap: var(--spacing-12);
-  padding: var(--spacing-8) var(--spacing-6);
+  padding: var(--spacing-10) var(--spacing-6);
   max-width: 1100px;
 }
 
-/* Sidebar */
+/* ── Sidebar ────────────────────────────────────────────────── */
 .article-sidebar {
   position: sticky;
   top: 80px;
@@ -18,57 +22,103 @@
   padding-right: var(--spacing-4);
 }
 
-.article-toc { margin-bottom: var(--spacing-8); }
+.article-toc { margin-bottom: var(--spacing-10); }
 
 .article-toc__label {
-  font-size: var(--size-xs);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   color: var(--color-muted);
   margin-bottom: var(--spacing-4);
 }
 
-.article-toc ul { list-style: none; display: flex; flex-direction: column; gap: var(--spacing-2); }
+.article-toc ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
 
 .article-toc a {
   font-size: var(--size-sm);
   color: var(--color-muted);
   text-decoration: none;
   line-height: var(--leading-snug);
+  transition: color var(--transition);
 }
 
 .article-toc a:hover { color: var(--color-accent); }
 
-.article-meta-sidebar__label {
-  font-size: var(--size-xs);
+/* ── Meta sidebar ───────────────────────────────────────────── */
+.article-meta-sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Value paragraphs (not labels) */
+.article-meta-sidebar p:not(.article-meta-sidebar__label) {
+  font-size: var(--size-sm);
+  color: var(--color-muted);
+  margin: 0;
+}
+
+/* Section labels — use p.selector to win the specificity battle */
+p.article-meta-sidebar__label {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   color: var(--color-muted);
-  margin-top: var(--spacing-6);
+  margin-top: var(--spacing-8);
   margin-bottom: var(--spacing-2);
 }
 
-.article-meta-sidebar a { font-size: var(--size-sm); text-decoration: none; color: var(--color-text); }
-.article-meta-sidebar p { font-size: var(--size-sm); }
+.article-meta-sidebar a {
+  display: block;
+  font-size: var(--size-sm);
+  text-decoration: none;
+  color: var(--color-text);
+  transition: color var(--transition);
+}
 
-/* Main */
+.article-meta-sidebar a:hover { color: var(--color-accent); }
+
+/* Cite button — matches the link style of the sidebar */
+.article-meta-sidebar__cite-btn {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: var(--size-sm);
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--transition);
+}
+.article-meta-sidebar__cite-btn:hover { color: var(--color-accent); }
+
+/* ── Main Article ───────────────────────────────────────────── */
 .article-main { min-width: 0; }
 
 .article-issue-label {
-  font-size: var(--size-xs);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
   color: var(--color-muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: var(--spacing-2);
+  letter-spacing: 0.1em;
+  margin-bottom: var(--spacing-3);
 }
 
 .article-title {
   font-family: var(--font-serif);
   font-size: var(--size-4xl);
-  line-height: 1.1;
-  margin-bottom: var(--spacing-2);
+  line-height: 1.08;
+  margin-bottom: var(--spacing-3);
+  letter-spacing: -0.02em;
 }
 
 .article-subtitle {
@@ -76,22 +126,23 @@
   font-size: var(--size-xl);
   font-weight: 300;
   color: var(--color-muted);
-  margin-bottom: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+  line-height: var(--leading-snug);
 }
 
 .article-byline {
   font-size: var(--size-base);
   color: var(--color-muted);
-  margin-bottom: var(--spacing-8);
+  margin-bottom: var(--spacing-10);
 }
 
 .article-hero-image {
-  margin-bottom: var(--spacing-8);
+  margin-bottom: var(--spacing-10);
 }
 
 .article-hero-image img { width: 100%; }
 
-/* Body content from canonical HTML */
+/* ── Body Content from Canonical HTML ───────────────────────── */
 .article-body-content {
   font-family: var(--font-serif);
   font-size: var(--size-lg);
@@ -103,31 +154,36 @@
 
 .article-body-content .article-abstract {
   border-left: 3px solid var(--color-accent);
-  padding-left: var(--spacing-4);
-  margin-bottom: var(--spacing-8);
+  padding-left: var(--spacing-6);
+  margin-bottom: var(--spacing-10);
   font-size: var(--size-base);
+  color: var(--color-muted);
+  line-height: var(--leading-loose);
 }
 
 .article-body-content .article-keywords {
-  margin-bottom: var(--spacing-8);
+  margin-bottom: var(--spacing-10);
   font-size: var(--size-sm);
+  font-family: var(--font-sans);
 }
 
 .article-body-content .keyword {
   display: inline-block;
   background: var(--color-surface);
-  padding: 2px var(--spacing-2);
+  padding: 2px var(--spacing-3);
   margin: 2px;
-  border-radius: var(--radius);
+  border-radius: 100px;
   font-size: var(--size-xs);
+  color: var(--color-muted);
 }
 
 .article-body-content .article-heading {
   font-family: var(--font-serif);
   font-weight: 400;
-  margin-top: var(--spacing-12);
-  margin-bottom: var(--spacing-4);
+  margin-top: var(--spacing-16);
+  margin-bottom: var(--spacing-6);
   scroll-margin-top: 80px;
+  letter-spacing: -0.01em;
 }
 
 .article-body-content h1.article-heading { font-size: var(--size-2xl); }
@@ -139,14 +195,15 @@
   margin-bottom: var(--spacing-4);
   scroll-margin-top: 80px;
   cursor: pointer;
+  transition: background var(--transition);
 }
 
-.article-paragraph:hover { background: rgba(232, 107, 31, 0.04); }
-.article-paragraph.annotation-target { background: rgba(232, 107, 31, 0.08); }
+.article-paragraph:hover { background: var(--color-accent-light); }
+.article-paragraph.annotation-target { background: rgba(232,107,31,0.1); }
 
 .para-num {
   position: absolute;
-  left: -2rem;
+  left: -2.5rem;
   top: 0;
   font-size: var(--size-xs);
   color: var(--color-border);
@@ -154,8 +211,9 @@
   user-select: none;
 }
 
+/* ── Figures, Media, Tables ─────────────────────────────────── */
 .article-figure {
-  margin: var(--spacing-8) 0;
+  margin: var(--spacing-10) 0;
 }
 
 .article-figure img { width: 100%; }
@@ -163,72 +221,254 @@
 .figure-caption {
   font-size: var(--size-sm);
   color: var(--color-muted);
-  margin-top: var(--spacing-2);
+  margin-top: var(--spacing-3);
   font-style: italic;
+  font-family: var(--font-sans);
+  line-height: var(--leading-normal);
 }
 
 .figure-credit {
   font-size: var(--size-xs);
-  color: var(--color-muted);
+  color: var(--color-light);
+  font-family: var(--font-sans);
 }
 
 .article-media {
-  margin: var(--spacing-8) 0;
+  margin: var(--spacing-10) 0;
 }
 
 .article-video video,
 .article-audio audio {
   width: 100%;
-  margin-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
 }
 
 .article-table {
   overflow-x: auto;
-  margin: var(--spacing-8) 0;
+  margin: var(--spacing-10) 0;
 }
 
 .article-table table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--size-sm);
+  font-family: var(--font-sans);
 }
 
 .article-table caption {
   font-style: italic;
   color: var(--color-muted);
-  margin-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
   text-align: left;
+  font-size: var(--size-sm);
 }
 
 .article-table th, .article-table td {
-  padding: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-3);
   border: 1px solid var(--color-border);
   text-align: left;
 }
 
-.article-table th { background: var(--color-surface); font-weight: 500; }
+.article-table th {
+  background: var(--color-surface);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
 
 .article-equation {
   overflow-x: auto;
-  padding: var(--spacing-4) 0;
+  padding: var(--spacing-6) 0;
   font-size: var(--size-lg);
 }
 
-.article-downloads {
-  margin-top: var(--spacing-12);
+/* ── Blockquotes (long quotations, 40+ words / 4+ lines) ────── */
+.article-blockquote {
+  margin: var(--spacing-8) 0 var(--spacing-8) var(--spacing-8);
+  padding-left: var(--spacing-6);
+  border-left: 3px solid var(--color-border);
+  font-style: italic;
+  color: var(--color-muted);
+  font-size: var(--size-base);
+}
+
+.article-blockquote p { margin: 0; }
+
+/* ── Inline citations ───────────────────────────────────────── */
+.article-cite {
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--color-muted);
+  font-size: 0.95em;
+}
+
+.article-cite:hover {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+/* ── Footnote sidenotes ─────────────────────────────────────── */
+.fn-wrap { display: inline; }
+
+.fn-ref-num {
+  color: var(--color-accent);
+  font-size: 0.72em;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 0;
+  vertical-align: super;
+  cursor: default;
+}
+
+/* Default (narrow): hide inline sidenotes */
+.fn-note { display: none; }
+
+/* Wide screens: proper margin sidenotes */
+@media (min-width: 1200px) {
+  .article-body-content {
+    max-width: 58ch;
+    overflow: visible;
+  }
+
+  .fn-note {
+    display: block;
+    float: right;
+    clear: right;
+    width: 200px;
+    margin-right: -228px;
+    margin-top: 0.15em;
+    padding-left: var(--spacing-3);
+    border-left: 2px solid var(--color-border);
+    font-size: var(--size-sm);
+    font-family: var(--font-sans);
+    font-style: normal;
+    color: var(--color-muted);
+    line-height: var(--leading-normal);
+  }
+
+  .fn-note__num {
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  /* Hide bottom footnotes section on wide screens */
+  .article-footnotes { display: none !important; }
+}
+
+/* ── Footnotes section (narrow-screen fallback) ──────────────── */
+.article-footnotes {
+  display: block;
+  margin-top: var(--spacing-16);
   padding-top: var(--spacing-8);
   border-top: 1px solid var(--color-border);
 }
 
-/* Annotation overlay */
+.article-footnotes__title {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+  margin-bottom: var(--spacing-4);
+}
+
+.article-footnotes__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.article-footnote {
+  font-size: var(--size-sm);
+  font-family: var(--font-sans);
+  color: var(--color-muted);
+  margin-bottom: var(--spacing-3);
+  line-height: var(--leading-normal);
+  padding-left: 1.6em;
+  position: relative;
+}
+
+.article-footnote .fn-note__num {
+  position: absolute;
+  left: 0;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.fn-back {
+  color: var(--color-accent);
+  text-decoration: none;
+  margin-left: 0.3em;
+  font-size: 0.9em;
+}
+
+.fn-back:hover { text-decoration: underline; }
+
+/* ── Bibliography ───────────────────────────────────────────── */
+.article-bibliography {
+  margin-top: var(--spacing-16);
+  padding-top: var(--spacing-8);
+  border-top: 1px solid var(--color-border);
+}
+
+.article-bibliography h2 {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+  margin-bottom: var(--spacing-6);
+}
+
+.article-bibliography__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.bibliography-item {
+  font-size: var(--size-sm);
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  line-height: var(--leading-normal);
+  margin-bottom: var(--spacing-4);
+  padding-left: 1.5em;
+  text-indent: -1.5em;
+}
+
+.bib-title { font-style: italic; }
+
+.article-cite__doi {
+  font-size: 0.85em;
+  color: var(--color-accent);
+}
+
+.article-bibliography__note {
+  font-size: var(--size-sm);
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+/* ── Downloads ──────────────────────────────────────────────── */
+.article-downloads {
+  margin-top: var(--spacing-16);
+  padding-top: var(--spacing-10);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ── Annotation Overlay ─────────────────────────────────────── */
 .annotation-popup {
   position: absolute;
   background: var(--color-bg);
   border: 1px solid var(--color-accent);
-  padding: var(--spacing-3);
+  padding: var(--spacing-4);
   border-radius: var(--radius);
-  width: 260px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  width: 280px;
+  box-shadow: var(--shadow-lg);
   z-index: 50;
 }
 
@@ -237,9 +477,154 @@
   border: 1px solid var(--color-border);
   padding: var(--spacing-2);
   font-size: var(--size-sm);
+  font-family: var(--font-sans);
   resize: vertical;
   margin-bottom: var(--spacing-2);
+  border-radius: var(--radius);
 }
+
+/* ── Citation modal ─────────────────────────────────────────── */
+.cite-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cite-modal[hidden] { display: none; }
+
+.cite-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.cite-modal.is-open .cite-modal__backdrop { opacity: 1; }
+
+.cite-modal__dialog {
+  position: relative;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) * 2);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  width: min(560px, 92vw);
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  transition: opacity 0.22s, transform 0.22s;
+}
+.cite-modal.is-open .cite-modal__dialog {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.cite-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-5) var(--spacing-6);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.cite-modal__title {
+  font-family: var(--font-serif);
+  font-size: var(--size-lg);
+  font-weight: 400;
+  margin: 0;
+}
+
+.cite-modal__close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  transition: color var(--transition), background var(--transition);
+  line-height: 1;
+}
+.cite-modal__close:hover { color: var(--color-text); background: var(--color-surface); }
+
+/* Tabs */
+.cite-tabs {
+  display: flex;
+  gap: 2px;
+  padding: var(--spacing-3) var(--spacing-6) 0;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  background: var(--color-surface);
+}
+
+.cite-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: 0.78rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+  margin-bottom: -1px;
+}
+.cite-tab:hover { color: var(--color-text); }
+.cite-tab.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+/* Panels */
+.cite-panel { display: none; padding: var(--spacing-5) var(--spacing-6); flex-direction: column; gap: var(--spacing-3); }
+.cite-panel.active { display: flex; }
+
+.cite-panel__format-note {
+  font-size: 0.72rem;
+  font-family: var(--font-sans);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.cite-panel__text {
+  margin: 0;
+  padding: var(--spacing-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-family: 'SF Mono', 'Fira Mono', 'Consolas', monospace;
+  font-size: 0.78rem;
+  line-height: 1.65;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.cite-copy-btn {
+  align-self: flex-end;
+  padding: 6px 18px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--color-accent);
+  background: transparent;
+  color: var(--color-accent);
+  font-size: 0.78rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.cite-copy-btn:hover { background: var(--color-accent); color: #fff; }
+.cite-copy-btn--done { background: #d1fae5; border-color: #059669; color: #059669; }
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 900px) {

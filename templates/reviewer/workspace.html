@@ -45,7 +45,39 @@
       <button class="btn btn--small btn--secondary" id="annotate-toggle">+ Annotate</button>
     </div>
     <div class="workspace-article" id="article-content" data-review-id="{{ review.pk }}">
-      {{ article_html|safe }}
+      {% if article_html %}
+        {{ article_html|safe }}
+      {% else %}
+        <div style="padding:2rem;max-width:60ch;">
+          {% if ingest_error %}
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:0.875rem;color:#991b1b;">
+            <strong>Parse error:</strong> {{ ingest_error }}
+          </div>
+          {% endif %}
+          <p style="font-family:var(--font-serif);font-size:1.05rem;color:var(--color-muted);margin-bottom:1.5rem;">
+            The manuscript HTML view is not available.
+            {% if revision and revision.manuscript_file and not revision.manuscript_file.name|lower|slice:"-4:" == ".tex" %}
+            The uploaded file is not a LaTeX (.tex) file — only LaTeX manuscripts can be rendered inline.
+            {% endif %}
+          </p>
+          {% if revision and revision.manuscript_file %}
+          <a href="{{ revision.manuscript_file.url }}" target="_blank"
+             style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.1rem;background:var(--color-accent);color:#fff;border-radius:6px;text-decoration:none;font-size:0.875rem;font-weight:600;">
+            Download manuscript file
+          </a>
+          {% endif %}
+          {% if revision %}
+          {% for asset in revision.assets.all %}
+          <div style="margin-top:0.75rem;">
+            <a href="{{ asset.file.url }}" target="_blank"
+               style="font-size:0.85rem;color:var(--color-accent);">
+              {{ asset.original_filename|default:asset.file.name }} ({{ asset.kind }})
+            </a>
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
   </main>
 

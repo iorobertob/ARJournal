@@ -1,5 +1,23 @@
-% Artistic Research Journal - BibTeX Template
-% Use this file to manage references for your LaTeX submission
+% Trans/Act Journal — BibTeX Reference Template
+% ─────────────────────────────────────────────────────────────────────────────
+% Manage all your references in this file.
+%
+% Cite in the text with:
+%   \citep{key}        → parenthetical: (Smith, 2024)
+%   \citet{key}        → narrative:     Smith (2024)
+%   \citep[p.~45]{key} → with page:     (Smith, 2024, p. 45)
+%   \citep{key1,key2}  → multiple keys: (Smith, 2024; Brown, 2022)
+%
+% Compile the bibliography with:
+%   pdflatex  arjournal_template
+%   bibtex    arjournal_template
+%   pdflatex  arjournal_template
+%   pdflatex  arjournal_template
+%
+% Upload this .bib file together with your .tex file.
+% ─────────────────────────────────────────────────────────────────────────────
+
+% ── Journal articles ──────────────────────────────────────────────────────────
 
 @article{smith2024art,
   author    = {Smith, Alice and Doe, John},
@@ -13,6 +31,19 @@
   keywords  = {artistic research, multimedia, peer review}
 }
 
+@article{jones2023practice,
+  author    = {Jones, Maria},
+  title     = {Writing Between Practice and Theory},
+  journal   = {Research in Arts and Education},
+  year      = {2023},
+  volume    = {8},
+  number    = {1},
+  pages     = {12--34},
+  doi       = {10.5678/rae.2023.004}
+}
+
+% ── Books ─────────────────────────────────────────────────────────────────────
+
 @book{brown2022practice,
   author    = {Brown, Michael},
   title     = {Practice as Research: Approaches in the Arts},
@@ -22,6 +53,17 @@
   isbn      = {978-1-23456-789-0}
 }
 
+@book{borgdorff2012conflict,
+  author    = {Borgdorff, Henk},
+  title     = {The Conflict of the Faculties: Perspectives on Artistic Research and Academia},
+  publisher = {Leiden University Press},
+  year      = {2012},
+  address   = {Leiden},
+  isbn      = {978-90-8728-151-3}
+}
+
+% ── Book chapters ─────────────────────────────────────────────────────────────
+
 @incollection{lee2023sound,
   author    = {Lee, Sarah},
   title     = {Sound Art and Research Methodologies},
@@ -29,21 +71,80 @@
   editor    = {Green, Paul},
   publisher = {Academic Press},
   year      = {2023},
-  pages     = {120--140}
+  pages     = {120--140},
+  address   = {New York}
 }
+
+@incollection{nelson2013practice,
+  author    = {Nelson, Robin},
+  title     = {Practice-as-Research and the Problem of Knowledge},
+  booktitle = {Practice as Research in the Arts},
+  editor    = {Nelson, Robin},
+  publisher = {Palgrave Macmillan},
+  year      = {2013},
+  pages     = {1--21},
+  address   = {Basingstoke}
+}
+
+% ── Conference proceedings ────────────────────────────────────────────────────
+
+@inproceedings{andersen2022embodied,
+  author    = {Andersen, Lise and Eriksson, Peter},
+  title     = {Embodied Knowledge and Digital Archives},
+  booktitle = {Proceedings of the Society for Artistic Research},
+  year      = {2022},
+  pages     = {88--99},
+  publisher = {SAR},
+  address   = {Vienna}
+}
+
+% ── PhD theses ────────────────────────────────────────────────────────────────
+
+@phdthesis{white2021choreography,
+  author    = {White, Clara},
+  title     = {Choreography as Epistemology: Thinking Through Movement},
+  school    = {University of the Arts London},
+  year      = {2021},
+  address   = {London}
+}
+
+% ── Online resources ──────────────────────────────────────────────────────────
 
 @online{video_example,
   author    = {Garcia, Elena},
-  title     = {Performance Documentation Video},
+  title     = {Performance Documentation: Gesture and Archive},
   year      = {2025},
   url       = {https://example.org/video},
   note      = {Accessed: 2026-04-09}
 }
 
+@online{journalwebsite,
+  author    = {{Trans/Act Editorial Board}},
+  title     = {Trans/Act: Journal of Artistic Research},
+  year      = {2026},
+  url       = {https://trans-act-journal.org},
+  note      = {Accessed: 2026-04-11}
+}
+
+% ── Datasets and supplementary materials ─────────────────────────────────────
+
 @misc{dataset_example,
-  author    = {Nguyen, Linh},
-  title     = {Dataset for Artistic Research Project},
-  year      = {2024},
+  author       = {Nguyen, Linh},
+  title        = {Dataset for Artistic Research Project: Motion Capture Archive},
+  year         = {2024},
   howpublished = {Online repository},
-  url       = {https://example.org/dataset}
+  url          = {https://example.org/dataset},
+  doi          = {10.9999/data.2024.003}
+}
+
+% ── Technical reports ─────────────────────────────────────────────────────────
+
+@techreport{sar2021guidelines,
+  author      = {{Society for Artistic Research}},
+  title       = {Guidelines for Artistic Research Publication},
+  institution = {Society for Artistic Research},
+  year        = {2021},
+  type        = {Technical Report},
+  number      = {SAR-TR-2021-01},
+  address     = {Vienna}
 }

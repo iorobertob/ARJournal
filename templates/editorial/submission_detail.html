@@ -6,75 +6,285 @@
 
 {% block content %}
 <div class="editorial-detail container">
-  <p><a href="{% url 'editorial_dashboard' %}">← Editorial Dashboard</a></p>
+  <p><a href="{% url 'editorial_dashboard' %}">&larr; Editorial Dashboard</a></p>
+
   <div class="editorial-detail__header">
     <h1>{{ submission.title }}</h1>
     <span class="status-badge status-badge--{{ submission.status }}">{{ submission.get_status_display }}</span>
   </div>
+
   <div class="editorial-detail__meta">
-    <p><strong>Author:</strong> {{ submission.author.display_name }} ({{ submission.author.email }})</p>
-    <p><strong>Type:</strong> {{ submission.get_article_type_display }}</p>
-    <p><strong>Submitted:</strong> {{ submission.submission_date|date:"d M Y"|default:"—" }}</p>
-    {% if submission.keywords %}<p><strong>Keywords:</strong> {{ submission.keywords|join:", " }}</p>{% endif %}
+    <p><strong>Author</strong> {{ submission.author.display_name }} ({{ submission.author.email }})</p>
+    <p><strong>Type</strong> {{ submission.get_article_type_display }}</p>
+    <p><strong>Submitted</strong> {{ submission.submission_date|date:"d M Y"|default:"—" }}</p>
+    {% if submission.keywords %}<p><strong>Keywords</strong> {{ submission.keywords|join:", " }}</p>{% endif %}
+    {% if submission.issue %}<p><strong>Issue</strong> #{{ submission.issue.number }} — {{ submission.issue.title|default:submission.issue.year }}</p>{% endif %}
   </div>
+
+  {% if submission.abstract %}
+  <section class="editorial-section">
+    <h2>Abstract</h2>
+    <div style="font-family:var(--font-serif);font-size:var(--size-base);line-height:var(--leading-loose);max-width:70ch;color:var(--color-muted);">
+      {{ submission.abstract }}
+    </div>
+  </section>
+  {% endif %}
 
   <!-- Screening -->
   <section class="editorial-section">
     <h2>Technical Screening</h2>
     {% if screening %}
-    <p>Result: <strong>{{ screening.get_result_display }}</strong> — {{ screening.checked_at|date:"d M Y" }}</p>
-    <p>Notes: {{ screening.notes }}</p>
+    <div class="decision-record">
+      <p>Result: <strong>{{ screening.get_result_display }}</strong> &middot; {{ screening.checked_at|date:"d M Y" }}</p>
+      {% if screening.notes %}<p style="color:var(--color-muted);font-size:var(--size-sm);margin-top:var(--spacing-2);">{{ screening.notes }}</p>{% endif %}
+    </div>
     {% else %}
-    <form method="post" action="{% url 'editorial_screen' submission.pk %}" class="form form--inline">
+    <form method="post" action="{% url 'editorial_screen' submission.pk %}" class="form" style="max-width:600px;">
       {% csrf_token %}
       <div class="form__checkboxes">
         <label><input type="checkbox" name="completeness_ok"> Completeness OK</label>
         <label><input type="checkbox" name="scope_fit_ok"> Scope Fit</label>
         <label><input type="checkbox" name="ethics_ok"> Ethics OK</label>
       </div>
-      <textarea class="form__textarea" name="notes" placeholder="Screening notes..." rows="3"></textarea>
-      <select name="result" class="form__select" required>
-        <option value="">-- Select outcome --</option>
-        <option value="pass_to_desk">Pass to Desk Review</option>
-        <option value="return_to_author">Return to Author</option>
-        <option value="reject">Reject</option>
-      </select>
-      <button type="submit" class="btn btn--primary">Save Screening</button>
+      <div class="form__group">
+        <label class="form__label">Notes</label>
+        <textarea class="form__textarea" name="notes" placeholder="Screening notes..." rows="3"></textarea>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Outcome</label>
+        <select name="result" class="form__select" required>
+          <option value="">-- Select outcome --</option>
+          <option value="pass_to_desk">Pass to Desk Review</option>
+          <option value="return_to_author">Return to Author</option>
+          <option value="reject">Reject</option>
+        </select>
+      </div>
+      <div class="form__actions">
+        <button type="submit" class="btn btn--primary">Save Screening</button>
+      </div>
     </form>
     {% endif %}
   </section>
 
-  <!-- Reviewer suggestions -->
-  <section class="editorial-section">
-    <h2>Reviewer Suggestions</h2>
-    {% if suggestions %}
-    <div class="reviewer-suggestions">
-      {% for sug in suggestions %}
-      <div class="suggestion-card {% if not sug.is_primary %}suggestion-card--alternate{% endif %}">
-        <div class="suggestion-card__header">
-          <strong>{{ sug.reviewer.display_name }}</strong>
-          <span class="suggestion-score">{{ sug.score }}/100</span>
-          {% if not sug.is_primary %}<span class="badge badge--alt">Alternate</span>{% endif %}
-        </div>
-        <p class="suggestion-card__rationale">{{ sug.rationale }}</p>
-        <p class="suggestion-card__status">{{ sug.get_status_display }}</p>
-        {% if sug.status == 'suggested' %}
-        <a href="{% url 'approve_reviewer' sug.pk %}" class="btn btn--small btn--primary">Approve</a>
-        {% endif %}
-      </div>
-      {% endfor %}
+  <!-- Editor Assignments -->
+  <section class="editorial-section" x-data="editorAssignPanel({{ submission.pk }})">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--spacing-4);">
+      <h2 style="margin:0;">Editor Assignment</h2>
+      <button type="button" class="btn btn--small btn--secondary" @click="open = !open">
+        + Assign Editor
+      </button>
     </div>
+
+    {% if assignments %}
+    <table class="jadmin-table" style="margin-bottom:var(--spacing-4);">
+      <thead>
+        <tr><th>Editor</th><th>Role</th><th>Assigned</th><th>Active</th></tr>
+      </thead>
+      <tbody>
+        {% for asgn in assignments %}
+        <tr>
+          <td>{{ asgn.editor.display_name }} <span style="font-size:0.75rem;color:var(--color-muted);">({{ asgn.editor.email }})</span></td>
+          <td style="font-size:var(--size-sm);">{{ asgn.get_role_display }}</td>
+          <td style="font-size:var(--size-sm);">{{ asgn.assigned_at|date:"d M Y" }}</td>
+          <td style="font-size:var(--size-sm);">{% if asgn.is_active %}<span style="color:#16a34a;">Active</span>{% else %}<span style="color:var(--color-muted);">Ended</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:var(--color-muted);font-size:var(--size-sm);margin-bottom:var(--spacing-4);">No editor assigned yet.</p>
     {% endif %}
-    <a href="{% url 'generate_suggestions' submission.pk %}" class="btn btn--secondary">Generate / Refresh Suggestions</a>
-    {% if suggestions %}
-    <form method="post" action="{% url 'send_invitations' submission.pk %}" class="form form--inline" style="margin-top:1rem">
-      {% csrf_token %}
-      <label class="form__label">Review Deadline:</label>
-      <input type="date" name="deadline" class="form__input" required>
-      <button type="submit" class="btn btn--primary">Send Invitations to Approved Reviewers</button>
-    </form>
-    {% endif %}
+
+    <!-- Assign editor form (toggled) -->
+    <div x-show="open" x-cloak style="background:#f9f9f9;border:1px solid var(--color-border);border-radius:8px;padding:1.25rem;max-width:580px;">
+      <h3 style="margin:0 0 var(--spacing-3);font-size:0.95rem;">Assign an editor to supervise review</h3>
+      <input type="text" x-model="query" @input.debounce.300ms="search()"
+             placeholder="Search editors by name or email…"
+             style="width:100%;padding:0.5rem 0.75rem;border:1px solid var(--color-border);border-radius:6px;font-size:0.875rem;box-sizing:border-box;margin-bottom:0.75rem;"
+             x-ref="editorSearch">
+      <div style="max-height:200px;overflow-y:auto;border:1px solid var(--color-border);border-radius:6px;margin-bottom:var(--spacing-3);">
+        <template x-if="loading">
+          <p style="padding:1rem;text-align:center;color:var(--color-muted);font-size:0.875rem;">Searching…</p>
+        </template>
+        <template x-if="!loading && results.length === 0">
+          <p style="padding:1rem;text-align:center;color:var(--color-muted);font-size:0.875rem;">
+            <span x-text="query.length > 0 ? 'No editors found.' : 'Start typing to search.'"></span>
+          </p>
+        </template>
+        <template x-for="e in results" :key="e.id">
+          <div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0.75rem;cursor:pointer;border-bottom:1px solid var(--color-border);"
+               :style="selectedId === e.id ? 'background:#fff7f2;' : ''"
+               @click="selectEditor(e)">
+            <div style="flex:1;">
+              <div style="font-weight:600;font-size:0.875rem;" x-text="e.name"></div>
+              <div style="font-size:0.75rem;color:var(--color-muted);" x-text="e.roles + ' · ' + e.email"></div>
+            </div>
+            <span x-show="selectedId === e.id" style="color:var(--color-accent);font-weight:600;font-size:0.8rem;">&#10003; Selected</span>
+          </div>
+        </template>
+      </div>
+      <form method="post" action="{% url 'assign_editor' submission.pk %}"
+            style="display:flex;gap:var(--spacing-3);align-items:flex-end;flex-wrap:wrap;"
+            @submit="if(!selectedId){ $event.preventDefault(); showAlert('Please select an editor.'); }">
+        {% csrf_token %}
+        <input type="hidden" name="editor_id" :value="selectedId">
+        <div class="form__group" style="margin:0;">
+          <label class="form__label" style="font-size:var(--size-sm);">Role</label>
+          <select name="role" class="form__select" style="font-size:var(--size-sm);padding:0.4rem 0.6rem;">
+            <option value="handling_editor">Handling Editor</option>
+            <option value="managing_editor">Managing Editor</option>
+            <option value="editor_in_chief">Editor-in-Chief</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn--primary btn--small" :disabled="!selectedId">Assign Editor</button>
+        <button type="button" class="btn btn--secondary btn--small" @click="open = false">Cancel</button>
+      </form>
+    </div>
   </section>
+
+  <script>
+  function editorAssignPanel(submissionPk) {
+    return {
+      open: false,
+      query: '',
+      results: [],
+      loading: false,
+      selectedId: null,
+      async search() {
+        this.loading = true;
+        const url = `/editorial/submission/${submissionPk}/editors/search/?q=${encodeURIComponent(this.query)}`;
+        const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const data = await resp.json();
+        this.results = data.results;
+        this.loading = false;
+      },
+      selectEditor(e) { this.selectedId = e.id; },
+    };
+  }
+  </script>
+
+  <!-- Reviewer Suggestions -->
+  <section class="editorial-section" x-data="reviewerPanel({{ submission.pk }})">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--spacing-4);">
+      <h2 style="margin:0;">Reviewer Suggestions</h2>
+      <div style="display:flex;gap:var(--spacing-2);">
+        <button type="button" class="btn btn--secondary btn--small"
+                id="refresh-suggestions-btn"
+                onclick="refreshSuggestions(this, '{% url 'generate_suggestions' submission.pk %}')">
+          Refresh Suggestions
+        </button>
+        {% with active_count=suggestions|length %}
+        {% if active_count < 5 %}
+        <button type="button" class="btn btn--primary btn--small" @click="openAddModal(null)">+ Add Reviewer</button>
+        {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+
+    <div id="suggestions-body">
+      {% include 'editorial/_suggestion_cards.html' %}
+    </div>
+
+    <!-- Add / Replace Reviewer Modal -->
+    <div x-show="modalOpen" x-cloak
+         style="position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);"
+         @click.self="closeModal()">
+      <div style="background:#fff;border-radius:12px;width:min(600px,95vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+        <!-- Modal header -->
+        <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;">
+          <h3 style="margin:0;font-family:var(--font-serif);font-size:1.1rem;" x-text="replacePk ? 'Replace Reviewer' : 'Add Reviewer'"></h3>
+          <button @click="closeModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--color-muted);">&times;</button>
+        </div>
+        <!-- Search -->
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--color-border);">
+          <input type="text" x-model="query" @input.debounce.300ms="search()"
+                 placeholder="Search by name, email or expertise…"
+                 style="width:100%;padding:0.55rem 0.75rem;border:1px solid var(--color-border);border-radius:6px;font-size:0.9rem;box-sizing:border-box;"
+                 x-ref="searchInput">
+        </div>
+        <!-- Results list -->
+        <div style="overflow-y:auto;flex:1;padding:0.5rem 0;">
+          <template x-if="loading">
+            <p style="padding:1.5rem;text-align:center;color:var(--color-muted);font-size:0.875rem;">Searching…</p>
+          </template>
+          <template x-if="!loading && results.length === 0 && query.length > 0">
+            <p style="padding:1.5rem;text-align:center;color:var(--color-muted);font-size:0.875rem;">No reviewers found.</p>
+          </template>
+          <template x-if="!loading && results.length === 0 && query.length === 0">
+            <p style="padding:1.5rem;text-align:center;color:var(--color-muted);font-size:0.875rem;">Start typing to search reviewers.</p>
+          </template>
+          <template x-for="r in results" :key="r.id">
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem 1.5rem;cursor:pointer;border-bottom:1px solid var(--color-border);"
+                 :style="selectedId === r.id ? 'background:#fff7f2;' : ''"
+                 @click="selectReviewer(r)">
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:0.9rem;" x-text="r.name"></div>
+                <div style="font-size:0.75rem;color:var(--color-muted);" x-text="r.email"></div>
+              </div>
+              <div style="flex:2;min-width:0;">
+                <div style="font-size:0.78rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" x-text="r.expertise || '—'"></div>
+              </div>
+              <div style="flex-shrink:0;">
+                <span x-show="selectedId === r.id" style="color:var(--color-accent);font-weight:600;font-size:0.85rem;">&#10003; Selected</span>
+              </div>
+            </div>
+          </template>
+        </div>
+        <!-- Footer -->
+        <div style="padding:1rem 1.5rem;border-top:1px solid var(--color-border);display:flex;justify-content:flex-end;gap:0.75rem;">
+          <button @click="closeModal()" class="btn btn--secondary btn--small">Cancel</button>
+          <form method="post" :action="formAction" @submit="if(!selectedId){ $event.preventDefault(); showAlert('Please select a reviewer.'); }">
+            {% csrf_token %}
+            <input type="hidden" name="reviewer_id" :value="selectedId">
+            <input type="hidden" name="replace_suggestion_pk" :value="replacePk || ''">
+            <button type="submit" class="btn btn--primary btn--small" :disabled="!selectedId"
+                    x-text="replacePk ? 'Confirm Replace' : 'Add to List'"></button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+  function reviewerPanel(submissionPk) {
+    return {
+      modalOpen: false,
+      replacePk: null,
+      query: '',
+      results: [],
+      loading: false,
+      selectedId: null,
+      selectedName: '',
+      get formAction() {
+        return `/review/suggest/${submissionPk}/add/`;
+      },
+      openAddModal(replacePk) {
+        this.replacePk = replacePk;
+        this.query = '';
+        this.results = [];
+        this.selectedId = null;
+        this.modalOpen = true;
+        this.$nextTick(() => this.$refs.searchInput && this.$refs.searchInput.focus());
+        this.search();
+      },
+      closeModal() {
+        this.modalOpen = false;
+      },
+      async search() {
+        this.loading = true;
+        const url = `/review/suggest/${submissionPk}/search/?q=${encodeURIComponent(this.query)}`;
+        const resp = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+        const data = await resp.json();
+        this.results = data.results;
+        this.loading = false;
+      },
+      selectReviewer(r) {
+        this.selectedId = r.id;
+        this.selectedName = r.name;
+      },
+    };
+  }
+  </script>
 
   <!-- Reviews -->
   {% if reviews %}
@@ -82,8 +292,10 @@
     <h2>Reviews</h2>
     {% for review in reviews %}
     <div class="review-summary">
-      <p><strong>{{ review.reviewer.display_name }}</strong> — {{ review.get_status_display }}</p>
-      {% if review.recommendation %}<p>Recommendation: <strong>{{ review.get_recommendation_display }}</strong></p>{% endif %}
+      <div>
+        <p><strong>{{ review.reviewer.display_name }}</strong> &middot; <span class="status-badge status-badge--{{ review.status }}">{{ review.get_status_display }}</span></p>
+        {% if review.recommendation %}<p style="margin-top:var(--spacing-1);">Recommendation: <strong>{{ review.get_recommendation_display }}</strong></p>{% endif %}
+      </div>
       {% if review.status == 'submitted' or review.status == 'moderation_required' %}
       <a href="{% url 'moderate_review' review.pk %}" class="btn btn--small btn--secondary">Moderate</a>
       {% endif %}
@@ -98,17 +310,19 @@
     {% if decisions %}
     {% for dec in decisions %}
     <div class="decision-record">
-      <p>Round {{ dec.round }}: <strong>{{ dec.get_decision_type_display }}</strong> — {{ dec.sent_at|date:"d M Y" }}</p>
+      <p>Round {{ dec.round }}: <strong>{{ dec.get_decision_type_display }}</strong> &middot; {{ dec.sent_at|date:"d M Y" }}</p>
+      {% if dec.letter %}<p style="font-size:var(--size-sm);color:var(--color-muted);margin-top:var(--spacing-2);">{{ dec.letter|truncatewords:30 }}</p>{% endif %}
     </div>
     {% endfor %}
     {% endif %}
-    <details class="decision-form-details">
+    <details class="decision-form-details" style="margin-top:var(--spacing-4);">
       <summary>Record a Decision</summary>
-      <form method="post" action="{% url 'editorial_decide' submission.pk %}" class="form">
+      <form method="post" action="{% url 'editorial_decide' submission.pk %}" class="form" style="margin-top:var(--spacing-4);max-width:600px;">
         {% csrf_token %}
         <div class="form__group">
           <label class="form__label">Decision Type</label>
           <select class="form__select" name="decision_type" required>
+            <option value="">-- Select --</option>
             <option value="accept">Accept</option>
             <option value="minor_revision">Minor Revision</option>
             <option value="major_revision">Major Revision</option>
@@ -118,17 +332,19 @@
         </div>
         <div class="form__group">
           <label class="form__label">Decision Letter</label>
-          <textarea class="form__textarea" name="letter" rows="8"></textarea>
+          <textarea class="form__textarea" name="letter" rows="6" placeholder="Write the editorial decision letter to the author..."></textarea>
         </div>
         <div class="form__group">
           <label class="form__label">Priority Issues</label>
-          <textarea class="form__textarea" name="priority_issues" rows="4"></textarea>
+          <textarea class="form__textarea" name="priority_issues" rows="3" placeholder="Key issues the author must address..."></textarea>
         </div>
         <div class="form__group">
           <label class="form__label">Instructions to Author</label>
-          <textarea class="form__textarea" name="instructions_to_author" rows="4"></textarea>
+          <textarea class="form__textarea" name="instructions_to_author" rows="3" placeholder="Specific revision instructions..."></textarea>
         </div>
-        <button type="submit" class="btn btn--primary">Send Decision</button>
+        <div class="form__actions">
+          <button type="submit" class="btn btn--primary">Send Decision</button>
+        </div>
       </form>
     </details>
   </section>
@@ -137,10 +353,69 @@
   {% if revision %}
   <section class="editorial-section">
     <h2>Production</h2>
-    {% if revision.canonical_document %}
-    <p>Canonical document: ready</p>
-    <a href="{% url 'build_html' revision.canonical_document.pk %}" class="btn btn--secondary">Rebuild HTML</a>
-    <a href="{% url 'publish_article' revision.canonical_document.pk %}" class="btn btn--primary" onclick="return confirm('Publish this article?')">Publish</a>
+    {% if canonical_doc %}
+
+    <!-- Build status -->
+    <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-4);margin-bottom:var(--spacing-4);">
+      {% if build %}
+        <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;">
+          {% if build.is_published %}
+            <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600;color:#16a34a;">
+              &#10003; Published
+            </span>
+            {% if build.published_at %}
+            <span style="color:var(--color-muted);font-size:var(--size-sm);">{{ build.published_at|date:"d M Y, H:i" }}</span>
+            {% endif %}
+            <span style="color:var(--color-muted);font-size:var(--size-sm);">· Access: {{ build.access_mode|title }}</span>
+          {% else %}
+            <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600;color:#d97706;">
+              &#9679; HTML built — not yet published
+            </span>
+            <span style="color:var(--color-muted);font-size:var(--size-sm);">Built {{ build.built_at|date:"d M Y, H:i" }}</span>
+          {% endif %}
+        </div>
+      {% else %}
+        <span style="color:var(--color-muted);font-size:var(--size-sm);">&#9675; No HTML build yet</span>
+      {% endif %}
+    </div>
+
+    <!-- Actions row -->
+    <div style="display:flex;flex-wrap:wrap;gap:var(--spacing-3);align-items:center;">
+
+      <!-- Rebuild HTML (GET is fine — build_html view has no method guard) -->
+      <a href="{% url 'build_html' canonical_doc.pk %}" class="btn btn--secondary">
+        {% if build %}Rebuild HTML{% else %}Build HTML{% endif %}
+      </a>
+
+      <!-- Publish — must be POST -->
+      {% if build and not build.is_published %}
+      <form method="post" action="{% url 'publish_article' canonical_doc.pk %}" style="display:inline;"
+            data-confirm="Publish this article publicly?">
+        {% csrf_token %}
+        <input type="hidden" name="access_mode" value="open">
+        <button type="submit" class="btn btn--primary">Publish</button>
+      </form>
+      {% endif %}
+
+      <!-- View HTML (once built) -->
+      {% if build %}
+      <a href="{% url 'admin_preview' canonical_doc.pk %}" target="_blank" class="btn btn--secondary">
+        View HTML ↗
+      </a>
+      {% endif %}
+
+      <!-- PDF downloads (once built) -->
+      {% if build %}
+      <a href="{% url 'admin_request_pdf' canonical_doc.pk %}?mode=flat" class="btn btn--secondary">
+        ↓ Flat PDF
+      </a>
+      <a href="{% url 'admin_request_pdf' canonical_doc.pk %}?mode=interactive" class="btn btn--secondary">
+        ↓ Rich PDF
+      </a>
+      {% endif %}
+
+    </div>
+
     {% else %}
     <form method="post" action="/api/v1/submissions/{{ submission.pk }}/ingest/">
       {% csrf_token %}
@@ -151,4 +426,36 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function refreshSuggestions(btn, url) {
+  var original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+
+  fetch(url, {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(function(data) {
+    var body = document.getElementById('suggestions-body');
+    body.innerHTML = data.html;
+    // Flash to confirm the update ran
+    body.style.transition = 'opacity 0.15s';
+    body.style.opacity = '0.3';
+    setTimeout(function() { body.style.opacity = '1'; }, 150);
+    btn.textContent = '✓ Done';
+    setTimeout(function() { btn.textContent = original; btn.disabled = false; }, 1200);
+  })
+  .catch(function(err) {
+    btn.textContent = original;
+    btn.disabled = false;
+  });
+}
+</script>
 {% endblock %}

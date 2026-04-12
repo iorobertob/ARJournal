@@ -8,6 +8,21 @@ from .models import HTMLBuild, PDFExport, DOIDeposit
 from apps.documents.models import CanonicalDocument
 
 
+def _dispatch_task(task, *args):
+    """
+    Run a Celery task synchronously in dev, async in production.
+
+    CELERY_TASK_ALWAYS_EAGER was removed in Celery 5 — calling .delay() always
+    tries to reach a real broker even in dev. Use task.apply() to run inline
+    without a broker when the setting is True.
+    """
+    from django.conf import settings
+    if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
+        task.apply(args=args)
+    else:
+        task.delay(*args)
+
+
 def editorial_required(view_func):
     from functools import wraps
     @wraps(view_func)
@@ -55,6 +70,41 @@ def publish_article(request, document_pk):
     return redirect('editorial_submission', pk=doc.revision.submission.pk)
 
 
+@editorial_required
+def admin_preview(request, document_pk):
+    """Admin HTML preview — works for any build, published or not."""
+    doc = get_object_or_404(CanonicalDocument, pk=document_pk)
+    build = get_object_or_404(HTMLBuild, document=doc)
+    submission = doc.revision.submission
+    toc = build.table_of_contents or []
+    return render(request, 'public/article.html', {
+        'build': build,
+        'submission': submission,
+        'toc': toc,
+        'admin_preview': True,
+    })
+
+
+@editorial_required
+def admin_request_pdf(request, document_pk):
+    """Admin PDF generation — works for any built article, published or not."""
+    from datetime import timedelta
+    from django.http import HttpResponseRedirect
+    from django.urls import reverse
+    doc = get_object_or_404(CanonicalDocument, pk=document_pk)
+    get_object_or_404(HTMLBuild, document=doc)  # must have a build
+    mode = request.GET.get('mode', 'flat')
+    exp = PDFExport.objects.create(
+        document=doc,
+        mode=mode,
+        expires_at=timezone.now() + timedelta(minutes=30),
+    )
+    from .tasks import generate_pdf
+    _dispatch_task(generate_pdf, exp.pk)
+    exp.refresh_from_db()
+    return HttpResponseRedirect(reverse('download_pdf', args=[exp.download_token]))
+
+
 def request_pdf(request, document_pk):
     """Request an ephemeral PDF export."""
     doc = get_object_or_404(CanonicalDocument, pk=document_pk)
@@ -66,8 +116,12 @@ def request_pdf(request, document_pk):
         expires_at=timezone.now() + timedelta(minutes=30),
     )
     from .tasks import generate_pdf
-    generate_pdf.delay(exp.pk)
-    return render(request, 'public/pdf_pending.html', {'export': exp, 'build': build})
+    _dispatch_task(generate_pdf, exp.pk)
+    exp.refresh_from_db()
+    return render(request, 'public/pdf_pending.html', {
+        'export': exp,
+        'build': build,
+    })
 
 
 def download_pdf(request, token):

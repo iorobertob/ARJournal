@@ -3,3 +3,6 @@ from django.apps import AppConfig
 class ReviewersConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'apps.reviewers'
+
+    def ready(self):
+        import apps.reviewers.signals  # noqa: F401

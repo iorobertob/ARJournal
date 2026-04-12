@@ -1,0 +1,12 @@
+Welcome to Trans/Act: Journal of Artistic Research.
+
+To activate your account, please confirm your email address by visiting the link below:
+
+{{ activate_url }}
+
+This link will expire in {{ expiration_days }} day{{ expiration_days|pluralize }}.
+
+If you did not create an account with Trans/Act, you can safely ignore this message.
+
+The Trans/Act Editorial Office
+https://trans-act-journal.org

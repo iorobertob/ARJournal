@@ -46,14 +46,17 @@ WEIGHTS = {
 }
 
 MAX_ACTIVE_INVITATIONS = 3   # hard overload threshold
-TEMPERATURE = 0.15           # randomness injected into final selection
+TEMPERATURE = 0.25           # randomness injected into final selection
 
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
-def suggest_reviewers(submission, n_primary=3, n_alternates=3) -> dict:
+def suggest_reviewers(submission, n_primary=3, n_alternates=3, excluded_pks=None) -> dict:
     """
     Return top reviewer suggestions for a submission.
+
+    Args:
+        excluded_pks: set of user PKs to exclude (manually removed reviewers)
 
     Returns:
         {
@@ -62,10 +65,11 @@ def suggest_reviewers(submission, n_primary=3, n_alternates=3) -> dict:
         }
     """
     from apps.reviewers.models import ReviewerProfile
+    excluded_pks = excluded_pks or set()
     profiles = ReviewerProfile.objects.filter(
         is_active=True,
         is_suspended=False,
-    ).select_related('user')
+    ).select_related('user').exclude(user_id__in=excluded_pks)
 
     sub_meta = _build_submission_meta(submission)
     scored = []
@@ -143,7 +147,9 @@ def _compute_score(profile, sub_meta: dict) -> tuple[dict, float]:
     breakdown['artistic_medium_match'] = _overlap_score(rev_med, sub_meta['artistic_mediums'])
 
     # 6. Semantic similarity (AI layer — zero if disabled)
-    if getattr(settings, 'AI_FEATURES_ENABLED', False) and settings.OPENAI_API_KEY:
+    from apps.journal.models import JournalConfig
+    _cfg = JournalConfig.get()
+    if _cfg.ai_features_enabled and _cfg.openai_api_key:
         breakdown['semantic_similarity'] = _openai_similarity(
             profile.expertise_statement, sub_meta['abstract']
         )
@@ -214,13 +220,19 @@ def _check_hard_exclusions(profile, submission) -> str | None:
 
 def _temperature_select(pool: list, n: int) -> list:
     """Weighted random selection with temperature to avoid always picking top-N."""
+    if not pool:
+        return []
+    # Always apply noise — even when pool ≤ n so the order varies across refreshes
+    noisy = [(max(0.01, item['score'] + random.gauss(0, TEMPERATURE * 100)), item)
+             for item in pool]
+    noisy.sort(key=lambda x: x[0], reverse=True)
+    shuffled = [item for _, item in noisy]
     if len(pool) <= n:
-        return pool[:]
-    scores = [item['score'] for item in pool]
-    # Add temperature noise
-    weights = [max(0.01, s + random.gauss(0, TEMPERATURE * 100)) for s in scores]
+        return shuffled  # return all, but in noise-shuffled order
+    # Weighted sampling without replacement from the noise-adjusted list
+    weights = [w for w, _ in noisy]
     selected = []
-    available = list(range(len(pool)))
+    available = list(range(len(shuffled)))
     for _ in range(n):
         if not available:
             break
@@ -237,7 +249,7 @@ def _temperature_select(pool: list, n: int) -> list:
                 if r <= cum:
                     idx = i
                     break
-        selected.append(pool[idx])
+        selected.append(shuffled[idx])
         available.remove(idx)
     return selected
 
@@ -335,7 +347,8 @@ def _openai_similarity(text_a: str, text_b: str) -> float:
         return 0.0
     try:
         import openai
-        client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        from apps.journal.models import JournalConfig
+        client = openai.OpenAI(api_key=JournalConfig.get().openai_api_key)
         resp = client.embeddings.create(input=[text_a, text_b], model='text-embedding-3-small')
         va = resp.data[0].embedding
         vb = resp.data[1].embedding

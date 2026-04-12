@@ -1,7 +1,9 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
+from django.http import JsonResponse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from apps.submissions.models import Submission, SubmissionStatus
 from .models import EditorialAssignment, ScreeningCheck, EditorialDecision, DecisionType
 
@@ -26,12 +28,31 @@ def editorial_dashboard(request):
     under_review = Submission.objects.filter(status=SubmissionStatus.UNDER_REVIEW)
     revision_pending = Submission.objects.filter(status=SubmissionStatus.REVISION_REQUESTED)
     accepted = Submission.objects.filter(status=SubmissionStatus.ACCEPTED)
+
+    # Submissions this editor is actively supervising
+    my_assignments = (
+        EditorialAssignment.objects
+        .filter(editor=request.user, is_active=True)
+        .select_related('submission', 'submission__author')
+        .order_by('-assigned_at')
+    )
+
+    # Full assignment history for this editor (for the history panel)
+    my_assignment_history = (
+        EditorialAssignment.objects
+        .filter(editor=request.user)
+        .select_related('submission', 'submission__author')
+        .order_by('-assigned_at')
+    )
+
     return render(request, 'editorial/dashboard.html', {
         'screening_queue': screening_queue,
         'desk_queue': desk_queue,
         'under_review': under_review,
         'revision_pending': revision_pending,
         'accepted': accepted,
+        'my_assignments': my_assignments,
+        'my_assignment_history': my_assignment_history,
     })
 
 
@@ -47,6 +68,16 @@ def submission_detail(request, pk):
     invitations = ReviewerInvitation.objects.filter(submission=submission)
     from apps.reviews.models import Review
     reviews = Review.objects.filter(invitation__submission=submission)
+    # Production state
+    build = None
+    canonical_doc = None
+    if revision:
+        try:
+            canonical_doc = revision.canonical_document
+            build = getattr(canonical_doc, 'html_build', None)
+        except Exception:
+            pass
+
     return render(request, 'editorial/submission_detail.html', {
         'submission': submission,
         'revision': revision,
@@ -56,6 +87,8 @@ def submission_detail(request, pk):
         'suggestions': suggestions,
         'invitations': invitations,
         'reviews': reviews,
+        'build': build,
+        'canonical_doc': canonical_doc,
     })
 
 
@@ -113,6 +146,73 @@ def record_decision(request, pk):
         submission.status = new_status
         submission.save()
         from apps.notifications.tasks import notify_decision_sent
-        notify_decision_sent.delay(decision.pk)
+        notify_decision_sent(decision.pk)
         messages.success(request, f'Decision recorded: {decision.get_decision_type_display()}')
     return redirect('editorial_submission', pk=pk)
+
+
+@editorial_required
+@require_POST
+def assign_editor(request, submission_pk):
+    """Assign an editor to supervise the review process for a submission."""
+    submission = get_object_or_404(Submission, pk=submission_pk)
+    from apps.accounts.models import User
+    editor = get_object_or_404(User, pk=request.POST.get('editor_id'))
+    role = request.POST.get('role', 'handling_editor')
+
+    # Deactivate any existing assignment for this submission + role
+    EditorialAssignment.objects.filter(
+        submission=submission, role=role, is_active=True
+    ).update(is_active=False)
+
+    EditorialAssignment.objects.create(
+        submission=submission,
+        editor=editor,
+        role=role,
+    )
+
+    from apps.notifications.models import AuditEvent
+    AuditEvent.objects.create(
+        submission=submission,
+        actor=request.user,
+        event_type='editor_assigned',
+        payload={'note': f'{request.user.display_name} assigned {editor.display_name} as {role}'},
+    )
+    asgn = EditorialAssignment.objects.filter(submission=submission, editor=editor, is_active=True).last()
+    role_label = asgn.get_role_display() if asgn else role
+    messages.success(request, f'{editor.display_name} assigned as {role_label}.')
+    return redirect('editorial_submission', pk=submission_pk)
+
+
+@editorial_required
+def editor_search_json(request, submission_pk):
+    """Autocomplete JSON endpoint: returns editorial users matching ?q= query."""
+    from apps.accounts.models import User, UserRole
+    from django.db.models import Q
+    get_object_or_404(Submission, pk=submission_pk)  # access check
+    q = request.GET.get('q', '').strip()
+
+    qs = User.objects.filter(
+        Q(roles__contains=UserRole.HANDLING_EDITOR) |
+        Q(roles__contains=UserRole.MANAGING_EDITOR) |
+        Q(roles__contains=UserRole.EDITOR_IN_CHIEF) |
+        Q(roles__contains=UserRole.EDITORIAL_ASSISTANT),
+        is_active=True,
+    )
+    if q:
+        qs = qs.filter(
+            Q(first_name__icontains=q) |
+            Q(last_name__icontains=q) |
+            Q(email__icontains=q)
+        ).distinct()
+
+    results = [
+        {
+            'id': u.pk,
+            'name': u.display_name,
+            'email': u.email,
+            'roles': ', '.join(u.get_roles_display()),
+        }
+        for u in qs[:30]
+    ]
+    return JsonResponse({'results': results})

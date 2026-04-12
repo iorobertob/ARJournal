@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Confirm your email — Trans/Act</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f3ef;font-family:Georgia,'Times New Roman',serif;-webkit-font-smoothing:antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f3ef;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+          <tr><td style="background-color:#E86B1F;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+          <tr>
+            <td style="padding:32px 40px 20px;">
+              <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:bold;color:#1A1A1A;letter-spacing:-0.02em;">Trans/Act</p>
+              <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#999999;text-transform:uppercase;letter-spacing:0.14em;">Journal of Artistic Research</p>
+            </td>
+          </tr>
+          <tr><td style="padding:0 40px;"><hr style="border:none;border-top:1px solid #e8e7e3;margin:0;"></td></tr>
+          <tr>
+            <td style="padding:32px 40px;">
+              <p style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:15px;color:#1A1A1A;line-height:1.75;">Welcome to <strong>Trans/Act: Journal of Artistic Research</strong>.</p>
+              <p style="margin:0 0 20px;font-family:Georgia,'Times New Roman',serif;font-size:15px;color:#1A1A1A;line-height:1.75;">To activate your account, please confirm your email address by clicking the button below.</p>
+              <table cellpadding="0" cellspacing="0" border="0" style="margin:8px 0;">
+                <tr>
+                  <td style="background-color:#E86B1F;border-radius:6px;">
+                    <a href="{{ activate_url }}" style="display:inline-block;padding:11px 22px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:6px;">Confirm email address</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:20px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#888888;line-height:1.6;">This link expires in {{ expiration_days }} day{{ expiration_days|pluralize }}. If the button does not work, copy and paste this URL into your browser:<br>
+              <a href="{{ activate_url }}" style="color:#E86B1F;text-decoration:none;word-break:break-all;">{{ activate_url }}</a></p>
+              <p style="margin:20px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#999999;line-height:1.6;">If you did not create an account with Trans/Act, you can safely ignore this message.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 40px 32px;border-top:1px solid #e8e7e3;">
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#999999;line-height:1.65;">
+                Trans/Act: Journal of Artistic Research &mdash;
+                <a href="https://trans-act-journal.org" style="color:#E86B1F;text-decoration:none;">trans-act-journal.org</a><br>
+                This is an automated message. Please do not reply to this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

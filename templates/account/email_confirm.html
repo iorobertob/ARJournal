@@ -8,17 +8,19 @@
 </div>
 
 {% if confirmation %}
-<p style="color:var(--color-muted);font-size:0.9rem;text-align:center;margin-bottom:var(--space-6);">
-  Please confirm that <strong>{{ confirmation.email_address.email }}</strong> is your email address.
+<p style="color:var(--color-muted);font-size:0.9rem;text-align:center;margin-bottom:var(--spacing-6);">
+  Please confirm that <strong style="color:var(--color-text);">{{ confirmation.email_address.email }}</strong> is your email address.
 </p>
 <form method="post">
   {% csrf_token %}
-  <button type="submit" class="auth-submit">Confirm</button>
+  <button type="submit" class="auth-submit">Confirm email address</button>
 </form>
 {% else %}
 <div class="alert alert--error">
-  This confirmation link is invalid or has expired.
-  <a href="{% url 'account_email' %}">Request a new confirmation email.</a>
+  This confirmation link is invalid or has already been used.
+</div>
+<div style="text-align:center;margin-top:var(--spacing-4);">
+  <a href="{% url 'account_email' %}" style="font-size:var(--size-sm);color:var(--color-accent);">Request a new confirmation email →</a>
 </div>
 {% endif %}
 {% endblock %}

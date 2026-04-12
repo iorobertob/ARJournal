@@ -1,0 +1,20 @@
+{% extends "account/base.html" %}
+
+{% block title %}Verify your email — {{ journal.name }}{% endblock %}
+
+{% block auth_content %}
+<div class="auth-card__header">
+  <div style="font-size:2.5rem;margin-bottom:var(--spacing-4);">✉</div>
+  <h1 class="auth-card__title">Check your inbox</h1>
+  <p class="auth-card__subtitle">We've sent a confirmation link to your email address.</p>
+</div>
+
+<div class="alert alert--info" style="text-align:center;">
+  Click the link in the email to activate your account.<br>
+  <span style="font-size:0.82rem;opacity:0.8;">It may take a minute to arrive — check your spam folder too.</span>
+</div>
+
+<div class="auth-links">
+  Already confirmed? <a href="{% url 'account_login' %}">Sign in</a>
+</div>
+{% endblock %}

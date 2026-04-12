@@ -1,0 +1,47 @@
+{% extends "account/base.html" %}
+{% load allauth account %}
+
+{% block title %}Email addresses — {{ journal.name }}{% endblock %}
+
+{% block auth_content %}
+<div class="auth-card__header">
+  <h1 class="auth-card__title">Email addresses</h1>
+</div>
+
+{% if emailaddresses %}
+<div style="margin-bottom:var(--spacing-6);">
+  {% for ea in emailaddresses %}
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--spacing-3) var(--spacing-4);border:1px solid var(--color-border);border-radius:var(--radius-sm);margin-bottom:var(--spacing-2);font-size:var(--size-sm);">
+    <div>
+      <span style="font-weight:500;">{{ ea.email }}</span>
+      {% if ea.primary %}<span style="margin-left:0.5rem;padding:0.1em 0.5em;background:var(--color-accent-light);color:var(--color-accent);border-radius:20px;font-size:0.72rem;font-weight:600;">Primary</span>{% endif %}
+      {% if ea.verified %}<span style="margin-left:0.35rem;padding:0.1em 0.5em;background:#dcfce7;color:#16a34a;border-radius:20px;font-size:0.72rem;font-weight:600;">Verified</span>
+      {% else %}<span style="margin-left:0.35rem;padding:0.1em 0.5em;background:#fef9c3;color:#a16207;border-radius:20px;font-size:0.72rem;font-weight:600;">Unverified</span>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert--info">No email addresses on file.</div>
+{% endif %}
+
+<form method="post" action="{% url 'account_email' %}">
+  {% csrf_token %}
+  {% if can_add_email %}
+  <div class="auth-form">
+    <div class="form-group" style="margin-bottom:var(--spacing-3);">
+      <label for="{{ form.email.id_for_label }}">Add email address</label>
+      {{ form.email }}
+      {% if form.email.errors %}
+      <ul class="errorlist">{% for e in form.email.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+    <button type="submit" name="action_add" class="auth-submit">Add email</button>
+  </div>
+  {% endif %}
+</form>
+
+<div class="auth-links">
+  <a href="{% url 'profile' %}">← Back to profile</a>
+</div>
+{% endblock %}

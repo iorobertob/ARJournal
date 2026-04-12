@@ -1,0 +1,29 @@
+{% with submission=item.submission build=item.build %}
+<article class="issue-article-row">
+  <div class="issue-article-row__meta">
+    <span class="issue-article-row__type">{{ submission.get_article_type_display }}</span>
+  </div>
+  <div class="issue-article-row__body">
+    <h2 class="issue-article-row__title">
+      {% if build %}
+        <a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a>
+      {% else %}
+        {{ submission.title }}
+      {% endif %}
+    </h2>
+    {% if submission.subtitle %}<p class="issue-article-row__subtitle">{{ submission.subtitle }}</p>{% endif %}
+    <p class="issue-article-row__author">{{ submission.author.display_name }}</p>
+  </div>
+  {% if build %}
+  <a href="{% url 'article_detail' build.slug %}" class="issue-article-row__arrow">↗</a>
+  {% elif submission.status == 'published' %}
+  <span class="issue-article-row__arrow" style="color:var(--color-muted);font-size:0.75rem;">Published</span>
+  {% elif submission.status == 'in_production' %}
+  <span class="issue-article-row__arrow" style="color:var(--color-muted);font-size:0.75rem;">In production</span>
+  {% elif submission.status == 'accepted' %}
+  <span class="issue-article-row__arrow" style="color:var(--color-muted);font-size:0.75rem;">Accepted</span>
+  {% else %}
+  <span class="issue-article-row__arrow" style="color:var(--color-muted);font-size:0.75rem;">{{ submission.get_status_display }}</span>
+  {% endif %}
+</article>
+{% endwith %}

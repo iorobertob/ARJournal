@@ -18,14 +18,19 @@
     {% csrf_token %}
 
     <div class="form-group" style="margin-bottom:var(--space-5);">
-      <label for="id_role">Platform role</label>
-      <select name="role" id="id_role" class="form-control">
+      <label>Platform roles <small style="font-weight:400;color:var(--color-muted);">(select one or more)</small></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-2);">
         {% for value, label in roles %}
-        <option value="{{ value }}" {% if edited_user.role == value %}selected{% endif %}>{{ label }}</option>
+        <label style="display:flex;align-items:center;gap:var(--space-2);font-weight:400;cursor:pointer;padding:var(--space-2) var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-sm);{% if value in edited_user.roles %}background:#fff7f2;border-color:var(--color-accent);{% endif %}">
+          <input type="checkbox" name="roles" value="{{ value }}"
+                 {% if value in edited_user.roles %}checked{% endif %}
+                 style="accent-color:var(--color-accent);width:15px;height:15px;">
+          {{ label }}
+        </label>
         {% endfor %}
-      </select>
-      <small style="color:var(--color-muted);font-size:0.78rem;margin-top:var(--space-1);display:block;">
-        Controls what sections of the platform this user can access.
+      </div>
+      <small style="color:var(--color-muted);font-size:0.78rem;margin-top:var(--space-2);display:block;">
+        At least one role is required. Controls platform access.
       </small>
     </div>
 

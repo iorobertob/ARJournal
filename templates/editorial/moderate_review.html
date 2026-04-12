@@ -6,10 +6,12 @@
 
 {% block content %}
 <div class="moderate-review container">
-  <p><a href="{% url 'editorial_submission' review.submission.pk %}">← Back to submission</a></p>
+  <p><a href="{% url 'editorial_submission' review.submission.pk %}">&larr; Back to submission</a></p>
   <h1>Moderate Review</h1>
-  <p>Reviewer: <strong>{{ review.reviewer.display_name }}</strong></p>
-  <p>Recommendation: <strong>{{ review.get_recommendation_display }}</strong></p>
+  <div style="display:flex;gap:var(--spacing-8);font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-6);">
+    <p>Reviewer: <strong style="color:var(--color-text);">{{ review.reviewer.display_name }}</strong></p>
+    <p>Recommendation: <strong style="color:var(--color-text);">{{ review.get_recommendation_display }}</strong></p>
+  </div>
 
   <div class="moderation-columns">
     <div>
@@ -25,12 +27,18 @@
           <input type="checkbox" name="conflict_flagged" id="conflict_flagged" {% if moderation.conflict_flagged %}checked{% endif %}>
           <label for="conflict_flagged">Flag as conflicting review</label>
         </div>
-        <textarea class="form__textarea" name="conflict_note" rows="3" placeholder="Conflict note...">{{ moderation.conflict_note }}</textarea>
+        <div class="form__group">
+          <label class="form__label">Conflict note</label>
+          <textarea class="form__textarea" name="conflict_note" rows="3" placeholder="Explain the conflict...">{{ moderation.conflict_note }}</textarea>
+        </div>
         <div class="form__group">
           <label class="form__label">Moderation Notes (internal)</label>
-          <textarea class="form__textarea" name="notes" rows="4">{{ moderation.moderation_notes }}</textarea>
+          <textarea class="form__textarea" name="notes" rows="4" placeholder="Internal notes about this moderation...">{{ moderation.moderation_notes }}</textarea>
         </div>
-        <button type="submit" class="btn btn--primary">Save Moderation</button>
+        <div class="form__actions">
+          <button type="submit" class="btn btn--primary">Save Moderation</button>
+          <a href="{% url 'editorial_submission' review.submission.pk %}" class="btn btn--secondary">Cancel</a>
+        </div>
       </form>
     </div>
   </div>

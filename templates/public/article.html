@@ -7,21 +7,25 @@
 {% block content %}
 <div class="article-layout container">
 
-  <!-- Left sidebar: navigation -->
+  <!-- ── Sidebar ──────────────────────────────────────────────── -->
   <aside class="article-sidebar" aria-label="Article navigation">
+
+    <!-- Table of contents -->
     <nav class="article-toc">
       <p class="article-toc__label">Table of Contents</p>
       <ul>
         <li><a href="#abstract">Abstract</a></li>
         {% for item in toc %}
-        <li style="padding-left: {{ item.level|add:"-1" }}rem">
+        <li style="padding-left:{{ item.level|add:"-1" }}rem">
           <a href="#{{ item.id }}">{{ item.text }}</a>
         </li>
         {% endfor %}
       </ul>
     </nav>
 
+    <!-- Metadata + actions -->
     <div class="article-meta-sidebar">
+
       <p class="article-meta-sidebar__label">Author</p>
       <a href="{% url 'author_page' submission.author.pk %}">{{ submission.author.display_name }}</a>
 
@@ -37,10 +41,24 @@
       <p class="article-meta-sidebar__label">Year</p>
       <p>{{ submission.issue.year }}</p>
       {% endif %}
+
+      {% if doi %}
+      <p class="article-meta-sidebar__label">DOI</p>
+      <a href="https://doi.org/{{ doi }}" target="_blank" rel="noopener" style="font-size:var(--size-xs);word-break:break-all;">{{ doi }}</a>
+      {% endif %}
+
+      <p class="article-meta-sidebar__label">Download</p>
+      <a href="{% url 'request_pdf' build.document.pk %}?mode=flat">PDF</a>
+      <a href="{% url 'request_pdf' build.document.pk %}?mode=interactive" style="margin-top:var(--spacing-1);">Interactive PDF</a>
+
+      <p class="article-meta-sidebar__label">Cite</p>
+      <button class="article-meta-sidebar__cite-btn" onclick="openCiteModal()">Cite this article</button>
+
     </div>
+
   </aside>
 
-  <!-- Main article content -->
+  <!-- ── Main content ─────────────────────────────────────────── -->
   <main class="article-main" id="article-content">
     {% if submission.issue %}
     <p class="article-issue-label">Issue #{{ submission.issue.number }} &mdash; {{ submission.issue.year }}</p>
@@ -56,20 +74,169 @@
     </figure>
     {% endif %}
 
-    <!-- Canonical HTML content -->
     <div class="article-body-content">
       {{ build.html_content|safe }}
     </div>
 
-    <!-- PDF download -->
     <div class="article-downloads">
       <a href="{% url 'request_pdf' build.document.pk %}?mode=flat" class="btn btn--secondary">Download PDF</a>
+      <a href="{% url 'request_pdf' build.document.pk %}?mode=interactive" class="btn btn--secondary">Interactive PDF</a>
     </div>
   </main>
 
+</div><!-- /.article-layout -->
+
+<div id="cite-data" style="display:none"
+  data-apa="{{ cite_apa }}"
+  data-mla="{{ cite_mla }}"
+  data-chicago="{{ cite_chicago }}"
+  data-bibtex="{{ cite_bibtex }}">
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/annotations.js' %}"></script>
+
+<!-- Citation modal — rendered here so it is a direct child of <body>, outside any stacking context -->
+<div id="cite-modal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;">
+  <div id="cite-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);" onclick="closeCiteModal()"></div>
+  <div style="position:relative;background:var(--color-bg);border:1px solid var(--color-border);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.2);width:min(560px,92vw);max-height:85vh;overflow:hidden;display:flex;flex-direction:column;">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--color-border);flex-shrink:0;">
+      <h2 style="font-family:var(--font-serif);font-size:var(--size-lg);font-weight:400;margin:0;">Cite this article</h2>
+      <button onclick="closeCiteModal()" style="background:none;border:none;font-size:1.1rem;color:var(--color-muted);cursor:pointer;padding:4px 8px;border-radius:6px;line-height:1;" aria-label="Close">✕</button>
+    </div>
+
+    <div style="display:flex;gap:2px;padding:12px 24px 0;border-bottom:1px solid var(--color-border);background:var(--color-surface);flex-shrink:0;">
+      <button class="ctab active" onclick="showCiteTab(this,'apa')">APA</button>
+      <button class="ctab" onclick="showCiteTab(this,'mla')">MLA</button>
+      <button class="ctab" onclick="showCiteTab(this,'chicago')">Chicago</button>
+      <button class="ctab" onclick="showCiteTab(this,'bibtex')">BibTeX</button>
+    </div>
+
+    <div id="cpanel-apa"     class="cpanel" style="display:flex;"></div>
+    <div id="cpanel-mla"     class="cpanel" style="display:none;"></div>
+    <div id="cpanel-chicago" class="cpanel" style="display:none;"></div>
+    <div id="cpanel-bibtex"  class="cpanel" style="display:none;"></div>
+
+  </div>
+</div>
+
+<style>
+.ctab {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  padding: 6px 16px; margin-bottom: -1px;
+  font-size: 0.78rem; font-family: var(--font-sans); font-weight: 500;
+  color: var(--color-muted); cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ctab:hover { color: var(--color-text); }
+.ctab.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+
+.cpanel {
+  flex-direction: column; gap: 12px;
+  padding: 20px 24px; overflow-y: auto;
+}
+.cpanel-text {
+  margin: 0; padding: 14px 16px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.82rem; line-height: 1.6; color: var(--color-text);
+  white-space: pre-wrap; word-break: break-word;
+}
+.cpanel-copy {
+  align-self: flex-end; padding: 6px 20px;
+  border: 1.5px solid var(--color-accent); border-radius: 6px;
+  background: transparent; color: var(--color-accent);
+  font-size: 0.78rem; font-family: var(--font-sans); font-weight: 500;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.cpanel-copy:hover { background: var(--color-accent); color: #fff; }
+.cpanel-copy.done  { background: #d1fae5; border-color: #059669; color: #059669; }
+</style>
+
+<script>
+// ── Read citation strings from server-embedded data attributes ─
+var CITE = (function () {
+  var el = document.getElementById('cite-data');
+  if (!el) return {};
+  return {
+    apa:     el.dataset.apa     || '',
+    mla:     el.dataset.mla     || '',
+    chicago: el.dataset.chicago || '',
+    bibtex:  el.dataset.bibtex  || ''
+  };
+})();
+
+var CITE_LABELS = {
+  apa: 'APA 7th edition', mla: 'MLA 9th edition',
+  chicago: 'Chicago 17th edition', bibtex: 'BibTeX'
+};
+
+function buildPanel(fmt) {
+  var el = document.getElementById('cpanel-' + fmt);
+  if (!el) { console.error('[cite] panel element not found: cpanel-' + fmt); return; }
+  var val = CITE[fmt] || '';
+  console.log('[cite] buildPanel', fmt, '→', val ? val.substring(0, 60) + '…' : '(empty)');
+  var label = document.createElement('p');
+  label.style.cssText = 'font-size:0.7rem;font-family:var(--font-sans);text-transform:uppercase;letter-spacing:0.08em;color:var(--color-muted);margin:0;';
+  label.textContent = CITE_LABELS[fmt];
+  var pre = document.createElement('pre');
+  pre.className = 'cpanel-text';
+  pre.id = 'ctext-' + fmt;
+  pre.textContent = val;
+  var btn = document.createElement('button');
+  btn.className = 'cpanel-copy';
+  btn.textContent = 'Copy';
+  btn.onclick = function () { doCopy(fmt, btn); };
+  el.appendChild(label);
+  el.appendChild(pre);
+  el.appendChild(btn);
+}
+['apa','mla','chicago','bibtex'].forEach(buildPanel);
+
+function openCiteModal() {
+  document.getElementById('cite-modal').style.display = 'flex';
+}
+function closeCiteModal() {
+  document.getElementById('cite-modal').style.display = 'none';
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeCiteModal();
+});
+
+function showCiteTab(btn, fmt) {
+  document.querySelectorAll('.ctab').forEach(function (t) { t.classList.remove('active'); });
+  document.querySelectorAll('.cpanel').forEach(function (p) { p.style.display = 'none'; });
+  btn.classList.add('active');
+  document.getElementById('cpanel-' + fmt).style.display = 'flex';
+}
+
+function doCopy(fmt, btn) {
+  var text = document.getElementById('ctext-' + fmt).textContent;
+  console.log('[cite] copying text:', text ? text.substring(0, 80) + '…' : '(empty)');
+  function ok() {
+    btn.textContent = 'Copied!';
+    btn.classList.add('done');
+    setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 2000);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(ok).catch(function (err) {
+      console.warn('[cite] clipboard API failed:', err, '— using execCommand fallback');
+      fallback();
+    });
+  } else { fallback(); }
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { var r = document.execCommand('copy'); console.log('[cite] execCommand result:', r); ok(); }
+    catch (e) { console.error('[cite] execCommand failed:', e); }
+    document.body.removeChild(ta);
+  }
+}
+</script>
 {% endblock %}

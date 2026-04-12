@@ -40,7 +40,7 @@
     <tr>
       <td>{{ u.email }}</td>
       <td>{{ u.get_full_name|default:"—" }}</td>
-      <td><span class="role-badge role-badge--{{ u.role }}">{{ u.get_role_display }}</span></td>
+      <td>{% for r in u.roles %}<span class="role-badge role-badge--{{ r }}" style="margin-right:2px;">{{ r|title|cut:"_" }}</span>{% empty %}—{% endfor %}</td>
       <td>{% if u.is_active %}<span style="color:#16a34a;">Yes</span>{% else %}<span style="color:#dc2626;">No</span>{% endif %}</td>
       <td style="color:var(--color-muted);">{{ u.date_joined|date:"d M Y" }}</td>
       <td><a href="{% url 'journal_admin_user_edit' u.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Edit role</a></td>

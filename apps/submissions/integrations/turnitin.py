@@ -1,6 +1,6 @@
 """
 Turnitin Content Analysis (TCA) API v1 integration.
-Enabled when settings.TURNITIN_ENABLED = True.
+Enabled when JournalConfig.turnitin_enabled = True.
 
 Workflow:
 1. Accept EULA (once per user)
@@ -10,30 +10,38 @@ Workflow:
 5. Poll/retrieve similarity score
 """
 import requests
-from django.conf import settings
 
 
-BASE_URL = getattr(settings, 'TURNITIN_BASE_URL', 'https://api.turnitin.com')
-API_KEY = getattr(settings, 'TURNITIN_API_KEY', '')
-
-HEADERS = {
-    'X-Turnitin-Integration-Name': 'Trans/Act Journal Platform',
-    'X-Turnitin-Integration-Version': '1.0',
-    'Authorization': f'Bearer {API_KEY}',
-    'Content-Type': 'application/json',
-}
+def _cfg():
+    from apps.journal.models import JournalConfig
+    return JournalConfig.get()
 
 
 def _enabled():
-    return getattr(settings, 'TURNITIN_ENABLED', False) and bool(API_KEY)
+    cfg = _cfg()
+    return cfg.turnitin_enabled and bool(cfg.turnitin_api_key)
+
+
+def _headers():
+    cfg = _cfg()
+    return {
+        'X-Turnitin-Integration-Name': 'Trans/Act Journal Platform',
+        'X-Turnitin-Integration-Version': '1.0',
+        'Authorization': f'Bearer {cfg.turnitin_api_key}',
+        'Content-Type': 'application/json',
+    }
+
+
+def _base_url():
+    return _cfg().turnitin_base_url or 'https://api.turnitin.com'
 
 
 def check_eula_acceptance(owner_id: str) -> dict:
     if not _enabled():
         return {'status': 'disabled'}
     resp = requests.get(
-        f'{BASE_URL}/api/v1/eula/latest/accept/{owner_id}',
-        headers=HEADERS, timeout=15,
+        f'{_base_url()}/api/v1/eula/latest/accept/{owner_id}',
+        headers=_headers(), timeout=15,
     )
     return resp.json()
 
@@ -50,8 +58,8 @@ def create_submission(owner_id: str, title: str, submitter_email: str) -> dict:
         'extract_text_only': False,
     }
     resp = requests.post(
-        f'{BASE_URL}/api/v1/submissions',
-        json=payload, headers=HEADERS, timeout=15,
+        f'{_base_url()}/api/v1/submissions',
+        json=payload, headers=_headers(), timeout=15,
     )
     return resp.json()
 
@@ -60,12 +68,12 @@ def upload_content(submission_id: str, file_bytes: bytes, filename: str) -> dict
     if not _enabled():
         return {'status': 'disabled'}
     headers = {
-        **HEADERS,
+        **_headers(),
         'Content-Type': 'binary/octet-stream',
         'Content-Disposition': f'inline; filename="{filename}"',
     }
     resp = requests.put(
-        f'{BASE_URL}/api/v1/submissions/{submission_id}/original',
+        f'{_base_url()}/api/v1/submissions/{submission_id}/original',
         data=file_bytes, headers=headers, timeout=60,
     )
     return resp.json()
@@ -82,8 +90,8 @@ def request_similarity_report(submission_id: str) -> dict:
         },
     }
     resp = requests.put(
-        f'{BASE_URL}/api/v1/submissions/{submission_id}/similarity',
-        json=payload, headers=HEADERS, timeout=15,
+        f'{_base_url()}/api/v1/submissions/{submission_id}/similarity',
+        json=payload, headers=_headers(), timeout=15,
     )
     return resp.json()
 
@@ -92,8 +100,8 @@ def get_similarity_report(submission_id: str) -> dict:
     if not _enabled():
         return {'status': 'disabled'}
     resp = requests.get(
-        f'{BASE_URL}/api/v1/submissions/{submission_id}/similarity',
-        headers=HEADERS, timeout=15,
+        f'{_base_url()}/api/v1/submissions/{submission_id}/similarity',
+        headers=_headers(), timeout=15,
     )
     return resp.json()
 
@@ -104,9 +112,8 @@ def run_full_check(revision) -> dict:
     Stores result in SimilarityCheck model.
     """
     if not _enabled():
-        return {'status': 'disabled', 'message': 'TURNITIN_ENABLED=False'}
+        return {'status': 'disabled', 'message': 'Turnitin not enabled in Journal Settings'}
     from apps.submissions.models import SimilarityCheck
-    from django.utils import timezone
 
     check, _ = SimilarityCheck.objects.get_or_create(revision=revision)
     check.status = 'processing'

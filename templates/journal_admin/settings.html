@@ -3,65 +3,209 @@
 {% block title %}Journal Settings — Journal Admin{% endblock %}
 
 {% block jadmin_content %}
-<h1 class="jadmin-page-title">Journal Settings</h1>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);">
+  <h1 class="jadmin-page-title" style="margin:0;">Journal Settings</h1>
+  <button type="submit" form="settings-form" class="btn btn-primary">Save Settings</button>
+</div>
 
-<div class="jadmin-card" style="max-width:640px;">
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
+<form method="post" enctype="multipart/form-data" id="settings-form">
+{% csrf_token %}
 
-    <div class="form-row">
-      <div class="form-group">
-        <label for="id_name">Journal name</label>
-        <input type="text" name="name" id="id_name" value="{{ journal.name }}" class="form-control">
-      </div>
+<!-- ── Identity ───────────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Journal Identity</div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="id_name">Journal name</label>
+      <input type="text" name="name" id="id_name" value="{{ journal.name }}" class="form-control">
     </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label for="id_tagline">Tagline</label>
-        <input type="text" name="tagline" id="id_tagline" value="{{ journal.tagline }}" class="form-control">
-      </div>
+    <div class="form-group">
+      <label for="id_tagline">Tagline</label>
+      <input type="text" name="tagline" id="id_tagline" value="{{ journal.tagline }}" class="form-control">
     </div>
+  </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label for="id_issn_print">ISSN (print)</label>
-        <input type="text" name="issn_print" id="id_issn_print" value="{{ journal.issn_print }}" class="form-control" placeholder="0000-0000">
-      </div>
-      <div class="form-group">
-        <label for="id_issn_online">ISSN (online)</label>
-        <input type="text" name="issn_online" id="id_issn_online" value="{{ journal.issn_online }}" class="form-control" placeholder="0000-0000">
-      </div>
+  <div class="form-row">
+    <div class="form-group" style="max-width:180px;">
+      <label for="id_issn_print">ISSN (print)</label>
+      <input type="text" name="issn_print" id="id_issn_print" value="{{ journal.issn_print }}" class="form-control" placeholder="0000-0000">
     </div>
-
-    <div class="form-group" style="margin-bottom:var(--space-5);">
-      <label for="id_description">Description</label>
-      <textarea name="description" id="id_description" rows="4" class="form-control">{{ journal.description }}</textarea>
+    <div class="form-group" style="max-width:180px;">
+      <label for="id_issn_online">ISSN (online)</label>
+      <input type="text" name="issn_online" id="id_issn_online" value="{{ journal.issn_online }}" class="form-control" placeholder="0000-0000">
     </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label for="id_contact_email">Contact email</label>
-        <input type="email" name="contact_email" id="id_contact_email" value="{{ journal.contact_email }}" class="form-control">
-      </div>
+    <div class="form-group">
+      <label for="id_contact_email">Contact email</label>
+      <input type="email" name="contact_email" id="id_contact_email" value="{{ journal.contact_email }}" class="form-control">
     </div>
+    <div class="form-group">
+      <label for="id_editorial_email">Editorial email</label>
+      <input type="email" name="editorial_email" id="id_editorial_email" value="{{ journal.editorial_email }}" class="form-control">
+    </div>
+  </div>
 
-    <div class="form-group" style="margin-bottom:var(--space-5);">
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_description">Description</label>
+    <textarea name="description" id="id_description" rows="3" class="form-control">{{ journal.description }}</textarea>
+  </div>
+
+  <div class="form-row" style="align-items:center;">
+    <div class="form-group">
       <label for="id_logo">Logo</label>
       {% if journal.logo %}
-      <div style="margin-bottom:var(--space-3);">
-        <img src="{{ journal.logo.url }}" alt="Current logo" style="max-height:60px;">
+      <div style="margin-bottom:var(--spacing-2);">
+        <img src="{{ journal.logo.url }}" alt="Current logo" style="max-height:52px;">
       </div>
       {% endif %}
       <input type="file" name="logo" id="id_logo" accept="image/*" class="form-control">
     </div>
-
-    <div class="form-group" style="margin-bottom:var(--space-6);display:flex;align-items:center;gap:var(--space-3);">
-      <input type="checkbox" name="submission_open" id="id_submission_open" {% if journal.submission_open %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
-      <label for="id_submission_open" style="margin:0;font-weight:400;">Submissions open</label>
+    <div class="form-group" style="flex:0;min-width:auto;">
+      <label style="display:flex;align-items:center;gap:var(--spacing-2);white-space:nowrap;margin-top:var(--spacing-6);">
+        <input type="checkbox" name="submission_open" id="id_submission_open" {% if journal.submission_open %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
+        Submissions open
+      </label>
     </div>
-
-    <button type="submit" class="btn btn-primary">Save settings</button>
-  </form>
+  </div>
 </div>
+
+<!-- ── Email ──────────────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Email — Mailersend</div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="id_email_from_name">From name</label>
+      <input type="text" name="email_from_name" id="id_email_from_name" value="{{ journal.email_from_name }}" class="form-control" placeholder="Trans/Act Journal">
+    </div>
+    <div class="form-group">
+      <label for="id_email_from_address">From address</label>
+      <input type="email" name="email_from_address" id="id_email_from_address" value="{{ journal.email_from_address }}" class="form-control" placeholder="noreply@trans-act-journal.org">
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-bottom:0;">
+    <label for="id_mailersend_api_token">Mailersend API token</label>
+    <input type="password" name="mailersend_api_token" id="id_mailersend_api_token"
+           value="{{ journal.mailersend_api_token }}" class="form-control"
+           autocomplete="new-password" placeholder="mlsn.xxxxxxxxxxxxxxxxxxxxxxxx">
+    <small style="color:var(--color-muted);font-size:var(--size-xs);">Get your token from <strong>app.mailersend.com → API Tokens</strong></small>
+  </div>
+</div>
+
+<!-- ── ORCID ───────────────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>ORCID OAuth</span>
+    <label style="display:flex;align-items:center;gap:var(--spacing-2);font-size:var(--size-xs);font-weight:500;text-transform:none;letter-spacing:0;color:var(--color-text);">
+      <input type="checkbox" name="orcid_enabled" {% if journal.orcid_enabled %}checked{% endif %} style="width:14px;height:14px;accent-color:var(--color-accent);">
+      Enabled
+    </label>
+  </div>
+  <p style="font-size:var(--size-xs);color:var(--color-muted);margin-bottom:var(--spacing-4);">
+    Register your app at <strong>orcid.org/developer-tools</strong>. ORCID requires a server restart to activate.
+  </p>
+
+  <div class="form-row" style="margin-bottom:0;">
+    <div class="form-group">
+      <label for="id_orcid_client_id">Client ID</label>
+      <input type="text" name="orcid_client_id" id="id_orcid_client_id" value="{{ journal.orcid_client_id }}" class="form-control" placeholder="APP-XXXXXXXXXXXXXXXX">
+    </div>
+    <div class="form-group">
+      <label for="id_orcid_client_secret">Client secret</label>
+      <input type="password" name="orcid_client_secret" id="id_orcid_client_secret" value="{{ journal.orcid_client_secret }}" class="form-control" autocomplete="new-password">
+    </div>
+  </div>
+</div>
+
+<!-- ── Crossref / DOI ─────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>Crossref — DOI Deposit</span>
+    <label style="display:flex;align-items:center;gap:var(--spacing-2);font-size:var(--size-xs);font-weight:500;text-transform:none;letter-spacing:0;color:var(--color-text);">
+      <input type="checkbox" name="doi_enabled" {% if journal.doi_enabled %}checked{% endif %} style="width:14px;height:14px;accent-color:var(--color-accent);">
+      Enabled
+    </label>
+  </div>
+  <p style="font-size:var(--size-xs);color:var(--color-muted);margin-bottom:var(--spacing-4);">
+    Requires Crossref membership. Manage your account at <strong>crossref.org</strong>.
+  </p>
+
+  <div class="form-row">
+    <div class="form-group" style="max-width:200px;">
+      <label for="id_doi_prefix">DOI prefix</label>
+      <input type="text" name="doi_prefix" id="id_doi_prefix" value="{{ journal.doi_prefix }}" class="form-control" placeholder="10.12345">
+    </div>
+    <div class="form-group">
+      <label for="id_crossref_depositor_name">Depositor name</label>
+      <input type="text" name="crossref_depositor_name" id="id_crossref_depositor_name" value="{{ journal.crossref_depositor_name }}" class="form-control">
+    </div>
+    <div class="form-group">
+      <label for="id_crossref_depositor_email">Depositor email</label>
+      <input type="email" name="crossref_depositor_email" id="id_crossref_depositor_email" value="{{ journal.crossref_depositor_email }}" class="form-control">
+    </div>
+  </div>
+
+  <div class="form-row" style="margin-bottom:0;">
+    <div class="form-group">
+      <label for="id_crossref_login">Crossref login</label>
+      <input type="text" name="crossref_login" id="id_crossref_login" value="{{ journal.crossref_login }}" class="form-control">
+    </div>
+    <div class="form-group">
+      <label for="id_crossref_password">Crossref password</label>
+      <input type="password" name="crossref_password" id="id_crossref_password" value="{{ journal.crossref_password }}" class="form-control" autocomplete="new-password">
+    </div>
+  </div>
+</div>
+
+<!-- ── Turnitin ───────────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>Turnitin — Similarity Check</span>
+    <label style="display:flex;align-items:center;gap:var(--spacing-2);font-size:var(--size-xs);font-weight:500;text-transform:none;letter-spacing:0;color:var(--color-text);">
+      <input type="checkbox" name="turnitin_enabled" {% if journal.turnitin_enabled %}checked{% endif %} style="width:14px;height:14px;accent-color:var(--color-accent);">
+      Enabled
+    </label>
+  </div>
+  <p style="font-size:var(--size-xs);color:var(--color-muted);margin-bottom:var(--spacing-4);">
+    Requires institutional TCA API access from <strong>turnitin.com</strong>.
+  </p>
+
+  <div class="form-row" style="margin-bottom:0;">
+    <div class="form-group">
+      <label for="id_turnitin_api_key">API key</label>
+      <input type="password" name="turnitin_api_key" id="id_turnitin_api_key" value="{{ journal.turnitin_api_key }}" class="form-control" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label for="id_turnitin_base_url">Base URL</label>
+      <input type="text" name="turnitin_base_url" id="id_turnitin_base_url" value="{{ journal.turnitin_base_url }}" class="form-control" placeholder="https://api.turnitin.com">
+    </div>
+  </div>
+</div>
+
+<!-- ── AI / OpenAI ────────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>AI — Reviewer Matching</span>
+    <label style="display:flex;align-items:center;gap:var(--spacing-2);font-size:var(--size-xs);font-weight:500;text-transform:none;letter-spacing:0;color:var(--color-text);">
+      <input type="checkbox" name="ai_features_enabled" {% if journal.ai_features_enabled %}checked{% endif %} style="width:14px;height:14px;accent-color:var(--color-accent);">
+      Enabled
+    </label>
+  </div>
+  <p style="font-size:var(--size-xs);color:var(--color-muted);margin-bottom:var(--spacing-4);">
+    Uses OpenAI embeddings for semantic reviewer–submission matching. Get your key at <strong>platform.openai.com/api-keys</strong>.
+  </p>
+
+  <div class="form-group" style="margin-bottom:0;">
+    <label for="id_openai_api_key">OpenAI API key</label>
+    <input type="password" name="openai_api_key" id="id_openai_api_key" value="{{ journal.openai_api_key }}" class="form-control" autocomplete="new-password" placeholder="sk-proj-...">
+  </div>
+</div>
+
+<!-- ── Save ───────────────────────────────────────────────── -->
+<div style="display:flex;justify-content:flex-end;padding-bottom:var(--spacing-8);">
+  <button type="submit" class="btn btn-primary" style="min-width:160px;">Save Settings</button>
+</div>
+
+</form>
 {% endblock %}

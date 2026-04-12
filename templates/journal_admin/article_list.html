@@ -1,0 +1,121 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Articles — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);">
+  <h1 class="jadmin-page-title" style="margin:0;">Articles</h1>
+  <span style="color:var(--color-muted);font-size:var(--size-sm);">{{ submissions.count }} result{{ submissions.count|pluralize }}</span>
+</div>
+
+<!-- Filters -->
+<form method="get" class="jadmin-card" style="padding:var(--spacing-4);margin-bottom:var(--spacing-6);">
+  <div style="display:flex;flex-wrap:wrap;gap:var(--spacing-3);align-items:flex-end;">
+    <div>
+      <label style="display:block;font-size:var(--size-xs);font-weight:600;color:var(--color-muted);margin-bottom:4px;">Search title / author</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Title, author name or email…" class="form__input" style="width:220px;">
+    </div>
+    <div>
+      <label style="display:block;font-size:var(--size-xs);font-weight:600;color:var(--color-muted);margin-bottom:4px;">Status</label>
+      <select name="status" class="form__select">
+        <option value="">All statuses</option>
+        {% for val, label in statuses %}
+        <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="display:block;font-size:var(--size-xs);font-weight:600;color:var(--color-muted);margin-bottom:4px;">Issue</label>
+      <select name="issue" class="form__select">
+        <option value="">All issues</option>
+        {% for issue in issues %}
+        <option value="{{ issue.pk }}" {% if issue_filter == issue.pk|stringformat:"s" %}selected{% endif %}>
+          #{{ issue.number }} — {{ issue.year }}{% if issue.title %} · {{ issue.title|truncatechars:30 }}{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="display:block;font-size:var(--size-xs);font-weight:600;color:var(--color-muted);margin-bottom:4px;">Year</label>
+      <select name="year" class="form__select">
+        <option value="">All years</option>
+        {% for year in years %}
+        <option value="{{ year }}" {% if year_filter == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="display:block;font-size:var(--size-xs);font-weight:600;color:var(--color-muted);margin-bottom:4px;">Reviewer</label>
+      <input type="text" name="reviewer" value="{{ reviewer_q }}" placeholder="Reviewer name or email…" class="form__input" style="width:180px;">
+    </div>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    {% if q or status_filter or issue_filter or year_filter or reviewer_q %}
+    <a href="{% url 'journal_admin_articles' %}" class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Clear</a>
+    {% endif %}
+  </div>
+</form>
+
+<div class="jadmin-card">
+  {% if submissions %}
+  <table class="jadmin-table">
+    <thead>
+      <tr>
+        <th style="width:35%;">Title</th>
+        <th>Author</th>
+        <th>Status</th>
+        <th>Issue</th>
+        <th>Submitted</th>
+        <th>Reviews</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for sub in submissions %}
+    <tr>
+      <td>
+        <a href="{% url 'journal_admin_article' sub.pk %}" style="font-weight:600;color:var(--color-text);text-decoration:none;">
+          {{ sub.title|truncatechars:70 }}
+        </a>
+        {% if sub.subtitle %}<div style="font-size:var(--size-xs);color:var(--color-muted);">{{ sub.subtitle|truncatechars:60 }}</div>{% endif %}
+      </td>
+      <td style="white-space:nowrap;">{{ sub.author.display_name }}</td>
+      <td>
+        <span class="status-badge status-badge--{{ sub.status }}" style="font-size:var(--size-xs);white-space:nowrap;">
+          {{ sub.get_status_display }}
+        </span>
+      </td>
+      <td style="white-space:nowrap;">
+        {% if sub.issue %}
+          <a href="{% url 'journal_admin_issue_edit' sub.issue.pk %}" style="color:var(--color-muted);font-size:var(--size-sm);">
+            #{{ sub.issue.number }} / Vol.{{ sub.issue.volume }} ({{ sub.issue.year }})
+          </a>
+        {% else %}
+          <span style="color:var(--color-muted);font-size:var(--size-sm);">—</span>
+        {% endif %}
+      </td>
+      <td style="white-space:nowrap;color:var(--color-muted);font-size:var(--size-sm);">
+        {{ sub.submission_date|date:"d M Y"|default:"—" }}
+      </td>
+      <td style="text-align:center;">
+        {% with rc=sub.reviewer_invitations.count %}
+        {% if rc %}
+          <span style="font-size:var(--size-sm);">{{ rc }}</span>
+        {% else %}
+          <span style="color:var(--color-muted);">—</span>
+        {% endif %}
+        {% endwith %}
+      </td>
+      <td>
+        <a href="{% url 'journal_admin_article' sub.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);white-space:nowrap;">View →</a>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center;padding:var(--spacing-12);color:var(--color-muted);">
+    <p style="font-size:var(--size-lg);">No articles match the current filters.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

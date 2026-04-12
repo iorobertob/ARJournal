@@ -1,0 +1,53 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}New Issue — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Create New Issue</h1>
+
+<div class="jadmin-card" style="max-width:640px;">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_number">Issue number</label>
+        <input type="number" name="number" id="id_number" value="{{ next_number }}" class="form-control" required min="1">
+      </div>
+      <div class="form-group">
+        <label for="id_volume">Volume</label>
+        <input type="number" name="volume" id="id_volume" value="{{ next_volume }}" class="form-control" required min="1">
+      </div>
+      <div class="form-group">
+        <label for="id_year">Year</label>
+        <input type="number" name="year" id="id_year" value="2026" class="form-control" required>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:var(--spacing-4);">
+      <label for="id_title">Issue title (thematic title)</label>
+      <input type="text" name="title" id="id_title" class="form-control" placeholder="e.g. Bodies in Practice">
+    </div>
+
+    <div class="form-group" style="margin-bottom:var(--spacing-4);">
+      <label for="id_editorial_note">Editorial note</label>
+      <textarea name="editorial_note" id="id_editorial_note" rows="4" class="form-control" placeholder="Short editorial introduction for this issue..."></textarea>
+    </div>
+
+    <div class="form-group" style="margin-bottom:var(--spacing-4);">
+      <label for="id_call_for_submissions">Call for submissions</label>
+      <textarea name="call_for_submissions" id="id_call_for_submissions" rows="3" class="form-control" placeholder="Optional: call for papers text"></textarea>
+    </div>
+
+    <div class="form-group" style="margin-bottom:var(--spacing-6);">
+      <label for="id_cover">Cover image</label>
+      <input type="file" name="cover_image" id="id_cover" accept="image/*" class="form-control">
+    </div>
+
+    <div style="display:flex;gap:var(--spacing-3);">
+      <button type="submit" class="btn btn-primary">Create Issue</button>
+      <a href="{% url 'journal_admin_issues' %}" class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -95,7 +95,7 @@ def new_submission_step4(request, pk, rev):
         revision.submitted_at = timezone.now()
         revision.save()
         from apps.notifications.tasks import notify_submission_received
-        notify_submission_received.delay(sub.pk)
+        notify_submission_received(sub.pk)
         messages.success(request, 'Submission received! You will receive a confirmation email.')
         return redirect('author_dashboard')
     return render(request, 'author/submit_step4.html', {

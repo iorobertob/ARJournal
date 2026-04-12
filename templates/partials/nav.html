@@ -10,12 +10,17 @@
     </ul>
     {% if user.is_authenticated %}
     <div class="site-nav__user" x-data="{ open: false }">
-      <button @click="open = !open" class="site-nav__user-btn" aria-expanded="true">
+      <button @click="open = !open" class="site-nav__user-btn" :aria-expanded="open">
         {{ user.display_name|truncatechars:20 }}
       </button>
-      <ul class="site-nav__dropdown" x-show="open" @click.away="open = false" role="menu">
+      <ul class="site-nav__dropdown" x-show="open" @click.away="open = false" x-cloak role="menu">
         {% if user.has_editorial_access %}
         <li><a href="{% url 'editorial_dashboard' %}" role="menuitem">Editorial Dashboard</a></li>
+        <li><a href="{% url 'journal_admin_issues' %}" role="menuitem">Issues & Volumes</a></li>
+        <li><a href="{% url 'journal_admin_dashboard' %}" role="menuitem">Journal Admin</a></li>
+        {% endif %}
+        {% if user.has_reviewer_access %}
+        <li><a href="{% url 'reviewer_dashboard' %}" role="menuitem">My Reviews</a></li>
         {% endif %}
         <li><a href="{% url 'author_dashboard' %}" role="menuitem">My Submissions</a></li>
         <li><a href="{% url 'profile' %}" role="menuitem">Profile</a></li>

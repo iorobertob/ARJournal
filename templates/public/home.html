@@ -10,18 +10,18 @@
   <div class="container hero__inner">
     <div class="hero__text">
       <p class="hero__issue-label">Current Issue</p>
-      <p class="hero__issue-number">Issue #{{ current_issue.number }} &mdash; {{ current_issue.year }}</p>
+      <p class="hero__issue-number">Issue #{{ current_issue.number }}, Vol. {{ current_issue.volume }} &mdash; {{ current_issue.year }}</p>
       <h1 class="hero__title">{{ current_issue.title|default:journal.name }}</h1>
       {% if featured_articles %}
       <p class="hero__bylines">
-        With {% for a in featured_articles %}{{ a.document.revision.submission.author.display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        Featuring {% for a in featured_articles|slice:":4" %}{{ a.document.revision.submission.author.display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if featured_articles|length > 4 %} and others{% endif %}
       </p>
       {% endif %}
     </div>
     {% if current_issue.cover_image %}
     <div class="hero__image">
       <img src="{{ current_issue.cover_image.url }}" alt="{{ current_issue.title }}" loading="eager">
-      <a href="{% url 'issue_detail' current_issue.number %}" class="hero__read-btn">Read Issue</a>
+      <a href="{% url 'issue_detail' current_issue.number %}" class="hero__read-btn">Read Issue &rarr;</a>
     </div>
     {% endif %}
   </div>
@@ -31,8 +31,9 @@
 <section class="current-issue container">
   <div class="current-issue__editorial">
     {% if current_issue.editorial_note %}
-    <p class="current-issue__note">{{ current_issue.editorial_note|truncatewords:50 }}</p>
+    <p class="current-issue__note">{{ current_issue.editorial_note|truncatewords:60 }}</p>
     {% endif %}
+    <a href="{% url 'issue_detail' current_issue.number %}" class="link-arrow" style="margin-top:var(--spacing-4);display:inline-block;">View full issue &rarr;</a>
   </div>
   <div class="current-issue__grid">
     {% for build in featured_articles %}
@@ -48,9 +49,11 @@
   </div>
 </section>
 {% else %}
-<section class="hero hero--empty container">
-  <h1>{{ journal.name }}</h1>
-  <p>{{ journal.tagline }}</p>
+<section class="hero hero--empty">
+  <div class="container">
+    <h1>{{ journal.name }}</h1>
+    <p>{{ journal.tagline|default:"A Journal for Artistic Research" }}</p>
+  </div>
 </section>
 {% endif %}
 
@@ -58,13 +61,13 @@
 <section class="browse-section">
   <div class="container browse-section__inner">
     <div class="browse-section__about">
-      <p>{{ journal.tagline|default:journal.name }} is a journal for artistic research, bringing together critical writing, visual practice, and experimental forms of knowledge.</p>
-      <a href="{% url 'about' %}" class="link-arrow">Find out more ↗</a>
+      <p>{{ journal.tagline|default:journal.name }} brings together critical writing, visual practice, and experimental forms of knowledge in artistic research.</p>
+      <a href="{% url 'about' %}" class="link-arrow">About the journal &rarr;</a>
     </div>
     <div class="browse-section__paths">
       <div class="browse-path">
         <h3 class="browse-path__label">Authors</h3>
-        <p class="browse-path__hint">Browse by researcher</p>
+        <p style="font-size:var(--size-sm);color:var(--color-muted);">Browse by researcher</p>
       </div>
       <div class="browse-path">
         <h3 class="browse-path__label">Categories</h3>
@@ -76,13 +79,13 @@
       </div>
       <div class="browse-path">
         <h3 class="browse-path__label">Years</h3>
-        {% for issue in recent_issues %}<p>{{ issue.year }}</p>{% endfor %}
+        {% for issue in recent_issues %}<p style="font-size:var(--size-sm);color:var(--color-muted);">{{ issue.year }}</p>{% endfor %}
       </div>
     </div>
   </div>
 </section>
 
-<!-- Archive strip -->
+<!-- Archive Strip -->
 {% if recent_issues %}
 <section class="archive-strip container">
   <h2 class="archive-strip__heading">Read by Issue</h2>
@@ -94,11 +97,11 @@
         <p class="issue-card__number">Issue #{{ issue.number }} &mdash; {{ issue.year }}</p>
         <p class="issue-card__title">{{ issue.title }}</p>
       </div>
-      <span class="issue-card__arrow">↗</span>
+      <span class="issue-card__arrow">&nearr;</span>
     </a>
     {% endfor %}
   </div>
-  <a href="{% url 'archive' %}" class="link-arrow">Discover more ↗</a>
+  <a href="{% url 'archive' %}" class="link-arrow">Discover more &rarr;</a>
 </section>
 {% endif %}
 
@@ -106,8 +109,8 @@
 <section class="submit-cta">
   <div class="container submit-cta__inner">
     <h2>Contribute to {{ journal.name }}</h2>
-    <p>{{ journal.name }} welcomes contributions from artists, writers, and researchers working across critical, visual, and practice-based forms of artistic research. Submit essays, projects, or experimental formats that explore how knowledge can be made public through artistic practice.</p>
-    <a href="{% url 'submit_info' %}" class="btn btn--primary">Submit a contribution ↗</a>
+    <p>We welcome contributions from artists, writers, and researchers working across critical, visual, and practice-based forms of artistic research. Submit essays, visual projects, or experimental formats.</p>
+    <a href="{% url 'submit_info' %}" class="btn btn--primary">Submit a contribution &rarr;</a>
   </div>
 </section>
 

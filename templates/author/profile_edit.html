@@ -1,49 +1,164 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Edit Profile — {{ journal.name }}{% endblock %}
 {% block body_class %}dashboard{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
 
 {% block content %}
-<div class="profile-page container">
-  <h1>Edit Profile</h1>
-  <form method="post" enctype="multipart/form-data" class="form">
+<div class="container" style="max-width:640px;padding-top:var(--spacing-10);padding-bottom:var(--spacing-16);">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--spacing-6);">
+    <h1 style="font-family:var(--font-serif);font-size:1.5rem;margin:0;">Edit Profile</h1>
+    <a href="{% url 'profile' %}" style="font-size:var(--size-sm);color:var(--color-muted);text-decoration:none;">&larr; Back to profile</a>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    <div class="form__group">
-      <label class="form__label" for="first_name">First Name</label>
-      <input class="form__input" type="text" id="first_name" name="first_name" value="{{ request.user.first_name }}">
+
+    <!-- Photo -->
+    <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-6);margin-bottom:var(--spacing-4);">
+      <h2 style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);margin:0 0 var(--spacing-4);">Photo</h2>
+      <div style="display:flex;align-items:center;gap:var(--spacing-4);">
+        {% if profile.photo %}
+        <img src="{{ profile.photo.url }}" alt=""
+             style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--color-border);flex-shrink:0;">
+        {% else %}
+        <div style="width:60px;height:60px;border-radius:50%;background:var(--color-accent-light);display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:1.4rem;color:var(--color-accent);flex-shrink:0;">
+          {{ request.user.display_name|first|upper }}
+        </div>
+        {% endif %}
+        <div>
+          <label for="photo" style="display:inline-block;padding:0.4rem 0.9rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-sm);font-size:var(--size-sm);cursor:pointer;font-family:var(--font-sans);">
+            Choose image
+          </label>
+          <input type="file" id="photo" name="photo" accept="image/*"
+                 style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
+          <p style="font-size:0.78rem;color:var(--color-muted);margin:var(--spacing-2) 0 0;">JPG, PNG or GIF · max 2 MB</p>
+        </div>
+      </div>
     </div>
-    <div class="form__group">
-      <label class="form__label" for="last_name">Last Name</label>
-      <input class="form__input" type="text" id="last_name" name="last_name" value="{{ request.user.last_name }}">
+
+    <!-- Name -->
+    <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-6);margin-bottom:var(--spacing-4);">
+      <h2 style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);margin:0 0 var(--spacing-4);">Name</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-4);">
+        <div class="form__group" style="margin:0;">
+          <label class="form__label" for="first_name">First name</label>
+          <input class="form__input" type="text" id="first_name" name="first_name"
+                 value="{{ request.user.first_name }}" autocomplete="given-name">
+        </div>
+        <div class="form__group" style="margin:0;">
+          <label class="form__label" for="last_name">Last name</label>
+          <input class="form__input" type="text" id="last_name" name="last_name"
+                 value="{{ request.user.last_name }}" autocomplete="family-name">
+        </div>
+      </div>
     </div>
-    <div class="form__group">
-      <label class="form__label" for="institution">Institution</label>
-      <input class="form__input" type="text" id="institution" name="institution" value="{{ profile.institution }}">
+
+    <!-- Affiliation -->
+    <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-6);margin-bottom:var(--spacing-4);">
+      <h2 style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);margin:0 0 var(--spacing-4);">Affiliation</h2>
+      <div class="form__group">
+        <label class="form__label" for="institution">Institution</label>
+        <input class="form__input" type="text" id="institution" name="institution"
+               value="{{ profile.institution }}" placeholder="e.g. University of the Arts Helsinki">
+      </div>
+      <div class="form__group">
+        <label class="form__label" for="department">Department / Faculty</label>
+        <input class="form__input" type="text" id="department" name="department"
+               value="{{ profile.department }}" placeholder="e.g. Academy of Fine Arts">
+      </div>
+      <div class="form__group" style="margin-bottom:0;">
+        <label class="form__label" for="country">Country</label>
+        <input class="form__input" type="text" id="country" name="country"
+               value="{{ profile.country }}" placeholder="e.g. Finland" autocomplete="country-name">
+      </div>
     </div>
-    <div class="form__group">
-      <label class="form__label" for="department">Department</label>
-      <input class="form__input" type="text" id="department" name="department" value="{{ profile.department }}">
+
+    <!-- Bio & web -->
+    <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-6);margin-bottom:var(--spacing-6);">
+      <h2 style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);margin:0 0 var(--spacing-4);">About</h2>
+      <div class="form__group">
+        <label class="form__label" for="bio">Biography</label>
+        <textarea class="form__textarea" id="bio" name="bio" rows="5"
+                  placeholder="A short introduction — your research interests, practice, institutional role…">{{ profile.bio }}</textarea>
+      </div>
+      <div class="form__group" style="margin-bottom:0;">
+        <label class="form__label" for="website">Website</label>
+        <input class="form__input" type="url" id="website" name="website"
+               value="{{ profile.website }}" placeholder="https://…">
+      </div>
     </div>
-    <div class="form__group">
-      <label class="form__label" for="country">Country</label>
-      <input class="form__input" type="text" id="country" name="country" value="{{ profile.country }}">
+
+    {% if reviewer_profile %}
+    <!-- Reviewer Expertise -->
+    <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-6);margin-bottom:var(--spacing-4);">
+      <h2 style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);margin:0 0 var(--spacing-2);">Reviewer Expertise</h2>
+      <p style="font-size:0.78rem;color:var(--color-muted);margin:0 0 var(--spacing-4);">Used by the reviewer matching algorithm to suggest you for relevant submissions.</p>
+
+      <div class="form__group">
+        <label class="form__label" for="expertise_statement">Expertise statement</label>
+        <textarea class="form__textarea" id="expertise_statement" name="expertise_statement" rows="4"
+                  placeholder="Describe your research background, artistic practice, and areas of expertise…">{{ reviewer_profile.expertise_statement }}</textarea>
+      </div>
+      <div class="form__group">
+        <label class="form__label" for="expertise_keywords">Keywords <span style="font-weight:400;color:var(--color-muted);">(comma-separated)</span></label>
+        <input class="form__input" type="text" id="expertise_keywords" name="expertise_keywords"
+               value="{{ reviewer_profile.expertise_keywords|join:', ' }}"
+               placeholder="e.g. sound art, acoustic ecology, performance">
+      </div>
+      <div class="form__group">
+        <label class="form__label" for="disciplines">Disciplines</label>
+        <input class="form__input" type="text" id="disciplines" name="disciplines"
+               value="{{ reviewer_profile.disciplines|join:', ' }}"
+               placeholder="e.g. Sound Studies, Performance Studies">
+      </div>
+      <div class="form__group">
+        <label class="form__label" for="sub_disciplines">Sub-disciplines</label>
+        <input class="form__input" type="text" id="sub_disciplines" name="sub_disciplines"
+               value="{{ reviewer_profile.sub_disciplines|join:', ' }}"
+               placeholder="e.g. Acoustic ecology, Ethnomusicology">
+      </div>
+      <div class="form__group">
+        <label class="form__label" for="methodologies">Methodologies</label>
+        <input class="form__input" type="text" id="methodologies" name="methodologies"
+               value="{{ reviewer_profile.methodologies|join:', ' }}"
+               placeholder="e.g. practice-based research, ethnography">
+      </div>
+      <div class="form__group">
+        <label class="form__label" for="artistic_mediums">Artistic mediums</label>
+        <input class="form__input" type="text" id="artistic_mediums" name="artistic_mediums"
+               value="{{ reviewer_profile.artistic_mediums|join:', ' }}"
+               placeholder="e.g. sound installation, video, choreography">
+      </div>
+      <div class="form__group">
+        <label class="form__label" for="languages">Languages you can review in</label>
+        <input class="form__input" type="text" id="languages" name="languages"
+               value="{{ reviewer_profile.languages|join:', ' }}"
+               placeholder="e.g. english, portuguese, finnish">
+      </div>
+      <div class="form__group">
+        <label class="form__label" for="preferred_review_models">Preferred review models</label>
+        <input class="form__input" type="text" id="preferred_review_models" name="preferred_review_models"
+               value="{{ reviewer_profile.preferred_review_models|join:', ' }}"
+               placeholder="e.g. double-blind, open review">
+      </div>
+      <div class="form__group" style="margin-bottom:0;">
+        <label class="form__label" for="conflicts">Conflicts of interest <span style="font-weight:400;color:var(--color-muted);">(email addresses)</span></label>
+        <input class="form__input" type="text" id="conflicts" name="conflicts"
+               value="{{ reviewer_profile.conflicts|join:', ' }}"
+               placeholder="e.g. colleague@university.edu, advisor@institute.org">
+        <p style="font-size:0.75rem;color:var(--color-muted);margin-top:var(--spacing-2);">Authors you cannot review due to close collaboration or supervisory relationship.</p>
+      </div>
     </div>
-    <div class="form__group">
-      <label class="form__label" for="bio">Biography</label>
-      <textarea class="form__textarea" id="bio" name="bio" rows="4">{{ profile.bio }}</textarea>
+    {% endif %}
+
+    <!-- Actions -->
+    <div style="display:flex;gap:var(--spacing-3);justify-content:flex-end;">
+      <a href="{% url 'profile' %}" class="btn btn--secondary">Cancel</a>
+      <button type="submit" class="btn btn--primary">Save changes</button>
     </div>
-    <div class="form__group">
-      <label class="form__label" for="website">Website</label>
-      <input class="form__input" type="url" id="website" name="website" value="{{ profile.website }}">
-    </div>
-    <div class="form__group">
-      <label class="form__label" for="photo">Profile Photo</label>
-      <input class="form__file" type="file" id="photo" name="photo" accept="image/*">
-    </div>
-    <div class="form__actions">
-      <button type="submit" class="btn btn--primary">Save</button>
-      <a href="{% url 'profile' %}" class="btn btn--ghost">Cancel</a>
-    </div>
+
   </form>
 </div>
 {% endblock %}

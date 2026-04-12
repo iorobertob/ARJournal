@@ -4,7 +4,7 @@
 Django-based academic journal platform for artistic research. Full lifecycle: submission → peer review → editorial workflow → HTML publication with multimedia.
 
 ## Architecture
-- **Backend**: Django 5.x, DRF, PostgreSQL, Celery + Redis
+- **Backend**: Django 5.x, DRF, PostgreSQL, Celery (no Redis in dev)
 - **Frontend**: Django templates, custom CSS (Figma-matched), HTMX, Alpine.js
 - **Dev port**: 5002 (`python manage.py runserver 0.0.0.0:5002`)
 - **Settings module**: `config.settings.development`
@@ -30,10 +30,24 @@ Password is set in `.env` as `DJANGO_SUPERUSER_PASSWORD`.
 python manage.py createsuperuser --email admin@trans-act-journal.org
 ```
 
-### Running Celery (background tasks)
+### Celery / Redis
+**Dev**: No Redis or Celery worker needed. `CELERY_TASK_ALWAYS_EAGER=True` is set in `config/settings/development.py`. **Important:** `task_always_eager` was removed in Celery 5 — calling `.delay()` still tries to reach a real broker. All task dispatch goes through `_dispatch_task()` in `apps/production/views.py`, which calls `task.apply()` (synchronous, no broker) when `CELERY_TASK_ALWAYS_EAGER=True`, and `.delay()` otherwise.
+
+**Production**: Redis is only needed if you want async PDF generation (WeasyPrint typically takes 2–10s per article). All other tasks remain synchronous. Run a worker only if PDF export is used:
 ```bash
 celery -A config.celery worker --loglevel=info
 ```
+
+### PDF Generation (WeasyPrint)
+PDFs are rendered from the stored `HTMLBuild.html_content` via WeasyPrint — no LaTeX toolchain required.
+
+**WeasyPrint needs OS-level libraries** (GLib, Pango, Cairo). These are not pip packages:
+
+- **macOS**: `brew install pango cairo glib libffi` — then set `DYLD_LIBRARY_PATH=/opt/homebrew/lib` in `.env`. `setup_dev.sh` handles both steps automatically.
+- **Linux**: `apt-get install libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libharfbuzz0b libffi-dev shared-mime-info fonts-liberation`
+- **Docker**: the `Dockerfile` already includes all required packages.
+
+Two PDF modes: **flat** (plain print layout) and **interactive** (adds PDF bookmarks from headings). Both use a self-contained HTML document with inlined CSS — no external resources fetched at render time.
 
 ## App Responsibilities
 

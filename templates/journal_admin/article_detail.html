@@ -1,0 +1,312 @@
+{% extends "journal_admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ submission.title|truncatechars:50 }} — Articles — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<p style="margin-bottom:var(--spacing-4);">
+  <a href="{% url 'journal_admin_articles' %}">&larr; All Articles</a>
+</p>
+
+<!-- Header -->
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--spacing-6);gap:var(--spacing-4);">
+  <div>
+    <h1 class="jadmin-page-title" style="margin:0 0 var(--spacing-2);">{{ submission.title }}</h1>
+    {% if submission.subtitle %}<p style="color:var(--color-muted);margin:0;">{{ submission.subtitle }}</p>{% endif %}
+  </div>
+  <div style="display:flex;gap:var(--spacing-2);align-items:center;flex-shrink:0;">
+    <span class="status-badge status-badge--{{ submission.status }}">{{ submission.get_status_display }}</span>
+    <a href="{% url 'editorial_submission' submission.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Editorial View</a>
+    {% if build and build.is_published %}
+    <a href="{% url 'article_detail' build.slug %}" class="btn btn-sm btn-primary" target="_blank">View Published ↗</a>
+    {% endif %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--spacing-6);">
+
+  <!-- Left column -->
+  <div style="display:flex;flex-direction:column;gap:var(--spacing-5);">
+
+    <!-- Metadata -->
+    <div class="jadmin-card">
+      <h2 style="font-size:var(--size-base);font-weight:700;margin-bottom:var(--spacing-4);">Submission Details</h2>
+      <dl style="display:grid;grid-template-columns:160px 1fr;gap:var(--spacing-2) var(--spacing-4);font-size:var(--size-sm);">
+        <dt style="color:var(--color-muted);font-weight:600;">Author</dt>
+        <dd>{{ submission.author.display_name }} <span style="color:var(--color-muted);">({{ submission.author.email }})</span></dd>
+        {% if submission.corresponding_author %}
+        <dt style="color:var(--color-muted);font-weight:600;">Corresponding</dt>
+        <dd>{{ submission.corresponding_author.display_name }}</dd>
+        {% endif %}
+        <dt style="color:var(--color-muted);font-weight:600;">Article type</dt>
+        <dd>{{ submission.get_article_type_display }}</dd>
+        <dt style="color:var(--color-muted);font-weight:600;">Language</dt>
+        <dd>{{ submission.language|upper }}</dd>
+        <dt style="color:var(--color-muted);font-weight:600;">Submitted</dt>
+        <dd>{{ submission.submission_date|date:"d M Y H:i"|default:"—" }}</dd>
+        <dt style="color:var(--color-muted);font-weight:600;">Last updated</dt>
+        <dd>{{ submission.updated_at|date:"d M Y H:i" }}</dd>
+        <dt style="color:var(--color-muted);font-weight:600;">Issue</dt>
+        <dd>
+          {% if submission.issue %}
+            <a href="{% url 'journal_admin_issue_edit' submission.issue.pk %}">#{{ submission.issue.number }} Vol.{{ submission.issue.volume }} ({{ submission.issue.year }}){% if submission.issue.title %} — {{ submission.issue.title }}{% endif %}</a>
+          {% else %}—{% endif %}
+        </dd>
+        <dt style="color:var(--color-muted);font-weight:600;">License</dt>
+        <dd>{{ submission.license_preference }}</dd>
+        {% if submission.keywords %}
+        <dt style="color:var(--color-muted);font-weight:600;">Keywords</dt>
+        <dd>{{ submission.keywords|join:", " }}</dd>
+        {% endif %}
+        {% if submission.disciplines %}
+        <dt style="color:var(--color-muted);font-weight:600;">Disciplines</dt>
+        <dd>{{ submission.disciplines|join:", " }}</dd>
+        {% endif %}
+        {% if submission.artistic_mediums %}
+        <dt style="color:var(--color-muted);font-weight:600;">Mediums</dt>
+        <dd>{{ submission.artistic_mediums|join:", " }}</dd>
+        {% endif %}
+      </dl>
+      {% if submission.abstract %}
+      <div style="margin-top:var(--spacing-4);border-top:1px solid var(--color-border);padding-top:var(--spacing-4);">
+        <p style="font-size:var(--size-xs);font-weight:600;color:var(--color-muted);margin-bottom:var(--spacing-2);">ABSTRACT</p>
+        <p style="font-size:var(--size-sm);line-height:var(--leading-loose);color:var(--color-muted);">{{ submission.abstract }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Revisions & Files -->
+    <div class="jadmin-card">
+      <h2 style="font-size:var(--size-base);font-weight:700;margin-bottom:var(--spacing-4);">Revisions & Files</h2>
+      {% for rev in revisions %}
+      <div style="border:1px solid var(--color-border);border-radius:6px;padding:var(--spacing-4);margin-bottom:var(--spacing-3);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-3);">
+          <span style="font-weight:700;font-size:var(--size-sm);">Version {{ rev.version }}</span>
+          <div style="display:flex;gap:var(--spacing-2);align-items:center;">
+            <span class="role-badge" style="font-size:var(--size-xs);">{{ rev.get_status_display }}</span>
+            {% if rev.submitted_at %}
+            <span style="font-size:var(--size-xs);color:var(--color-muted);">{{ rev.submitted_at|date:"d M Y" }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <!-- Manuscript -->
+        {% if rev.manuscript_file %}
+        <div style="margin-bottom:var(--spacing-2);">
+          <a href="{{ rev.manuscript_file.url }}" style="font-size:var(--size-sm);display:inline-flex;align-items:center;gap:4px;">
+            📄 {{ rev.manuscript_file.name|cut:"manuscripts/" }}
+          </a>
+        </div>
+        {% endif %}
+        {% if rev.response_letter %}
+        <div style="margin-bottom:var(--spacing-2);">
+          <a href="{{ rev.response_letter.url }}" style="font-size:var(--size-sm);color:var(--color-muted);display:inline-flex;align-items:center;gap:4px;">
+            ✉️ Response letter
+          </a>
+        </div>
+        {% endif %}
+        <!-- Assets -->
+        {% if rev.assets.all %}
+        <div style="margin-top:var(--spacing-3);border-top:1px solid var(--color-border);padding-top:var(--spacing-3);">
+          <p style="font-size:var(--size-xs);font-weight:600;color:var(--color-muted);margin-bottom:var(--spacing-2);">ASSETS ({{ rev.assets.count }})</p>
+          <div style="display:flex;flex-direction:column;gap:var(--spacing-1);">
+          {% for asset in rev.assets.all %}
+          <div style="display:flex;align-items:center;gap:var(--spacing-3);font-size:var(--size-sm);">
+            <span class="role-badge" style="font-size:var(--size-xs);min-width:80px;text-align:center;">{{ asset.get_kind_display }}</span>
+            <a href="{{ asset.file.url }}">{{ asset.original_filename }}</a>
+            {% if asset.caption %}<span style="color:var(--color-muted);font-size:var(--size-xs);">{{ asset.caption|truncatechars:50 }}</span>{% endif %}
+            <span style="color:var(--color-muted);font-size:var(--size-xs);margin-left:auto;">
+              {% if asset.size_bytes %}{{ asset.size_bytes|filesizeformat }}{% endif %}
+              {% if not asset.rights_cleared %}<span style="color:#ef4444;">⚠ rights</span>{% endif %}
+            </span>
+          </div>
+          {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        <!-- Similarity check -->
+        {% if rev.similarity_check %}
+        <div style="margin-top:var(--spacing-3);font-size:var(--size-xs);color:var(--color-muted);">
+          Similarity check: <strong>{{ rev.similarity_check.status }}</strong>
+          {% if rev.similarity_check.similarity_score != None %} — {{ rev.similarity_check.similarity_score|floatformat:1 }}%{% endif %}
+        </div>
+        {% endif %}
+        {% if rev.notes %}
+        <div style="margin-top:var(--spacing-2);font-size:var(--size-xs);color:var(--color-muted);font-style:italic;">{{ rev.notes }}</div>
+        {% endif %}
+      </div>
+      {% empty %}
+      <p style="color:var(--color-muted);">No revisions uploaded yet.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Editorial Decisions -->
+    <div class="jadmin-card">
+      <h2 style="font-size:var(--size-base);font-weight:700;margin-bottom:var(--spacing-4);">Editorial Decisions</h2>
+      {% for dec in decisions %}
+      <div style="border-left:3px solid var(--color-accent);padding-left:var(--spacing-4);margin-bottom:var(--spacing-4);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-1);">
+          <span style="font-weight:700;font-size:var(--size-sm);">Round {{ dec.round }}: {{ dec.get_decision_type_display }}</span>
+          <span style="font-size:var(--size-xs);color:var(--color-muted);">{{ dec.sent_at|date:"d M Y" }} — {{ dec.editor.display_name }}</span>
+        </div>
+        {% if dec.letter %}
+        <p style="font-size:var(--size-sm);color:var(--color-muted);margin-top:var(--spacing-2);">{{ dec.letter|truncatechars:300 }}</p>
+        {% endif %}
+      </div>
+      {% empty %}
+      <p style="color:var(--color-muted);">No decisions recorded.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Reviews -->
+    <div class="jadmin-card">
+      <h2 style="font-size:var(--size-base);font-weight:700;margin-bottom:var(--spacing-4);">Peer Reviews</h2>
+      {% for inv in invitations %}
+      <div style="border:1px solid var(--color-border);border-radius:6px;padding:var(--spacing-4);margin-bottom:var(--spacing-3);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-2);">
+          <span style="font-weight:600;font-size:var(--size-sm);">{{ inv.reviewer.display_name }}</span>
+          <div style="display:flex;gap:var(--spacing-2);align-items:center;">
+            <span class="role-badge" style="font-size:var(--size-xs);">{{ inv.get_status_display }}</span>
+            <span style="font-size:var(--size-xs);color:var(--color-muted);">Invited {{ inv.sent_at|date:"d M Y" }} · Deadline {{ inv.deadline|date:"d M Y" }}</span>
+          </div>
+        </div>
+        {% for review in reviews %}
+        {% if review.invitation.pk == inv.pk %}
+        <div style="background:var(--color-bg);border-radius:4px;padding:var(--spacing-3);font-size:var(--size-sm);">
+          {% if review.recommendation %}<p><strong>Recommendation:</strong> {{ review.get_recommendation_display }}</p>{% endif %}
+          {% if review.summary %}<p style="color:var(--color-muted);margin-top:var(--spacing-1);">{{ review.summary|truncatechars:400 }}</p>{% endif %}
+          {% if review.submitted_at %}<p style="font-size:var(--size-xs);color:var(--color-muted);margin-top:var(--spacing-2);">Submitted {{ review.submitted_at|date:"d M Y" }}</p>{% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% empty %}
+      <p style="color:var(--color-muted);">No reviewer invitations sent.</p>
+      {% endfor %}
+    </div>
+
+  </div>
+
+  <!-- Right column -->
+  <div style="display:flex;flex-direction:column;gap:var(--spacing-5);">
+
+    <!-- Production Status -->
+    <div class="jadmin-card">
+      <h2 style="font-size:var(--size-base);font-weight:700;margin-bottom:var(--spacing-4);">Production</h2>
+      {% if build %}
+      <dl style="font-size:var(--size-sm);display:flex;flex-direction:column;gap:var(--spacing-2);margin-bottom:var(--spacing-4);">
+        <div><span style="color:var(--color-muted);font-weight:600;">HTML Build</span><br>
+          {% if build.is_published %}
+            <span style="color:#16a34a;font-weight:600;">Published</span>
+            {% if build.published_at %}· {{ build.published_at|date:"d M Y" }}{% endif %}
+          {% else %}
+            <span style="color:#d97706;">Built, not published</span>
+          {% endif %}
+        </div>
+        <div><span style="color:var(--color-muted);font-weight:600;">Access</span><br>{{ build.access_mode|title }}</div>
+        {% if build.slug %}
+        <div><span style="color:var(--color-muted);font-weight:600;">Slug</span><br><code style="font-size:var(--size-xs);">{{ build.slug }}</code></div>
+        {% endif %}
+      </dl>
+
+      <!-- HTML preview -->
+      <a href="{% url 'admin_preview' canonical_doc.pk %}" target="_blank"
+         class="btn btn-sm" style="width:100%;text-align:center;margin-bottom:var(--spacing-2);display:block;background:var(--color-accent);color:#fff;border:none;">
+        View HTML Render ↗
+      </a>
+
+      <!-- PDF downloads -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-2);">
+        <a href="{% url 'admin_request_pdf' canonical_doc.pk %}?mode=flat"
+           class="btn btn-sm" style="text-align:center;background:var(--color-surface);border:1px solid var(--color-border);">
+          ↓ Flat PDF
+        </a>
+        <a href="{% url 'admin_request_pdf' canonical_doc.pk %}?mode=interactive"
+           class="btn btn-sm" style="text-align:center;background:var(--color-surface);border:1px solid var(--color-border);">
+          ↓ Rich PDF
+        </a>
+      </div>
+      {% else %}
+      <p style="color:var(--color-muted);font-size:var(--size-sm);">No HTML build yet. Use the Editorial view to build and publish.</p>
+      {% endif %}
+
+      <div style="margin-top:var(--spacing-4);">
+        <a href="{% url 'editorial_submission' submission.pk %}" class="btn btn-sm"
+           style="width:100%;text-align:center;background:var(--color-surface);border:1px solid var(--color-border);display:block;">
+          Manage in Editorial
+        </a>
+      </div>
+    </div>
+
+    <!-- Editor Assignments -->
+    <div class="jadmin-card">
+      <h2 style="font-size:var(--size-base);font-weight:700;margin-bottom:var(--spacing-4);">Editors</h2>
+      {% for asgn in assignments %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--spacing-2) 0;border-bottom:1px solid var(--color-border);font-size:var(--size-sm);">
+        <div>
+          <span style="font-weight:600;">{{ asgn.editor.display_name }}</span><br>
+          <span style="color:var(--color-muted);font-size:var(--size-xs);">{{ asgn.get_role_display }}</span>
+        </div>
+        {% if not asgn.is_active %}
+        <span style="font-size:var(--size-xs);color:var(--color-muted);">inactive</span>
+        {% endif %}
+      </div>
+      {% empty %}
+      <p style="color:var(--color-muted);font-size:var(--size-sm);">No editors assigned.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Declarations -->
+    <div class="jadmin-card">
+      <h2 style="font-size:var(--size-base);font-weight:700;margin-bottom:var(--spacing-4);">Declarations</h2>
+      <dl style="font-size:var(--size-sm);display:flex;flex-direction:column;gap:var(--spacing-3);">
+        <div>
+          <dt style="color:var(--color-muted);font-weight:600;font-size:var(--size-xs);">CONFLICT OF INTEREST</dt>
+          <dd>{{ submission.conflict_of_interest|default:"None declared." }}</dd>
+        </div>
+        {% if submission.funding_statement %}
+        <div>
+          <dt style="color:var(--color-muted);font-weight:600;font-size:var(--size-xs);">FUNDING</dt>
+          <dd>{{ submission.funding_statement }}</dd>
+        </div>
+        {% endif %}
+        {% if submission.ai_use_statement %}
+        <div>
+          <dt style="color:var(--color-muted);font-weight:600;font-size:var(--size-xs);">AI USE</dt>
+          <dd>{{ submission.ai_use_statement }}</dd>
+        </div>
+        {% endif %}
+        <div>
+          <dt style="color:var(--color-muted);font-weight:600;font-size:var(--size-xs);">ORIGINALITY</dt>
+          <dd>{% if submission.originality_confirmed %}Confirmed{% else %}Not confirmed{% endif %}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Audit Log -->
+    <div class="jadmin-card">
+      <h2 style="font-size:var(--size-base);font-weight:700;margin-bottom:var(--spacing-4);">History Log</h2>
+      {% if audit_events %}
+      <div style="display:flex;flex-direction:column;gap:0;">
+        {% for event in audit_events %}
+        <div style="padding:var(--spacing-2) 0;border-bottom:1px solid var(--color-border);font-size:var(--size-xs);">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--spacing-2);">
+            <span style="font-weight:600;color:var(--color-text);">{{ event.event_type|cut:"_"|capfirst }}</span>
+            <span style="color:var(--color-muted);white-space:nowrap;">{{ event.timestamp|date:"d M Y H:i" }}</span>
+          </div>
+          {% if event.actor %}
+          <span style="color:var(--color-muted);">{{ event.actor.display_name }}</span>
+          {% endif %}
+          {% if event.payload.note %}
+          <div style="color:var(--color-muted);margin-top:2px;">{{ event.payload.note }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color:var(--color-muted);font-size:var(--size-sm);">No audit events recorded.</p>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

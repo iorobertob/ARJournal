@@ -21,6 +21,7 @@ environ.Env.read_env(BASE_DIR / '.env')
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
 # Application definition
 DJANGO_APPS = [
@@ -197,6 +198,18 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'cleanup-pdf-exports': {
+        'task': 'apps.production.tasks.cleanup_expired_pdf_exports',
+        'schedule': crontab(hour='*/6'),
+    },
+    'send-review-reminders': {
+        'task': 'apps.notifications.tasks.send_review_reminders',
+        'schedule': crontab(hour=9, minute=0),
+    },
+}
+
 # Email (django-anymail)
 ANYMAIL_BACKEND = env('ANYMAIL_BACKEND', default='console')
 if ANYMAIL_BACKEND == 'mailersend':
@@ -217,6 +230,8 @@ else:
 
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@trans-act-journal.org')
 SERVER_EMAIL = env('SERVER_EMAIL', default=DEFAULT_FROM_EMAIL)
+# Public URL of the site — used to build absolute URLs in emails.
+SITE_URL = env('SITE_URL', default='https://trans-act-journal.org')
 
 # Feature flags
 DOI_ENABLED = env('DOI_ENABLED')

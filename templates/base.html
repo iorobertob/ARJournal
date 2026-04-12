@@ -31,6 +31,25 @@
 
 {% include 'partials/footer.html' %}
 
+<!-- Global modal -->
+<div x-data x-show="$store.modal.show" x-cloak
+     class="modal-backdrop"
+     @keydown.escape.window="$store.modal.cancel()">
+  <div class="modal" @click.stop>
+    <p class="modal__title"
+       x-text="$store.modal.title || ($store.modal.type === 'confirm' ? 'Confirm' : 'Notice')"></p>
+    <p class="modal__message" x-text="$store.modal.message"></p>
+    <div class="modal__actions">
+      <button x-show="$store.modal.type === 'confirm'"
+              class="btn btn--secondary btn--small"
+              @click="$store.modal.cancel()">Cancel</button>
+      <button class="btn btn--primary btn--small"
+              @click="$store.modal.ok()"
+              x-text="$store.modal.type === 'confirm' ? 'Confirm' : 'OK'"></button>
+    </div>
+  </div>
+</div>
+
 <script src="{% static 'js/alpine.min.js' %}" defer></script>
 <script src="{% static 'js/htmx.min.js' %}"></script>
 <script src="{% static 'js/main.js' %}"></script>

@@ -10,6 +10,52 @@ python3 -c "import sys; assert sys.version_info >= (3, 11), 'Python 3.11+ requir
   exit 1
 }
 
+# ── WeasyPrint system dependencies ──────────────────────────────
+# WeasyPrint renders HTML→PDF and requires GLib/Pango/Cairo shared libraries.
+# On macOS these must be installed via Homebrew; on Linux they come from apt.
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  if ! command -v brew &>/dev/null; then
+    echo ""
+    echo "WARNING: Homebrew not found. WeasyPrint (PDF generation) requires system"
+    echo "  libraries that are easiest to install via Homebrew."
+    echo "  Install Homebrew from https://brew.sh then re-run this script."
+    echo ""
+  else
+    echo "Checking WeasyPrint system dependencies (macOS)..."
+    MISSING_BREW=()
+    for pkg in pango cairo glib libffi; do
+      brew list "$pkg" &>/dev/null || MISSING_BREW+=("$pkg")
+    done
+    if [ ${#MISSING_BREW[@]} -gt 0 ]; then
+      echo "  Installing missing Homebrew packages: ${MISSING_BREW[*]}"
+      brew install "${MISSING_BREW[@]}"
+    else
+      echo "  All WeasyPrint Homebrew packages present."
+    fi
+    # Ensure the library path is available for this session
+    export DYLD_LIBRARY_PATH="/opt/homebrew/lib:${DYLD_LIBRARY_PATH}"
+    # Persist it in .env if not already there
+    if [ -f ".env" ] && ! grep -q "DYLD_LIBRARY_PATH" .env; then
+      echo "" >> .env
+      echo "# WeasyPrint — macOS Homebrew library path" >> .env
+      echo "DYLD_LIBRARY_PATH=/opt/homebrew/lib" >> .env
+      echo "  Added DYLD_LIBRARY_PATH to .env"
+    fi
+  fi
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  echo "Checking WeasyPrint system dependencies (Linux)..."
+  MISSING_APT=()
+  for pkg in libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libharfbuzz0b libffi-dev shared-mime-info fonts-liberation; do
+    dpkg -s "$pkg" &>/dev/null || MISSING_APT+=("$pkg")
+  done
+  if [ ${#MISSING_APT[@]} -gt 0 ]; then
+    echo "  Installing missing apt packages: ${MISSING_APT[*]}"
+    sudo apt-get install -y --no-install-recommends "${MISSING_APT[@]}"
+  else
+    echo "  All WeasyPrint apt packages present."
+  fi
+fi
+
 # Virtual env
 if [ ! -d "venv" ]; then
   echo "Creating virtual environment..."

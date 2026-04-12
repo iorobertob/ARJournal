@@ -1,0 +1,56 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Issues & Volumes — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);">
+  <h1 class="jadmin-page-title" style="margin:0;">Issues & Volumes</h1>
+  <a href="{% url 'journal_admin_issue_create' %}" class="btn btn-primary">+ New Issue</a>
+</div>
+
+<div class="jadmin-card">
+  {% if issues %}
+  <table class="jadmin-table">
+    <thead>
+      <tr>
+        <th>Issue</th>
+        <th>Volume</th>
+        <th>Year</th>
+        <th>Title</th>
+        <th>Articles</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for issue in issues %}
+    <tr>
+      <td style="font-weight:600;">#{{ issue.number }}</td>
+      <td>Vol. {{ issue.volume }}</td>
+      <td>{{ issue.year }}</td>
+      <td>{{ issue.title|default:"—"|truncatechars:40 }}</td>
+      <td>{{ issue.article_count }}</td>
+      <td>
+        {% if issue.is_published %}
+          <span class="role-badge" style="background:#d1fae5;color:#065f46;">Published</span>
+        {% elif issue.is_current %}
+          <span class="role-badge" style="background:#fef3c7;color:#92400e;">Current (Draft)</span>
+        {% else %}
+          <span class="role-badge">Draft</span>
+        {% endif %}
+      </td>
+      <td>
+        <a href="{% url 'journal_admin_issue_edit' issue.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Edit &amp; Assemble</a>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center;padding:var(--spacing-12);color:var(--color-muted);">
+    <p style="font-size:var(--size-lg);margin-bottom:var(--spacing-4);">No issues created yet.</p>
+    <a href="{% url 'journal_admin_issue_create' %}" class="btn btn-primary">Create your first issue</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

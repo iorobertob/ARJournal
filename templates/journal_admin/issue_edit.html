@@ -1,0 +1,600 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Issue #{{ issue.number }} — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+
+{# ── Header ───────────────────────────────────────────────────── #}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-4);">
+  <div>
+    <a href="{% url 'journal_admin_issues' %}" style="font-size:var(--size-sm);color:var(--color-muted);text-decoration:none;">← All Issues</a>
+    <h1 class="jadmin-page-title" style="margin-top:var(--spacing-2);">
+      Issue #{{ issue.number }}
+      {% if issue.title %}— {{ issue.title }}{% endif %}
+    </h1>
+  </div>
+  <div id="publish-actions" style="display:flex;gap:var(--spacing-3);align-items:center;">
+    {% if issue.is_published %}
+      <span id="publish-badge" class="role-badge" style="background:#d1fae5;color:#065f46;font-size:var(--size-sm);">Published {{ issue.published_at|date:"d M Y" }}</span>
+      <form method="post" id="form-unpublish" style="display:inline;"
+            data-confirm="Unpublish this issue?">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="unpublish">
+        <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Unpublish</button>
+      </form>
+    {% else %}
+      <form method="post" id="form-publish" style="display:inline;"
+            data-confirm="Publish Issue #{{ issue.number }}? It will become visible on the public site.">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="publish">
+        <button type="submit" class="btn btn-primary">Publish Issue</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Issue Details ────────────────────────────────────────────── #}
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Issue Details</div>
+  <form method="post" id="form-save" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save">
+
+    <div class="form-row">
+      <div class="form-group" style="max-width:120px;">
+        <label for="id_number">Number</label>
+        <input type="number" name="number" id="id_number" value="{{ issue.number }}" class="form-control" required>
+      </div>
+      <div class="form-group" style="max-width:120px;">
+        <label for="id_volume">Volume</label>
+        <input type="number" name="volume" id="id_volume" value="{{ issue.volume }}" class="form-control" required>
+      </div>
+      <div class="form-group" style="max-width:120px;">
+        <label for="id_year">Year</label>
+        <input type="number" name="year" id="id_year" value="{{ issue.year }}" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label for="id_title">Title</label>
+        <input type="text" name="title" id="id_title" value="{{ issue.title }}" class="form-control">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:var(--spacing-4);">
+      <label for="id_editorial_note">Editorial note</label>
+      <textarea name="editorial_note" id="id_editorial_note" rows="3" class="form-control">{{ issue.editorial_note }}</textarea>
+    </div>
+
+    <div class="form-group" style="margin-bottom:var(--spacing-4);">
+      <label for="id_call">Call for submissions</label>
+      <textarea name="call_for_submissions" id="id_call" rows="2" class="form-control">{{ issue.call_for_submissions }}</textarea>
+    </div>
+
+    <div class="form-row" style="align-items:center;">
+      <div class="form-group" style="min-width:auto;flex:0;">
+        <label style="display:flex;align-items:center;gap:var(--spacing-2);white-space:nowrap;">
+          <input type="checkbox" name="is_current" {% if issue.is_current %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
+          Mark as current issue
+        </label>
+      </div>
+      <div class="form-group">
+        <label for="id_cover">Cover image</label>
+        <input type="file" name="cover_image" id="id_cover" accept="image/*" class="form-control">
+        {% if issue.cover_image %}
+        <small style="color:var(--color-muted);font-size:var(--size-xs);">Current: {{ issue.cover_image.name }}</small>
+        {% endif %}
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="margin-top:var(--spacing-3);">Save Changes</button>
+  </form>
+</div>
+
+{# ── Article Assembly ─────────────────────────────────────────── #}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-6);">
+
+  {# Assigned Articles #}
+  <div class="jadmin-card">
+    <div class="jadmin-card__title" style="display:flex;justify-content:space-between;align-items:center;">
+      <span id="assigned-count-label">Articles in This Issue ({{ assigned_articles.count }})</span>
+    </div>
+
+    {# Hidden section-assign forms — must live outside reorder-form #}
+    {% for sub in assigned_articles %}
+    <form method="post" id="section-form-{{ sub.pk }}" style="display:none;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="assign_section">
+      <input type="hidden" name="submission_pk" value="{{ sub.pk }}">
+      <input type="hidden" name="section_pk" id="section-input-{{ sub.pk }}">
+    </form>
+    {% endfor %}
+
+    {# Hidden remove forms #}
+    {% for sub in assigned_articles %}
+    <form method="post" id="remove-{{ sub.pk }}" style="display:none;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="remove_article">
+      <input type="hidden" name="submission_pk" value="{{ sub.pk }}">
+    </form>
+    {% endfor %}
+
+    <form method="post" id="reorder-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="reorder">
+      <div class="issue-assembly-list" id="assigned-list">
+        {% for sub in assigned_articles %}
+        <div class="issue-assembly-item" data-pk="{{ sub.pk }}">
+          <input type="hidden" name="order[]" value="{{ sub.pk }}">
+          <div class="issue-assembly-item__handle">{{ forloop.counter }}</div>
+          <div class="issue-assembly-item__body">
+            <div class="issue-assembly-item__title">{{ sub.title|truncatechars:55 }}</div>
+            <div class="issue-assembly-item__meta">{{ sub.author.display_name }} · {{ sub.get_article_type_display }}</div>
+            <div class="issue-assembly-item__meta" style="margin-top:4px;">
+              <span class="role-badge role-badge--{{ sub.status }}">{{ sub.get_status_display }}</span>
+            </div>
+          </div>
+          {% if sections %}
+          <div class="issue-assembly-item__section">
+            <select class="section-picker {% if sub.section_id %}section-picker--assigned{% endif %}"
+                    data-sub="{{ sub.pk }}"
+                    onchange="assignSection(this, '{{ sub.pk }}')">
+              <option value="">No section</option>
+              {% for section in sections %}
+              <option value="{{ section.pk }}" {% if sub.section_id == section.pk %}selected{% endif %}>{{ section.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          <div class="issue-assembly-item__actions">
+            <button type="submit" form="remove-{{ sub.pk }}" class="btn btn-sm issue-remove-btn">✕</button>
+          </div>
+        </div>
+        {% empty %}
+        <p id="assigned-empty" style="color:var(--color-muted);font-size:var(--size-sm);font-style:italic;padding:var(--spacing-4) 0;">
+          No articles assigned yet. Add accepted submissions from the right panel.
+        </p>
+        {% endfor %}
+      </div>
+      {% if assigned_articles %}
+      <button type="submit" class="btn btn-sm" style="margin-top:var(--spacing-3);background:var(--color-surface);border:1px solid var(--color-border);">Save Order</button>
+      {% endif %}
+    </form>
+  </div>
+
+  {# Available Articles #}
+  <div class="jadmin-card">
+    <div class="jadmin-card__title">Available Articles (Accepted / In Production)</div>
+    <div id="available-list">
+      {% for sub in available_articles %}
+      <div class="issue-assembly-item" data-pk="{{ sub.pk }}">
+        <div class="issue-assembly-item__body">
+          <div class="issue-assembly-item__title">{{ sub.title|truncatechars:55 }}</div>
+          <div class="issue-assembly-item__meta">{{ sub.author.display_name }} · {{ sub.get_article_type_display }}</div>
+          <div class="issue-assembly-item__meta" style="margin-top:4px;">
+            <span class="role-badge role-badge--{{ sub.status }}">{{ sub.get_status_display }}</span>
+          </div>
+        </div>
+        <form method="post" style="flex-shrink:0;">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_article">
+          <input type="hidden" name="submission_pk" value="{{ sub.pk }}">
+          <button type="submit" class="btn btn-sm btn-primary" style="font-size:var(--size-xs);">+ Add</button>
+        </form>
+      </div>
+      {% empty %}
+      <p id="available-empty" class="available-empty" style="color:var(--color-muted);font-size:var(--size-sm);font-style:italic;padding:var(--spacing-4) 0;">
+        No accepted submissions available. Articles must be accepted before they can be assigned to an issue.
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+{# ── Sections ─────────────────────────────────────────────────── #}
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Sections</div>
+  <div id="sections-list" style="display:flex;flex-direction:column;gap:var(--spacing-2);{% if not sections %}display:none;{% endif %}margin-bottom:var(--spacing-4);">
+    {% for section in sections %}
+    <div class="section-row" data-pk="{{ section.pk }}" style="display:flex;align-items:center;gap:var(--spacing-3);padding:var(--spacing-2) var(--spacing-3);background:var(--color-surface);border-radius:var(--radius);">
+      <span style="font-size:var(--size-sm);font-weight:500;flex:1;">{{ section.name }}</span>
+      {% if section.description %}<span style="font-size:var(--size-xs);color:var(--color-muted);">{{ section.description }}</span>{% endif %}
+      <span style="font-size:var(--size-xs);color:var(--color-muted);">{{ section.submission_set.count }} article{{ section.submission_set.count|pluralize }}</span>
+      <form method="post" style="margin:0;"
+            data-confirm="Delete section '{{ section.name }}'? Articles in it will become unsectioned.">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_section">
+        <input type="hidden" name="section_pk" value="{{ section.pk }}">
+        <button type="submit" class="btn btn-sm" style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;font-size:var(--size-xs);padding:2px 8px;">Delete</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  <form id="form-add-section" method="post" style="display:flex;gap:var(--spacing-3);align-items:flex-end;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add_section">
+    <div class="form-group" style="flex:1;margin-bottom:0;">
+      <label>Section name</label>
+      <input type="text" name="section_name" id="section-name-input" class="form-control" placeholder="e.g. Research Articles, Visual Essays, Reviews…">
+    </div>
+    <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Add Section</button>
+  </form>
+</div>
+
+{# ── Styles ───────────────────────────────────────────────────── #}
+<style>
+  .issue-assembly-list { display:flex; flex-direction:column; gap:var(--spacing-2); }
+  .issue-assembly-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-3) var(--spacing-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    transition: border-color 0.15s, opacity 0.2s, transform 0.2s;
+  }
+  .issue-assembly-item:hover { border-color: var(--color-accent); }
+  .issue-assembly-item__handle {
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: var(--size-xs); font-weight: 600;
+    color: var(--color-muted); flex-shrink: 0;
+  }
+  .issue-assembly-item__body { flex: 1; min-width: 0; }
+  .issue-assembly-item__title {
+    font-size: var(--size-sm); font-weight: 500;
+    line-height: var(--leading-snug); margin-bottom: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .issue-assembly-item__meta { font-size: var(--size-xs); color: var(--color-muted); }
+  .issue-assembly-item__section { flex-shrink: 0; }
+  .issue-assembly-item__actions { flex-shrink: 0; }
+
+  .section-picker {
+    appearance: none; -webkit-appearance: none;
+    padding: 3px 22px 3px 10px;
+    border-radius: 100px;
+    border: 1.5px dashed var(--color-border);
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 9px 5px;
+    font-size: 0.72rem; font-family: var(--font-sans); font-weight: 500;
+    color: var(--color-muted); cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+    max-width: 160px;
+  }
+  .section-picker:hover {
+    border-color: var(--color-accent); border-style: solid; color: var(--color-text);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23E86B1F' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+  .section-picker:focus {
+    outline: none; border-color: var(--color-accent); border-style: solid;
+    box-shadow: 0 0 0 3px rgba(232,107,31,0.10);
+  }
+  .section-picker--assigned {
+    border-style: solid; border-color: rgba(232,107,31,0.4);
+    background-color: rgba(232,107,31,0.06); color: var(--color-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23E86B1F' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+
+  .issue-remove-btn {
+    width: 28px; height: 28px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid transparent;
+    color: var(--color-muted); font-size: 0.8rem;
+    border-radius: var(--radius);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .issue-remove-btn:hover { background:#fef2f2; border-color:#fecaca; color:#991b1b; }
+
+  /* Toast */
+  .jadmin-toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(12px);
+    background: #1a1a1a; color: #fff;
+    padding: 9px 20px; border-radius: 100px;
+    font-size: var(--size-sm); font-family: var(--font-sans);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    opacity: 0; transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none; z-index: 9999; white-space: nowrap;
+  }
+  .jadmin-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .section-row { transition: opacity 0.2s; }
+</style>
+
+{# ── Script ───────────────────────────────────────────────────── #}
+<script>
+(function () {
+  'use strict';
+
+  // Sink iframe — all forms post here; page never reloads
+  var sink = document.createElement('iframe');
+  sink.name = 'jadmin-sink';
+  sink.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;';
+  document.body.appendChild(sink);
+
+  // Point every form at the sink
+  document.querySelectorAll('form').forEach(function (f) {
+    f.target = 'jadmin-sink';
+  });
+
+  // ── Toast ────────────────────────────────────────────────────
+  function toast(msg) {
+    var el = document.createElement('div');
+    el.className = 'jadmin-toast';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { el.classList.add('visible'); });
+    });
+    setTimeout(function () {
+      el.classList.remove('visible');
+      el.addEventListener('transitionend', function () { el.remove(); });
+    }, 2400);
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────
+  function esc(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function csrf() {
+    var t = document.querySelector('[name="csrfmiddlewaretoken"]');
+    return t ? t.value : '';
+  }
+
+  function updateHandles() {
+    var list = document.getElementById('assigned-list');
+    if (!list) return;
+    var items = list.querySelectorAll('.issue-assembly-item[data-pk]');
+    items.forEach(function (item, i) {
+      var h = item.querySelector('.issue-assembly-item__handle');
+      if (h) h.textContent = i + 1;
+    });
+    var label = document.getElementById('assigned-count-label');
+    if (label) label.textContent = 'Articles in This Issue (' + items.length + ')';
+  }
+
+  // Build the section <options> HTML from any existing picker on the page
+  function sectionOptions(selectedPk) {
+    var ref = document.querySelector('select.section-picker');
+    if (!ref) return '<option value="">No section</option>';
+    var html = '';
+    ref.querySelectorAll('option').forEach(function (opt) {
+      var sel = (selectedPk && opt.value === String(selectedPk)) ? ' selected' : '';
+      html += '<option value="' + esc(opt.value) + '"' + sel + '>' + esc(opt.textContent) + '</option>';
+    });
+    return html;
+  }
+
+  // ── Section assignment (called from picker onchange) ─────────
+  window.assignSection = function (select, subPk) {
+    var sectionPk = select.value;
+    var input = document.getElementById('section-input-' + subPk);
+    var form  = document.getElementById('section-form-' + subPk);
+    if (!input || !form) return;
+    input.value = sectionPk;
+    select.classList.toggle('section-picker--assigned', sectionPk !== '');
+    form.requestSubmit ? form.requestSubmit() : form.submit();
+    toast(sectionPk ? 'Section assigned' : 'Section removed');
+  };
+
+  // ── Intercept all submits ────────────────────────────────────
+  document.addEventListener('submit', function (e) {
+    var form   = e.target;
+    var action = (form.querySelector('[name="action"]') || {}).value;
+    form.target = 'jadmin-sink'; // ensure sink target for dynamically added forms
+
+    if (action === 'assign_section') {
+      // Visual already handled by assignSection(); nothing more to do here.
+
+    } else if (action === 'remove_article') {
+      var subPk = form.querySelector('[name="submission_pk"]').value;
+      var row   = document.querySelector('.issue-assembly-item[data-pk="' + subPk + '"]');
+      if (!row) return;
+
+      // Snapshot article data
+      var title    = (row.querySelector('.issue-assembly-item__title') || {}).textContent || '';
+      var metaEls  = row.querySelectorAll('.issue-assembly-item__meta');
+      var meta     = metaEls.length ? metaEls[0].textContent : '';
+      var badgeEl  = row.querySelector('.role-badge');
+      var badgeHtml = badgeEl ? badgeEl.outerHTML : '';
+
+      // Fade out the assigned row
+      row.style.opacity  = '0';
+      row.style.transform = 'translateX(-6px)';
+      setTimeout(function () {
+        row.remove();
+        updateHandles();
+      }, 220);
+
+      // Re-add to available panel
+      var avail = document.getElementById('available-list');
+      if (avail) {
+        avail.querySelector('.available-empty') && avail.querySelector('.available-empty').remove();
+        var newItem = document.createElement('div');
+        newItem.className   = 'issue-assembly-item';
+        newItem.dataset.pk  = subPk;
+        newItem.style.opacity = '0';
+        newItem.innerHTML =
+          '<div class="issue-assembly-item__body">' +
+            '<div class="issue-assembly-item__title">' + esc(title.trim()) + '</div>' +
+            '<div class="issue-assembly-item__meta">' + esc(meta.trim()) + '</div>' +
+            '<div class="issue-assembly-item__meta" style="margin-top:4px;">' + badgeHtml + '</div>' +
+          '</div>' +
+          '<form method="post" target="jadmin-sink" style="flex-shrink:0;">' +
+            '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrf() + '">' +
+            '<input type="hidden" name="action" value="add_article">' +
+            '<input type="hidden" name="submission_pk" value="' + esc(subPk) + '">' +
+            '<button type="submit" class="btn btn-sm btn-primary" style="font-size:var(--size-xs);">+ Add</button>' +
+          '</form>';
+        avail.appendChild(newItem);
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () { newItem.style.opacity = '1'; });
+        });
+      }
+      toast('Article removed');
+
+    } else if (action === 'add_article') {
+      var subPk   = form.querySelector('[name="submission_pk"]').value;
+      var availRow = form.closest('.issue-assembly-item');
+      if (!availRow) return;
+
+      var title    = (availRow.querySelector('.issue-assembly-item__title') || {}).textContent || '';
+      var metaEls  = availRow.querySelectorAll('.issue-assembly-item__meta');
+      var meta     = metaEls.length ? metaEls[0].textContent : '';
+      var badgeEl  = availRow.querySelector('.role-badge');
+      var badgeHtml = badgeEl ? badgeEl.outerHTML : '';
+
+      // Fade out available row
+      availRow.style.opacity   = '0';
+      availRow.style.transform = 'translateX(6px)';
+      setTimeout(function () { availRow.remove(); }, 220);
+
+      // Build and insert hidden section-assign form + remove form (outside reorder-form)
+      var reorderForm = document.getElementById('reorder-form');
+      var hasSections = !!document.querySelector('select.section-picker');
+
+      var secFormEl = document.createElement('form');
+      secFormEl.method  = 'post';
+      secFormEl.target  = 'jadmin-sink';
+      secFormEl.id      = 'section-form-' + subPk;
+      secFormEl.style.display = 'none';
+      secFormEl.innerHTML =
+        '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrf() + '">' +
+        '<input type="hidden" name="action" value="assign_section">' +
+        '<input type="hidden" name="submission_pk" value="' + esc(subPk) + '">' +
+        '<input type="hidden" name="section_pk" id="section-input-' + esc(subPk) + '">';
+
+      var remFormEl = document.createElement('form');
+      remFormEl.method  = 'post';
+      remFormEl.target  = 'jadmin-sink';
+      remFormEl.id      = 'remove-' + subPk;
+      remFormEl.style.display = 'none';
+      remFormEl.innerHTML =
+        '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrf() + '">' +
+        '<input type="hidden" name="action" value="remove_article">' +
+        '<input type="hidden" name="submission_pk" value="' + esc(subPk) + '">';
+
+      reorderForm.parentNode.insertBefore(secFormEl, reorderForm);
+      reorderForm.parentNode.insertBefore(remFormEl, reorderForm);
+
+      // Build picker HTML
+      var pickerHtml = hasSections
+        ? '<div class="issue-assembly-item__section">' +
+            '<select class="section-picker" data-sub="' + esc(subPk) + '" onchange="assignSection(this,\'' + esc(subPk) + '\')">' +
+              sectionOptions() +
+            '</select>' +
+          '</div>'
+        : '';
+
+      // Build new assigned row
+      var list    = document.getElementById('assigned-list');
+      var newRow  = document.createElement('div');
+      newRow.className  = 'issue-assembly-item';
+      newRow.dataset.pk = subPk;
+      newRow.style.opacity = '0';
+      newRow.innerHTML =
+        '<input type="hidden" name="order[]" value="' + esc(subPk) + '">' +
+        '<div class="issue-assembly-item__handle">?</div>' +
+        '<div class="issue-assembly-item__body">' +
+          '<div class="issue-assembly-item__title">' + esc(title.trim()) + '</div>' +
+          '<div class="issue-assembly-item__meta">' + esc(meta.trim()) + '</div>' +
+          '<div class="issue-assembly-item__meta" style="margin-top:4px;">' + badgeHtml + '</div>' +
+        '</div>' +
+        pickerHtml +
+        '<div class="issue-assembly-item__actions">' +
+          '<button type="submit" form="remove-' + esc(subPk) + '" class="btn btn-sm issue-remove-btn">✕</button>' +
+        '</div>';
+
+      // Remove empty-state placeholder if present
+      var emptyMsg = document.getElementById('assigned-empty');
+      if (emptyMsg) emptyMsg.remove();
+
+      list.appendChild(newRow);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { newRow.style.opacity = '1'; });
+      });
+      updateHandles();
+      toast('Article added to issue');
+
+    } else if (action === 'add_section') {
+      var nameInput = document.getElementById('section-name-input');
+      var name      = nameInput ? nameInput.value.trim() : '';
+      if (!name) return;
+
+      // Add pending row to sections list
+      var secList = document.getElementById('sections-list');
+      secList.style.display = 'flex'; // show if hidden
+      var row = document.createElement('div');
+      row.className = 'section-row';
+      row.style.cssText = 'display:flex;align-items:center;gap:var(--spacing-3);padding:var(--spacing-2) var(--spacing-3);background:var(--color-surface);border-radius:var(--radius);opacity:0;';
+      row.innerHTML =
+        '<span style="font-size:var(--size-sm);font-weight:500;flex:1;">' + esc(name) + '</span>' +
+        '<span style="font-size:var(--size-xs);color:var(--color-muted);">0 articles</span>' +
+        '<span style="font-size:var(--size-xs);color:var(--color-muted);font-style:italic;">Refresh to enable delete</span>';
+      secList.appendChild(row);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { row.style.opacity = '1'; });
+      });
+
+      // Add option to all existing section pickers
+      document.querySelectorAll('select.section-picker').forEach(function (sel) {
+        var opt = document.createElement('option');
+        opt.value       = '';       // unknown pk until reload — disabled for selection
+        opt.textContent = name;
+        opt.disabled    = true;
+        opt.title       = 'Refresh page to assign articles to this section';
+        sel.appendChild(opt);
+      });
+
+      if (nameInput) nameInput.value = '';
+      toast('Section "' + name + '" added — refresh to assign articles');
+
+    } else if (action === 'delete_section') {
+      var secPk  = form.querySelector('[name="section_pk"]').value;
+      var secRow = document.querySelector('.section-row[data-pk="' + secPk + '"]');
+      var secName = secRow ? (secRow.querySelector('span') || {}).textContent : 'section';
+
+      if (secRow) {
+        secRow.style.opacity = '0';
+        setTimeout(function () { secRow.remove(); }, 220);
+      }
+
+      // Remove option from all pickers; reset any that had it selected
+      document.querySelectorAll('select.section-picker').forEach(function (sel) {
+        if (sel.value === secPk) {
+          sel.value = '';
+          sel.classList.remove('section-picker--assigned');
+        }
+        var opt = sel.querySelector('option[value="' + secPk + '"]');
+        if (opt) opt.remove();
+      });
+
+      toast('Section deleted');
+
+    } else if (action === 'reorder') {
+      toast('Order saved');
+
+    } else if (action === 'save') {
+      toast('Issue details saved');
+
+    } else if (action === 'publish') {
+      toast('Issue published!');
+
+    } else if (action === 'unpublish') {
+      toast('Issue unpublished');
+    }
+  });
+
+})();
+</script>
+
+{% endblock %}

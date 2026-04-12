@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}My Reviews — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout container">
+  <div class="dashboard-header">
+    <h1>My Reviews</h1>
+  </div>
+
+  <!-- ── Active Reviews ─────────────────────────────────────────────── -->
+  <section class="review-list-section" x-data="listSearch()">
+    <div class="review-list-section__header">
+      <h2>Active Reviews <span class="badge">{{ active_items|length }}</span></h2>
+      <input type="search" x-model="q" @input="filter()"
+             placeholder="Search by title or author…"
+             class="review-list-section__search"
+             aria-label="Filter active reviews">
+    </div>
+
+    {% if active_items %}
+    <table class="jadmin-table review-list-table">
+      <thead>
+        <tr>
+          <th>Manuscript</th>
+          <th>Author</th>
+          <th>Type</th>
+          <th>Deadline</th>
+          <th>Review status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in active_items %}
+        {% with inv=item.invitation rev=item.review %}
+        {% if not rev or rev.status not in 'submitted,moderated,released' %}
+        <tr class="list-row"
+            data-search="{{ inv.submission.title|lower }} {{ inv.submission.author.display_name|lower }} {{ inv.submission.get_article_type_display|lower }}"
+            x-show="show($el)">
+          <td>
+            <a href="{% url 'reviewer_workspace' inv.pk %}" class="list-row__title">
+              {{ inv.submission.title|truncatechars:70 }}
+            </a>
+          </td>
+          <td style="color:var(--color-muted);font-size:var(--size-sm);">{{ inv.submission.author.display_name }}</td>
+          <td style="font-size:var(--size-sm);">{{ inv.submission.get_article_type_display }}</td>
+          <td style="font-size:var(--size-sm);">
+            {% if inv.deadline %}
+              <span {% if inv.deadline < today %}style="color:#dc2626;font-weight:600;"{% endif %}>
+                {{ inv.deadline|date:"d M Y" }}
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if rev %}
+              <span class="status-badge status-badge--{{ rev.status }}">{{ rev.get_status_display }}</span>
+            {% else %}
+              <span class="status-badge status-badge--draft">Not started</span>
+            {% endif %}
+          </td>
+          <td><a href="{% url 'reviewer_workspace' inv.pk %}" class="btn btn--small btn--primary">Open workspace</a></td>
+        </tr>
+        {% endif %}
+        {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No active reviews. Check your invitations below.</p>
+    {% endif %}
+  </section>
+
+  <!-- ── Completed Reviews ──────────────────────────────────────────── -->
+  {% if submitted_items %}
+  <section class="review-list-section" x-data="listSearch()">
+    <div class="review-list-section__header">
+      <h2>Completed Reviews <span class="badge">{{ submitted_items|length }}</span></h2>
+      <input type="search" x-model="q" @input="filter()"
+             placeholder="Search…"
+             class="review-list-section__search"
+             aria-label="Filter completed reviews">
+    </div>
+    <table class="jadmin-table review-list-table">
+      <thead>
+        <tr>
+          <th>Manuscript</th>
+          <th>Author</th>
+          <th>Recommendation</th>
+          <th>Submitted</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in submitted_items %}
+        {% with inv=item.invitation rev=item.review %}
+        <tr class="list-row"
+            data-search="{{ inv.submission.title|lower }} {{ inv.submission.author.display_name|lower }}"
+            x-show="show($el)">
+          <td class="list-row__title">{{ inv.submission.title|truncatechars:70 }}</td>
+          <td style="color:var(--color-muted);font-size:var(--size-sm);">{{ inv.submission.author.display_name }}</td>
+          <td>
+            {% if rev.recommendation %}
+              <span class="status-badge status-badge--{{ rev.recommendation }}">{{ rev.get_recommendation_display }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:var(--size-sm);">{{ rev.submitted_at|date:"d M Y"|default:"—" }}</td>
+          <td><span class="status-badge status-badge--{{ rev.status }}">{{ rev.get_status_display }}</span></td>
+        </tr>
+        {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  <!-- ── Pending Invitations ────────────────────────────────────────── -->
+  <section class="review-list-section" x-data="listSearch()">
+    <div class="review-list-section__header">
+      <h2>Pending Invitations <span class="badge">{{ pending_invitations|length }}</span></h2>
+      <input type="search" x-model="q" @input="filter()"
+             placeholder="Search…"
+             class="review-list-section__search"
+             aria-label="Filter pending invitations">
+    </div>
+
+    {% if pending_invitations %}
+    <table class="jadmin-table review-list-table">
+      <thead>
+        <tr>
+          <th>Manuscript</th>
+          <th>Author</th>
+          <th>Type</th>
+          <th>Deadline</th>
+          <th>Invited</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in pending_invitations %}
+        <tr class="list-row"
+            data-search="{{ inv.submission.title|lower }} {{ inv.submission.author.display_name|lower }}"
+            x-show="show($el)">
+          <td class="list-row__title">{{ inv.submission.title|truncatechars:70 }}</td>
+          <td style="color:var(--color-muted);font-size:var(--size-sm);">{{ inv.submission.author.display_name }}</td>
+          <td style="font-size:var(--size-sm);">{{ inv.submission.get_article_type_display }}</td>
+          <td style="font-size:var(--size-sm);">{{ inv.deadline|date:"d M Y"|default:"—" }}</td>
+          <td style="font-size:var(--size-sm);">{{ inv.sent_at|date:"d M Y" }}</td>
+          <td>
+            <a href="{% url 'invitation_response' inv.magic_token %}" class="btn btn--small btn--primary">Respond</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No pending invitations.</p>
+    {% endif %}
+  </section>
+
+  <!-- ── History ────────────────────────────────────────────────────── -->
+  <section class="review-list-section" x-data="listSearch()">
+    <div class="review-list-section__header">
+      <h2>History — Declined / Expired <span class="badge">{{ history_invitations|length }}</span></h2>
+      <input type="search" x-model="q" @input="filter()"
+             placeholder="Search…"
+             class="review-list-section__search"
+             aria-label="Filter history">
+    </div>
+
+    {% if history_invitations %}
+    <table class="jadmin-table review-list-table">
+      <thead>
+        <tr>
+          <th>Manuscript</th>
+          <th>Author</th>
+          <th>Invited</th>
+          <th>Status</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in history_invitations %}
+        <tr class="list-row"
+            data-search="{{ inv.submission.title|lower }} {{ inv.submission.author.display_name|lower }}"
+            x-show="show($el)">
+          <td class="list-row__title">{{ inv.submission.title|truncatechars:70 }}</td>
+          <td style="color:var(--color-muted);font-size:var(--size-sm);">{{ inv.submission.author.display_name }}</td>
+          <td style="font-size:var(--size-sm);">{{ inv.sent_at|date:"d M Y" }}</td>
+          <td><span class="status-badge status-badge--{{ inv.status }}">{{ inv.get_status_display }}</span></td>
+          <td style="font-size:var(--size-sm);color:var(--color-muted);">{{ inv.decline_reason|truncatechars:60|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No past invitations.</p>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function listSearch() {
+  return {
+    q: '',
+    filter() {
+      // handled by x-show via show()
+    },
+    show(el) {
+      if (!this.q) return true;
+      const term = this.q.toLowerCase();
+      return (el.dataset.search || '').includes(term);
+    },
+  };
+}
+</script>
+<style>
+.review-list-section {
+  margin-bottom: var(--spacing-8);
+}
+.review-list-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  flex-wrap: wrap;
+}
+.review-list-section__header h2 {
+  margin: 0;
+}
+.review-list-section__search {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: var(--size-sm);
+  width: 260px;
+  max-width: 100%;
+}
+.review-list-table .list-row__title {
+  font-weight: 500;
+  color: var(--color-text);
+  font-size: var(--size-sm);
+}
+.review-list-table a.list-row__title {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.review-list-table a.list-row__title:hover {
+  text-decoration: underline;
+}
+</style>
+{% endblock %}

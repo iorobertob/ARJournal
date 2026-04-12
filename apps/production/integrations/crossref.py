@@ -1,9 +1,13 @@
 """
 Crossref DOI deposit integration.
-Enabled when settings.DOI_ENABLED = True.
+Enabled when JournalConfig.doi_enabled = True.
 """
 import requests
-from django.conf import settings
+
+
+def _cfg():
+    from apps.journal.models import JournalConfig
+    return JournalConfig.get()
 
 
 def deposit_doi(document, doi_suffix: str) -> dict:
@@ -11,15 +15,17 @@ def deposit_doi(document, doi_suffix: str) -> dict:
     Build CrossRef XML and deposit a DOI.
     Returns {'status': 'deposited', 'doi': ..., 'response': ...}
     """
-    if not getattr(settings, 'DOI_ENABLED', False):
-        return {'status': 'disabled', 'message': 'DOI_ENABLED=False in settings'}
+    cfg = _cfg()
+    if not cfg.doi_enabled:
+        return {'status': 'disabled', 'message': 'DOI not enabled in Journal Settings'}
 
     meta = document.data.get('metadata', {})
     title = meta.get('title', {}).get('main', '')
     contributors = document.data.get('contributors', [])
     submission = document.revision.submission
 
-    doi = f'10.XXXXX/{doi_suffix}'  # Replace 10.XXXXX with real prefix
+    prefix = cfg.doi_prefix or '10.XXXXX'
+    doi = f'{prefix}/{doi_suffix}'
 
     # Minimal CrossRef schema 5.3 XML
     xml = _build_crossref_xml(title, contributors, doi, submission)
@@ -29,8 +35,8 @@ def deposit_doi(document, doi_suffix: str) -> dict:
         resp = requests.post(
             url,
             data={
-                'login_id': settings.CROSSREF_LOGIN,
-                'login_passwd': settings.CROSSREF_PASSWORD,
+                'login_id': cfg.crossref_login,
+                'login_passwd': cfg.crossref_password,
             },
             files={'fname': ('deposit.xml', xml.encode('utf-8'), 'text/xml')},
             timeout=30,
@@ -50,8 +56,9 @@ def deposit_doi(document, doi_suffix: str) -> dict:
 
 
 def _build_crossref_xml(title: str, contributors: list, doi: str, submission) -> str:
-    depositor_name = settings.CROSSREF_DEPOSITOR_NAME
-    depositor_email = settings.CROSSREF_DEPOSITOR_EMAIL
+    cfg = _cfg()
+    depositor_name = cfg.crossref_depositor_name
+    depositor_email = cfg.crossref_depositor_email
     year = submission.issue.year if submission.issue else 2026
     contributors_xml = ''
     for i, c in enumerate(contributors):

@@ -12,8 +12,13 @@
 
   <div class="submit-page__actions">
     <div class="submit-page__template">
-      <h2>Author Template</h2>
-      <p>Download the LaTeX template pack to prepare your submission. The template includes the <code>.cls</code> file, an example <code>.tex</code> file, and a bibliography template.</p>
+      <h2>Author Template Pack</h2>
+      <p>Download the LaTeX template pack to prepare your submission. The zip contains everything you need:</p>
+      <p>arjournal.cls — the document class with all custom macros; include it alongside your .tex file</p>
+      <p>arjournal_template.tex — a comprehensive tutorial covering every feature: headings, inline formatting, quotations, footnotes, citations, figures, tables, and media embeds; read this file first</p>
+      <p>arjournal_references_template.bib — bibliography template with example entries for articles, books, chapters, theses, and online sources</p>
+      <p>transact_sample_article.pdf — a sample rendered article showing exactly how your submission will look once it is typeset and published; open this to preview the final output before you submit</p>
+      <p>When you are ready to submit, upload your .tex file and any media assets (images, audio, video) through the submission form. The platform runs the same LaTeX pipeline that generated the sample PDF, so what you see in that document is what your readers will see.</p>
       <a href="{% url 'download_template' %}" class="btn btn--secondary">Download Template Pack (.zip)</a>
     </div>
     <div class="submit-page__submit">

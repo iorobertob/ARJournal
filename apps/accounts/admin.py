@@ -13,13 +13,13 @@ class UserProfileInline(admin.StackedInline):
 class UserAdmin(BaseUserAdmin):
     fieldsets = None
     add_fieldsets = (
-        (None, {'classes': ('wide',), 'fields': ('email', 'password1', 'password2', 'role')}),
+        (None, {'classes': ('wide',), 'fields': ('email', 'password1', 'password2', 'roles')}),
     )
-    list_display = ('email', 'first_name', 'last_name', 'role', 'is_active', 'date_joined')
-    list_filter = ('role', 'is_active', 'is_staff')
+    list_display = ('email', 'first_name', 'last_name', 'get_roles_display', 'is_active', 'date_joined')
+    list_filter = ('is_active', 'is_staff')
     search_fields = ('email', 'first_name', 'last_name')
     ordering = ('-date_joined',)
-    fields = ('email', 'first_name', 'last_name', 'role', 'orcid_id', 'is_active', 'is_staff', 'is_superuser')
+    fields = ('email', 'first_name', 'last_name', 'roles', 'orcid_id', 'is_active', 'is_staff', 'is_superuser')
     inlines = [UserProfileInline]
 
 

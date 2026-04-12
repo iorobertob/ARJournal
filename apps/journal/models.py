@@ -33,6 +33,34 @@ class JournalConfig(models.Model):
     about_text = models.TextField(blank=True, default='')
     mission_text = models.TextField(blank=True, default='')
     methodology_text = models.TextField(blank=True, default='')
+
+    # ── Email ──────────────────────────────────────────────────
+    email_from_name = models.CharField(max_length=255, blank=True, default='')
+    email_from_address = models.EmailField(blank=True, default='')
+    mailersend_api_token = models.CharField(max_length=500, blank=True, default='')
+
+    # ── ORCID OAuth ────────────────────────────────────────────
+    orcid_enabled = models.BooleanField(default=False)
+    orcid_client_id = models.CharField(max_length=255, blank=True, default='')
+    orcid_client_secret = models.CharField(max_length=255, blank=True, default='')
+
+    # ── Crossref / DOI ─────────────────────────────────────────
+    doi_enabled = models.BooleanField(default=False)
+    doi_prefix = models.CharField(max_length=50, blank=True, default='', help_text='e.g. 10.12345')
+    crossref_login = models.CharField(max_length=255, blank=True, default='')
+    crossref_password = models.CharField(max_length=255, blank=True, default='')
+    crossref_depositor_name = models.CharField(max_length=255, blank=True, default='')
+    crossref_depositor_email = models.EmailField(blank=True, default='')
+
+    # ── Turnitin ───────────────────────────────────────────────
+    turnitin_enabled = models.BooleanField(default=False)
+    turnitin_api_key = models.CharField(max_length=500, blank=True, default='')
+    turnitin_base_url = models.CharField(max_length=255, blank=True, default='https://api.turnitin.com')
+
+    # ── AI / OpenAI ────────────────────────────────────────────
+    ai_features_enabled = models.BooleanField(default=False)
+    openai_api_key = models.CharField(max_length=255, blank=True, default='')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

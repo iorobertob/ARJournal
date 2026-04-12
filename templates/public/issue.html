@@ -14,24 +14,51 @@
 </section>
 
 <section class="issue-articles container">
-  {% for build in articles %}
-  {% with submission=build.document.revision.submission %}
-  <article class="issue-article-row">
-    <div class="issue-article-row__meta">
-      <span class="issue-article-row__type">{{ submission.get_article_type_display }}</span>
+
+  {% if section_groups or unsectioned_articles %}
+
+    {% for group in section_groups %}
+    <div class="issue-section">
+      <h2 class="issue-section__title">{{ group.section.name }}</h2>
+      {% if group.section.description %}
+      <p class="issue-section__description">{{ group.section.description }}</p>
+      {% endif %}
+      {% for item in group.articles %}
+      {% include "public/_issue_article_row.html" %}
+      {% endfor %}
     </div>
-    <div class="issue-article-row__body">
-      <h2 class="issue-article-row__title">
-        <a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a>
-      </h2>
-      {% if submission.subtitle %}<p class="issue-article-row__subtitle">{{ submission.subtitle }}</p>{% endif %}
-      <p class="issue-article-row__author">{{ submission.author.display_name }}</p>
-    </div>
-    <a href="{% url 'article_detail' build.slug %}" class="issue-article-row__arrow">↗</a>
-  </article>
-  {% endwith %}
-  {% empty %}
-  <p>No articles published in this issue yet.</p>
-  {% endfor %}
+    {% endfor %}
+
+    {% if unsectioned_articles %}
+    {% if section_groups %}<div class="issue-section">{% endif %}
+    {% for item in unsectioned_articles %}
+    {% include "public/_issue_article_row.html" %}
+    {% endfor %}
+    {% if section_groups %}</div>{% endif %}
+    {% endif %}
+
+  {% else %}
+  <p style="color:var(--color-muted);padding:var(--space-8) 0;">No articles assigned to this issue yet.</p>
+  {% endif %}
+
 </section>
+
+<style>
+  .issue-section { margin-bottom: var(--space-10, 3rem); }
+  .issue-section__title {
+    font-size: var(--size-lg, 1.125rem);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-3, 0.75rem);
+    margin-bottom: var(--spacing-4, 1rem);
+  }
+  .issue-section__description {
+    font-size: var(--size-sm);
+    color: var(--color-muted);
+    margin-bottom: var(--spacing-4);
+  }
+</style>
 {% endblock %}

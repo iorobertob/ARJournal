@@ -57,8 +57,8 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         if not revision:
             return Response({'error': 'No revision.'}, status=400)
         from apps.production.tasks import ingest_submission
-        ingest_submission.delay(revision.pk)
-        return Response({'status': 'ingestion_queued', 'revision_id': revision.pk}, status=202)
+        result = ingest_submission(revision.pk)
+        return Response({'status': 'ingested', 'revision_id': revision.pk, **result}, status=200)
 
 
 # ── Editorial ─────────────────────────────────────────────────────────────────
@@ -166,8 +166,11 @@ class PDFExportView(APIView):
             mode=ser.validated_data['mode'],
             expires_at=timezone.now() + timedelta(minutes=ser.validated_data['ttl_minutes']),
         )
-        from apps.production.tasks import generate_pdf
-        generate_pdf.delay(exp.pk)
+        try:
+            from apps.production.tasks import generate_pdf
+            generate_pdf.delay(exp.pk)
+        except Exception:
+            pass
         return Response({'export_id': exp.pk, 'download_token': str(exp.download_token)}, status=202)
 
 

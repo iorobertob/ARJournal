@@ -25,7 +25,34 @@ A Django-based journal management platform supporting the full lifecycle of an a
 ### Prerequisites
 - Python 3.11+
 - PostgreSQL 16 running locally
-- Redis running locally (for Celery)
+- Redis running locally (only needed in production; dev runs tasks synchronously)
+- **WeasyPrint system libraries** (for PDF generation — see below)
+
+### WeasyPrint System Dependencies
+
+PDF export uses [WeasyPrint](https://weasyprint.org), which requires native GLib/Pango/Cairo libraries. These are **not** Python packages — install them at the OS level before running `pip install`.
+
+**macOS (Homebrew):**
+```bash
+brew install pango cairo glib libffi
+```
+Then add to your `.env`:
+```
+DYLD_LIBRARY_PATH=/opt/homebrew/lib
+```
+`setup_dev.sh` does both steps automatically.
+
+**Linux (Debian/Ubuntu):**
+```bash
+sudo apt-get install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
+  libgdk-pixbuf2.0-0 libharfbuzz0b libffi-dev shared-mime-info \
+  fonts-liberation fonts-dejavu-core
+```
+`setup_dev.sh` installs any missing packages automatically.
+
+**Docker / production:** the `Dockerfile` already installs all required packages. No extra steps needed.
+
+---
 
 ### Quick Setup (without Docker)
 
@@ -33,7 +60,7 @@ A Django-based journal management platform supporting the full lifecycle of an a
 git clone <repo>
 cd JOURNAL_CLAUDE
 
-# One-command setup
+# One-command setup (installs WeasyPrint system deps automatically)
 bash scripts/setup_dev.sh
 
 # Then start the server
@@ -125,7 +152,7 @@ All manuscripts are parsed from `.tex` source into a **canonical JSON document**
 - HTML rendering (`apps/documents/renderers/html_renderer.py`)
 - Reviewer annotations (anchored by stable block IDs)
 - Role-based projections (blinded, editorial, public)
-- PDF export (via pdflatex subprocess)
+- PDF export (via WeasyPrint — HTML→PDF, no LaTeX toolchain required)
 
 ### Reviewer Suggestion Engine
 

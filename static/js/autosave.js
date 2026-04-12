@@ -68,13 +68,13 @@
         });
         const data = await resp.json();
         if (data.status === 'submitted') {
-          alert('Review submitted successfully. Thank you!');
+          await showAlert('Review submitted successfully. Thank you!');
           window.location.href = '/';
         } else if (data.error) {
-          alert(data.error);
+          showAlert(data.error);
         }
       } catch (err) {
-        alert('Submit failed. Please try again.');
+        showAlert('Submit failed. Please try again.');
       }
     });
   }

@@ -394,6 +394,62 @@ def notify_decision_sent(decision_pk):
 
 
 @shared_task
+def notify_revision_submitted(revision_pk):
+    """Notify assigned editors that a revised submission has been received."""
+    from apps.submissions.models import SubmissionRevision
+    from apps.editorial.models import EditorialAssignment
+
+    revision = SubmissionRevision.objects.select_related(
+        'submission__author'
+    ).get(pk=revision_pk)
+    submission = revision.submission
+    subject = f'Revision received — {submission.title[:70]}'
+    editorial_url = f'{_site_url()}/editorial/submission/{submission.pk}/'
+
+    html_body = (
+        _p(f'A revised manuscript (version {revision.version}) has been submitted for:')
+        + _detail_box('Submission', submission.title)
+        + _detail_box('Author', submission.author.display_name)
+        + _btn(editorial_url, 'Review revision')
+        + _signature()
+    )
+    plain = (
+        f'A revised manuscript (version {revision.version}) has been submitted.\n\n'
+        f'Submission: {submission.title}\n'
+        f'Author: {submission.author.display_name}\n\n'
+        f'Review it here:\n{editorial_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial System'
+    )
+
+    # Email assigned active editors; fall back to EDITORIAL_EMAIL setting.
+    assigned_editors = list(
+        EditorialAssignment.objects.filter(
+            submission=submission, is_active=True
+        ).select_related('editor').values_list('editor__email', flat=True)
+    )
+    recipients = assigned_editors or [getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)]
+
+    for email in recipients:
+        try:
+            _send(email, subject, plain, html_body)
+            _log_email(email, subject, 'sent')
+        except Exception as exc:
+            _log_email(email, subject, 'failed', str(exc))
+
+    # In-app notification for the author confirming receipt
+    try:
+        from .models import Notification
+        Notification.objects.create(
+            user=submission.author,
+            notification_type='revision_submitted',
+            message=f'Your revision of \u201c{submission.title[:50]}\u201d has been submitted.',
+            url=f'/author/submission/{submission.pk}/',
+        )
+    except Exception:
+        pass
+
+
+@shared_task
 def cleanup_expired_pdf_exports():
     """Celery beat: remove expired ephemeral PDF exports."""
     from apps.production.models import PDFExport

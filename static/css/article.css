@@ -34,22 +34,79 @@
   margin-bottom: var(--spacing-4);
 }
 
-.article-toc ul {
+/* ── TOC tree ───────────────────────────────────────────────── */
+.toc-list {
   list-style: none;
+  padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
+  gap: 1px;
 }
 
-.article-toc a {
+.toc-list--nested {
+  padding-left: 0.85rem;
+  margin-top: 2px;
+  border-left: 1px solid var(--color-border);
+  overflow: hidden;
+  max-height: 600px;
+  opacity: 1;
+  transition: max-height 0.22s ease, opacity 0.18s ease;
+}
+
+.toc-list--nested.is-collapsed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toc-item { display: flex; flex-direction: column; }
+
+.toc-item__row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.toc-link {
+  flex: 1;
+  min-width: 0;
   font-size: var(--size-sm);
   color: var(--color-muted);
   text-decoration: none;
   line-height: var(--leading-snug);
+  padding: 3px 0;
   transition: color var(--transition);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.article-toc a:hover { color: var(--color-accent); }
+.toc-link:hover { color: var(--color-accent); }
+
+.toc-link--active {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.toc-toggle {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 1px 3px;
+  margin-left: 2px;
+  cursor: pointer;
+  color: var(--color-muted);
+  line-height: 1;
+  font-size: 7px;
+  border-radius: 3px;
+  transition: transform 0.2s ease;
+  transform: rotate(0deg);
+}
+
+.toc-toggle[aria-expanded="false"] {
+  transform: rotate(-90deg);
+}
 
 /* ── Meta sidebar ───────────────────────────────────────────── */
 .article-meta-sidebar {
@@ -159,6 +216,7 @@ p.article-meta-sidebar__label {
   font-size: var(--size-base);
   color: var(--color-muted);
   line-height: var(--leading-loose);
+  text-align: justify;
 }
 
 .article-body-content .article-keywords {
@@ -196,6 +254,7 @@ p.article-meta-sidebar__label {
   scroll-margin-top: 80px;
   cursor: pointer;
   transition: background var(--transition);
+  text-align: justify;
 }
 
 .article-paragraph:hover { background: var(--color-accent-light); }

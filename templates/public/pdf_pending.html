@@ -1,14 +1,145 @@
 {% extends 'base.html' %}
-{% block title %}Preparing PDF — {{ journal.name }}{% endblock %}
+{% block title %}Preparing Interactive PDF — {{ journal.name }}{% endblock %}
+
 {% block content %}
-<section class="container" style="padding: 4rem 0; text-align: center;">
-  <h1>Your PDF is being generated</h1>
-  <p>The PDF is being compiled. This usually takes under 30 seconds.</p>
-  {% if export.file %}
-  <a href="{% url 'download_pdf' export.download_token %}" class="btn btn--primary">Download PDF</a>
-  {% else %}
-  <p>Please wait a moment, then <a href="{% url 'download_pdf' export.download_token %}">click here to download</a>.</p>
-  <meta http-equiv="refresh" content="5">
-  {% endif %}
+<section class="container" style="padding:5rem 1rem;text-align:center;">
+  <div style="max-width:480px;margin:0 auto;">
+
+    <!-- Waiting state -->
+    <div id="state-waiting">
+      <div class="pdf-spinner" aria-hidden="true"></div>
+      <h1 style="font-family:var(--font-serif);font-size:var(--size-xl);font-weight:400;margin:1.75rem 0 0.5rem;">
+        Building your Interactive PDF
+      </h1>
+      <p style="color:var(--color-muted);line-height:1.6;">
+        Embedding media files and generating bookmarks.<br>
+        This usually takes 15–60 seconds.
+      </p>
+      <p id="status-msg" style="margin-top:1rem;font-size:var(--size-sm);color:var(--color-muted);min-height:1.4em;"></p>
+    </div>
+
+    <!-- Ready state -->
+    <div id="state-ready" style="display:none;">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--color-accent);
+                  display:flex;align-items:center;justify-content:center;margin:0 auto;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <h1 style="font-family:var(--font-serif);font-size:var(--size-xl);font-weight:400;margin:1.5rem 0 0.5rem;">
+        Your PDF is ready
+      </h1>
+      <p style="color:var(--color-muted);margin-bottom:1.75rem;">
+        Your Interactive PDF has been generated and is ready to download.
+      </p>
+      <a id="download-link"
+         href="{% url 'download_pdf' export.download_token %}"
+         class="btn btn--primary"
+         style="font-size:var(--size-base);padding:0.75rem 2rem;">
+        Download Interactive PDF
+      </a>
+      <p style="margin-top:1.5rem;font-size:var(--size-sm);color:var(--color-muted);line-height:1.6;">
+        Video and audio play inline when opened in
+        <strong>Adobe Acrobat</strong> or <strong>Adobe Reader</strong>.<br>
+        Other PDF viewers (macOS Preview, browser) show the poster image
+        and a link to open the media file externally.
+      </p>
+    </div>
+
+    <!-- Error state -->
+    <div id="state-error" style="display:none;">
+      <p style="color:#c53030;font-size:var(--size-base);">
+        PDF generation failed or the link has expired.<br>
+        Please go back and try again.
+      </p>
+    </div>
+
+  </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.pdf-spinner {
+  width: 44px; height: 44px; margin: 0 auto;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: pdf-spin 0.75s linear infinite;
+}
+@keyframes pdf-spin { to { transform: rotate(360deg); } }
+</style>
+<script>
+(function () {
+  'use strict';
+  var POLL_URL = '{% url "download_pdf" export.download_token %}?json=1';
+  var DOWNLOAD_URL = '{% url "download_pdf" export.download_token %}';
+  var attempts = 0;
+  var MAX_WAIT_S = 180;  // give up after 3 minutes
+  var INTERVAL_MS = 2000;
+
+  var messages = [
+    [0,  'Starting…'],
+    [6,  'Rendering pages…'],
+    [14, 'Embedding media files…'],
+    [30, 'Almost there…'],
+    [60, 'Large media files may take a little longer…'],
+    [90, 'Still working — hang tight…'],
+  ];
+
+  function statusMessage(elapsed) {
+    var msg = messages[0][1];
+    for (var i = 0; i < messages.length; i++) {
+      if (elapsed >= messages[i][0]) msg = messages[i][1];
+    }
+    return msg;
+  }
+
+  function show(id) {
+    ['state-waiting', 'state-ready', 'state-error'].forEach(function (s) {
+      document.getElementById(s).style.display = (s === id) ? '' : 'none';
+    });
+  }
+
+  function poll() {
+    attempts++;
+    var elapsed = attempts * (INTERVAL_MS / 1000);
+
+    var msgEl = document.getElementById('status-msg');
+    if (msgEl) msgEl.textContent = statusMessage(elapsed);
+
+    if (elapsed > MAX_WAIT_S) {
+      show('state-error');
+      return;
+    }
+
+    fetch(POLL_URL, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ready) {
+          show('state-ready');
+          // Auto-trigger download without leaving the page
+          var a = document.createElement('a');
+          a.href = DOWNLOAD_URL;
+          a.download = '';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } else if (data.error) {
+          show('state-error');
+        } else {
+          setTimeout(poll, INTERVAL_MS);
+        }
+      })
+      .catch(function () {
+        // Network hiccup — keep trying
+        setTimeout(poll, INTERVAL_MS * 1.5);
+      });
+  }
+
+  // Start after a short initial delay
+  setTimeout(poll, 1200);
+})();
+</script>
 {% endblock %}

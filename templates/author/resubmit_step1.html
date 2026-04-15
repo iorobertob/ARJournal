@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Submit Revision — Step 1 — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="wizard container">
+  <div class="wizard__progress">
+    <span class="wizard__step wizard__step--active">1. Manuscript &amp; Response</span>
+    <span class="wizard__step">2. Media</span>
+    <span class="wizard__step">3. Confirm</span>
+  </div>
+
+  <p><a href="{% url 'submission_detail' submission.pk %}">← Back to submission</a></p>
+  <h1 class="wizard__title">Submit Revision — {{ submission.title|truncatechars:60 }}</h1>
+
+  {% if decision %}
+  <div style="border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-4);margin-bottom:var(--spacing-6);background:var(--color-surface);">
+    <h2 style="margin-top:0;font-size:var(--size-base);">Editorial Decision — Round {{ decision.round }}: {{ decision.get_decision_type_display }}</h2>
+    {% if decision.letter %}
+    <div style="margin-bottom:var(--spacing-3);">
+      <p style="font-size:var(--size-sm);font-weight:600;margin-bottom:var(--spacing-1);">Decision Letter</p>
+      <div style="background:#fff;border-left:3px solid var(--color-accent);padding:var(--spacing-3);font-size:var(--size-sm);white-space:pre-line;">{{ decision.letter }}</div>
+    </div>
+    {% endif %}
+    {% if decision.priority_issues %}
+    <div style="margin-bottom:var(--spacing-3);">
+      <p style="font-size:var(--size-sm);font-weight:600;margin-bottom:var(--spacing-1);">Priority Issues</p>
+      <div style="background:#fff;padding:var(--spacing-3);border-radius:4px;font-size:var(--size-sm);white-space:pre-line;">{{ decision.priority_issues }}</div>
+    </div>
+    {% endif %}
+    {% if decision.instructions_to_author %}
+    <div>
+      <p style="font-size:var(--size-sm);font-weight:600;margin-bottom:var(--spacing-1);">Revision Instructions</p>
+      <div style="background:#fff;padding:var(--spacing-3);border-radius:4px;font-size:var(--size-sm);white-space:pre-line;">{{ decision.instructions_to_author }}</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="form">
+    {% csrf_token %}
+    <div class="form__group">
+      <label class="form__label" for="manuscript">Revised Manuscript (.tex) <span>*</span></label>
+      <input class="form__file" type="file" id="manuscript" name="manuscript" accept=".tex,.txt" required>
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="response_letter">Response Letter (PDF, optional)</label>
+      <p style="font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-2);">Upload a document addressing the editors' and reviewers' comments point by point.</p>
+      <input class="form__file" type="file" id="response_letter" name="response_letter" accept=".pdf,.doc,.docx">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="notes">Notes to Editors (optional)</label>
+      <textarea class="form__textarea" id="notes" name="notes" rows="4" placeholder="Briefly summarise the changes made in this revision…"></textarea>
+    </div>
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary">Continue →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

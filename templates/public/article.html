@@ -11,13 +11,19 @@
   <aside class="article-sidebar" aria-label="Article navigation">
 
     <!-- Table of contents -->
-    <nav class="article-toc">
-      <p class="article-toc__label">Table of Contents</p>
-      <ul>
-        <li><a href="#abstract">Abstract</a></li>
+    <nav class="article-toc" aria-label="Table of contents">
+      <p class="article-toc__label">Contents</p>
+      <ul id="toc-root" class="toc-list">
+        <li class="toc-item" data-level="1">
+          <div class="toc-item__row">
+            <a href="#abstract" class="toc-link">Abstract</a>
+          </div>
+        </li>
         {% for item in toc %}
-        <li style="padding-left:{{ item.level|add:"-1" }}rem">
-          <a href="#{{ item.id }}">{{ item.text }}</a>
+        <li class="toc-item" data-level="{{ item.level }}" data-target="{{ item.id }}">
+          <div class="toc-item__row">
+            <a href="#{{ item.id }}" class="toc-link">{{ item.text }}</a>
+          </div>
         </li>
         {% endfor %}
       </ul>
@@ -212,6 +218,146 @@ function showCiteTab(btn, fmt) {
   btn.classList.add('active');
   document.getElementById('cpanel-' + fmt).style.display = 'flex';
 }
+
+// ── Collapsable TOC tree ───────────────────────────────────────
+(function () {
+  var root = document.getElementById('toc-root');
+  if (!root) return;
+
+  // ── 1. Collect flat items ──────────────────────────────────
+  var flatItems = Array.from(root.querySelectorAll('.toc-item')).map(function (li) {
+    return {
+      level: parseInt(li.dataset.level, 10) || 0,
+      target: li.dataset.target || null,
+      row: li.querySelector('.toc-item__row'),
+      link: li.querySelector('.toc-link'),
+    };
+  });
+  if (!flatItems.length) return;
+
+  // ── 2. Build nested <ul> tree ──────────────────────────────
+  root.innerHTML = '';
+  // stack entries: { level, ul }
+  var stack = [{ level: -1, ul: root }];
+
+  flatItems.forEach(function (item) {
+    // Pop until the top of stack is a true ancestor level
+    while (stack.length > 1 && stack[stack.length - 1].level >= item.level) {
+      stack.pop();
+    }
+
+    var li = document.createElement('li');
+    li.className = 'toc-item';
+    if (item.target) li.dataset.target = item.target;
+
+    // Wrap link in row div
+    var row = document.createElement('div');
+    row.className = 'toc-item__row';
+    row.appendChild(item.link);
+    li.appendChild(row);
+
+    // Nested list placeholder (added to stack; removed later if empty)
+    var childUl = document.createElement('ul');
+    childUl.className = 'toc-list toc-list--nested';
+    li.appendChild(childUl);
+
+    stack[stack.length - 1].ul.appendChild(li);
+    stack.push({ level: item.level, ul: childUl, li: li, row: row });
+  });
+
+  // ── 3. Prune empty child lists; add toggle buttons ─────────
+  var nestedCounter = 0;
+  // Track sections the user has manually collapsed — observer won't re-open these.
+  var userCollapsed = {};
+
+  root.querySelectorAll('.toc-list--nested').forEach(function (ul) {
+    if (!ul.children.length) {
+      ul.remove();
+      return;
+    }
+    // Give nested list a stable ID for event delegation
+    var nestedId = 'toc-nested-' + (nestedCounter++);
+    ul.id = nestedId;
+
+    // Start collapsed
+    ul.classList.add('is-collapsed');
+
+    var parentRow = ul.parentElement.querySelector('.toc-item__row');
+    var btn = document.createElement('button');
+    btn.className = 'toc-toggle';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', 'Toggle subsections');
+    btn.dataset.target = nestedId;
+    btn.textContent = '▼';
+    parentRow.appendChild(btn);
+  });
+
+  // Single delegated click handler — no per-button closures
+  root.addEventListener('click', function (e) {
+    var btn = e.target.closest('.toc-toggle');
+    if (!btn) return;
+    var targetId = btn.dataset.target;
+    if (!targetId) return;
+    var ul = document.getElementById(targetId);
+    if (!ul) return;
+    var nowCollapsed = !ul.classList.contains('is-collapsed');
+    ul.classList.toggle('is-collapsed');
+    btn.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
+    // Record/clear manual collapse so scroll-spy respects it
+    if (nowCollapsed) {
+      userCollapsed[targetId] = true;
+    } else {
+      delete userCollapsed[targetId];
+    }
+  });
+
+  // ── 4. Scroll-spy via IntersectionObserver ─────────────────
+  var linkMap = {};
+  root.querySelectorAll('.toc-link').forEach(function (a) {
+    var id = (a.getAttribute('href') || '').replace('#', '');
+    if (id) linkMap[id] = a;
+  });
+
+  function setActive(id) {
+    Object.values(linkMap).forEach(function (a) { a.classList.remove('toc-link--active'); });
+    var a = linkMap[id];
+    if (!a) return;
+    a.classList.add('toc-link--active');
+    // Auto-expand collapsed ancestor sections, but only if not manually collapsed
+    var ul = a.closest('.toc-list--nested');
+    while (ul) {
+      if (!userCollapsed[ul.id]) {
+        ul.classList.remove('is-collapsed');
+        var toggle = ul.parentElement && ul.parentElement.querySelector('.toc-toggle[data-target="' + ul.id + '"]');
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+      }
+      ul = ul.parentElement && ul.parentElement.closest('.toc-list--nested');
+    }
+  }
+
+  if (!window.IntersectionObserver) return;
+
+  var targets = [];
+  Object.keys(linkMap).forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) targets.push(el);
+  });
+  if (!targets.length) return;
+
+  var activeId = null;
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting && entry.target.id !== activeId) {
+        activeId = entry.target.id;
+        setActive(activeId);
+      }
+    });
+  }, { rootMargin: '-15% 0px -65% 0px', threshold: 0 });
+
+  targets.forEach(function (el) { observer.observe(el); });
+  // Set initial active to first visible heading
+  if (targets[0]) setActive(targets[0].id);
+})();
 
 function doCopy(fmt, btn) {
   var text = document.getElementById('ctext-' + fmt).textContent;

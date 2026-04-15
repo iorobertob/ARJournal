@@ -9,7 +9,12 @@
   <div class="submission-detail__header">
     <p><a href="{% url 'author_dashboard' %}">← My Submissions</a></p>
     <h1>{{ submission.title }}</h1>
-    <span class="status-badge status-badge--{{ submission.status }}">{{ submission.get_status_display }}</span>
+    <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;margin-top:var(--spacing-2);">
+      <span class="status-badge status-badge--{{ submission.status }}">{{ submission.get_status_display }}</span>
+      {% if can_resubmit %}
+      <a href="{% url 'resubmit_step1' submission.pk %}" class="btn btn--primary">Submit Revision →</a>
+      {% endif %}
+    </div>
   </div>
 
   <div class="submission-detail__meta">
@@ -25,12 +30,47 @@
   </div>
   {% endif %}
 
+  {% if decisions %}
+  <div class="submission-detail__decisions">
+    <h2>Editorial Decisions</h2>
+    {% for dec in decisions %}
+    <div class="decision-card" style="border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-4);margin-bottom:var(--spacing-4);">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:var(--spacing-2);margin-bottom:var(--spacing-3);">
+        <span style="font-weight:600;">Round {{ dec.round }}: {{ dec.get_decision_type_display }}</span>
+        <span style="font-size:var(--size-sm);color:var(--color-muted);">{{ dec.sent_at|date:"d M Y" }}</span>
+      </div>
+      {% if dec.letter %}
+      <div style="margin-bottom:var(--spacing-3);">
+        <p style="font-size:var(--size-sm);font-weight:600;margin-bottom:var(--spacing-1);">Decision Letter</p>
+        <div style="background:var(--color-surface);border-left:3px solid var(--color-accent);padding:var(--spacing-3);border-radius:0 4px 4px 0;font-size:var(--size-sm);white-space:pre-line;">{{ dec.letter }}</div>
+      </div>
+      {% endif %}
+      {% if dec.priority_issues %}
+      <div style="margin-bottom:var(--spacing-3);">
+        <p style="font-size:var(--size-sm);font-weight:600;margin-bottom:var(--spacing-1);">Priority Issues to Address</p>
+        <div style="background:var(--color-surface);padding:var(--spacing-3);border-radius:4px;font-size:var(--size-sm);white-space:pre-line;">{{ dec.priority_issues }}</div>
+      </div>
+      {% endif %}
+      {% if dec.instructions_to_author %}
+      <div>
+        <p style="font-size:var(--size-sm);font-weight:600;margin-bottom:var(--spacing-1);">Revision Instructions</p>
+        <div style="background:var(--color-surface);padding:var(--spacing-3);border-radius:4px;font-size:var(--size-sm);white-space:pre-line;">{{ dec.instructions_to_author }}</div>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <div class="submission-detail__revisions">
     <h2>Revisions</h2>
     {% for rev in revisions %}
-    <div class="revision-row">
-      <p>Version {{ rev.version }} — {{ rev.get_status_display }} — {{ rev.created_at|date:"d M Y" }}</p>
-      <a href="{{ rev.manuscript_file.url }}">Download manuscript</a>
+    <div class="revision-row" style="display:flex;align-items:baseline;gap:var(--spacing-3);padding:var(--spacing-2) 0;border-bottom:1px solid var(--color-border);">
+      <span style="font-weight:600;">Version {{ rev.version }}</span>
+      <span class="status-badge status-badge--{{ rev.status }}" style="font-size:var(--size-xs);">{{ rev.get_status_display }}</span>
+      <span style="color:var(--color-muted);font-size:var(--size-sm);">{{ rev.created_at|date:"d M Y" }}</span>
+      <a href="{{ rev.manuscript_file.url }}" style="margin-left:auto;font-size:var(--size-sm);">Download manuscript</a>
+      {% if rev.response_letter %}<a href="{{ rev.response_letter.url }}" style="font-size:var(--size-sm);">Response letter</a>{% endif %}
     </div>
     {% endfor %}
   </div>

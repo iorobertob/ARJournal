@@ -139,6 +139,7 @@ def record_decision(request, pk):
             DecisionType.ACCEPT: SubmissionStatus.ACCEPTED,
             DecisionType.MINOR_REVISION: SubmissionStatus.REVISION_REQUESTED,
             DecisionType.MAJOR_REVISION: SubmissionStatus.REVISION_REQUESTED,
+            DecisionType.REJECT_RESUBMIT: SubmissionStatus.REVISION_REQUESTED,
             DecisionType.REJECT: SubmissionStatus.REJECTED,
             DecisionType.DESK_REJECT: SubmissionStatus.DESK_REJECTED,
         }

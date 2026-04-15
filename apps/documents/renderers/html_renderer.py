@@ -24,12 +24,58 @@ from django.utils.html import escape
 from django.conf import settings
 
 
+# ── Citation helpers ──────────────────────────────────────────────────────────
+
+def _last_name(full_name: str) -> str:
+    """'Alice Smith' → 'Smith', 'Smith, Alice' → 'Smith'."""
+    if ',' in full_name:
+        return full_name.split(',')[0].strip()
+    parts = full_name.strip().split()
+    return parts[-1] if parts else full_name
+
+
+def _cite_label(item: dict) -> str:
+    """Build a Chicago author-date inline label, e.g. 'Smith 2024' or 'Smith et al. 2024'."""
+    authors = item.get('authors', [])
+    year = str(item.get('year', '')).strip()
+    if not authors:
+        return item.get('citeKey', '')
+    if len(authors) == 1:
+        name_part = _last_name(authors[0])
+    elif len(authors) == 2:
+        name_part = f'{_last_name(authors[0])} and {_last_name(authors[1])}'
+    else:
+        name_part = f'{_last_name(authors[0])} et al.'
+    return f'{name_part} {year}' if year else name_part
+
+
 def render_html(canonical_data: dict, submission=None) -> str:
     """Render the full article HTML from canonical JSON."""
     meta = canonical_data.get('metadata', {})
     contributors = canonical_data.get('contributors', [])
     content = canonical_data.get('content', [])
     assets = {a['assetId']: a for a in canonical_data.get('assets', [])}
+
+    # Resolve asset filenames → media URLs from the submission's uploaded files.
+    if submission is not None:
+        try:
+            revision = submission.get_current_revision()
+            if revision is not None:
+                url_map = {
+                    sa.original_filename: sa.file.url
+                    for sa in revision.assets.all()
+                    if sa.file
+                }
+                for asset in assets.values():
+                    fname = asset.get('originalFilename', '')
+                    if fname in url_map:
+                        asset['resolvedUrl'] = url_map[fname]
+                    # Resolve poster image for video assets
+                    poster_fname = asset.get('posterImageRef', '')
+                    if poster_fname and poster_fname in url_map:
+                        asset['resolvedPosterUrl'] = url_map[poster_fname]
+        except Exception:
+            pass  # Never crash the render because of a missing asset
 
     parts = ['<article class="article-body" data-doc-id="{}">'.format(
         escape(canonical_data.get('documentId', ''))
@@ -59,9 +105,16 @@ def render_html(canonical_data: dict, submission=None) -> str:
         kw_html = ', '.join(f'<span class="keyword">{escape(k)}</span>' for k in keywords)
         parts.append(f'<div class="article-keywords">{kw_html}</div>')
 
+    # Build cite_map: citeKey → formatted author-date label for inline citations.
+    cite_map: dict[str, str] = {}
+    for item in canonical_data.get('citations', {}).get('items', []):
+        ck = item.get('citeKey', '')
+        if ck:
+            cite_map[ck] = _cite_label(item)
+
     # Content blocks
     for block in content:
-        html = _render_block(block, assets)
+        html = _render_block(block, assets, cite_map)
         if html:
             parts.append(html)
 
@@ -69,9 +122,67 @@ def render_html(canonical_data: dict, submission=None) -> str:
     return '\n'.join(parts)
 
 
-def _render_block(block: dict, assets: dict) -> str:
+def _render_table_from_latex(raw_latex: str, caption: str, bid: str) -> str:
+    """
+    Parse a LaTeX tabular environment into an HTML table.
+    Handles \\toprule / \\midrule / \\bottomrule (booktabs) and \\hline,
+    splits rows on \\\\ and cells on &.
+    Returns an empty string if parsing fails.
+    """
+    import re as _re
+
+    # Extract the tabular body (between \begin{tabular}{...} and \end{tabular})
+    m = _re.search(r'\\begin\{tabular\}\{[^}]*\}(.*?)\\end\{tabular\}', raw_latex, _re.DOTALL)
+    if not m:
+        return ''
+    body = m.group(1)
+
+    # Remove booktabs rules and \hline — they are layout, not data
+    body = _re.sub(r'\\(toprule|midrule|bottomrule|hline)\b', '', body)
+
+    # Split on \\ (row separator); filter blank lines
+    raw_rows = [r.strip() for r in _re.split(r'\\\\', body) if r.strip()]
+
+    parsed_rows = []
+    for raw_row in raw_rows:
+        # Remove trailing LaTeX comments — but not escaped \%
+        raw_row = _re.sub(r'(?<!\\)%.*$', '', raw_row, flags=_re.MULTILINE).strip()
+        if not raw_row:
+            continue
+        cells = [c.strip() for c in raw_row.split('&')]
+        # Unescape common LaTeX: \% → %, \& → &, \textit{x} → x, \textbf{x} → x
+        cleaned = []
+        for cell in cells:
+            cell = _re.sub(r'\\%', '%', cell)
+            cell = _re.sub(r'\\&', '&amp;', cell)
+            cell = _re.sub(r'\\text(?:bf|it|rm|sc|sf|tt)\{([^}]*)\}', r'\1', cell)
+            cell = _re.sub(r'\{([^}]*)\}', r'\1', cell)  # strip remaining braces
+            cleaned.append(escape(cell.strip()))
+        parsed_rows.append(cleaned)
+
+    if not parsed_rows:
+        return ''
+
+    # First row becomes the header
+    header_cells = ''.join(f'<th>{c}</th>' for c in parsed_rows[0])
+    body_rows = ''.join(
+        '<tr>' + ''.join(f'<td>{c}</td>' for c in row) + '</tr>'
+        for row in parsed_rows[1:]
+    )
+    cap_html = f'<caption>{caption}</caption>' if caption else ''
+    return (
+        f'<figure id="{bid}" class="article-table" data-block-id="{bid}">'
+        f'<table>{cap_html}'
+        f'<thead><tr>{header_cells}</tr></thead>'
+        f'<tbody>{body_rows}</tbody>'
+        f'</table></figure>'
+    )
+
+
+def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> str:
     btype = block.get('type', 'paragraph')
     bid = escape(block.get('id', ''))
+    cm = cite_map or {}
 
     # ── Heading ───────────────────────────────────────────────────────────────
     if btype == 'heading':
@@ -82,7 +193,7 @@ def _render_block(block: dict, assets: dict) -> str:
     # ── Paragraph ─────────────────────────────────────────────────────────────
     if btype == 'paragraph':
         content = block.get('content', [])
-        inner = ''.join(_render_inline(c) for c in content)
+        inner = ''.join(_render_inline(c, cm) for c in content)
         anchor = block.get('anchor', {})
         para_num = anchor.get('paragraphNumber', '')
         return (
@@ -95,7 +206,7 @@ def _render_block(block: dict, assets: dict) -> str:
     # ── Blockquote (long quotation, 40+ words / 4+ lines) ────────────────────
     if btype == 'blockquote':
         content = block.get('content', [])
-        inner = ''.join(_render_inline(c) for c in content)
+        inner = ''.join(_render_inline(c, cm) for c in content)
         return (
             f'<blockquote id="{bid}" class="article-blockquote" data-block-id="{bid}">'
             f'<p>{inner}</p>'
@@ -130,7 +241,7 @@ def _render_block(block: dict, assets: dict) -> str:
         src = _asset_url(asset)
 
         if media_type == 'video':
-            poster = escape(asset.get('posterImageRef', ''))
+            poster = escape(asset.get('resolvedPosterUrl', ''))
             return (
                 f'<figure id="{bid}" class="article-media article-video" data-block-id="{bid}">'
                 f'<video controls preload="metadata" poster="{poster}">'
@@ -168,6 +279,12 @@ def _render_block(block: dict, assets: dict) -> str:
                 f'<thead><tr>{headers}</tr></thead><tbody>{body_rows}</tbody>'
                 f'</table></figure>'
             )
+        # Fallback: parse rawLatex when structured rows/columns are absent.
+        raw = block.get('rawLatex', '')
+        if raw:
+            table_html = _render_table_from_latex(raw, caption, bid)
+            if table_html:
+                return table_html
         return (
             f'<figure id="{bid}" class="article-table" data-block-id="{bid}">'
             f'<table><caption>{caption}</caption></table>'
@@ -188,7 +305,7 @@ def _render_block(block: dict, assets: dict) -> str:
         items = block.get('items', [])
         rows = ''.join(
             f'<dt>{escape(item.get("term", ""))}</dt>'
-            f'<dd>{"".join(_render_inline(n) for n in item.get("body", []))}</dd>'
+            f'<dd>{"".join(_render_inline(n, cm) for n in item.get("body", []))}</dd>'
             for item in items
         )
         return f'<dl id="{bid}" class="article-dl" data-block-id="{bid}">{rows}</dl>'
@@ -197,7 +314,7 @@ def _render_block(block: dict, assets: dict) -> str:
     if btype == 'list':
         tag = 'ol' if block.get('ordered') else 'ul'
         items_html = ''.join(
-            '<li>' + ''.join(_render_inline(n) for n in nodes) + '</li>'
+            '<li>' + ''.join(_render_inline(n, cm) for n in nodes) + '</li>'
             for nodes in block.get('items', [])
         )
         return (
@@ -276,7 +393,7 @@ def _render_block(block: dict, assets: dict) -> str:
     return f'<div id="{bid}" class="article-block" data-block-id="{bid}"></div>'
 
 
-def _render_inline(node: dict) -> str:
+def _render_inline(node: dict, cite_map: dict | None = None) -> str:
     ntype = node.get('type', 'text')
     text = escape(node.get('text', ''))
 
@@ -297,8 +414,10 @@ def _render_inline(node: dict) -> str:
         return f'<a href="{href}">{text or href}</a>'
 
     if ntype == 'cite':
-        ref = escape(node.get('ref', ''))
-        label = escape(node.get('text', ref))
+        ref_raw = node.get('ref', '')
+        ref = escape(ref_raw)
+        # Prefer the author-date label from cite_map; fall back to the raw key.
+        label = escape((cite_map or {}).get(ref_raw) or node.get('text', ref_raw))
         return (
             f'<a href="#ref-{ref}" class="article-cite" data-ref="{ref}">'
             f'({label})'
@@ -323,10 +442,10 @@ def _render_inline(node: dict) -> str:
 
 
 def _asset_url(asset: dict) -> str:
-    """Build a URL for an asset. Actual URL resolution happens at template level."""
+    """Return the resolved media URL for an asset, or '' if not available."""
     if not asset:
         return ''
-    return ''
+    return escape(asset.get('resolvedUrl', ''))
 
 
 def build_toc(canonical_data: dict) -> list[dict]:

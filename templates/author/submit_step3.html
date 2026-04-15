@@ -9,28 +9,84 @@
   <div class="wizard__progress">
     <span class="wizard__step wizard__step--done">1. Metadata</span>
     <span class="wizard__step wizard__step--done">2. Manuscript</span>
-    <span class="wizard__step wizard__step--active">3. Media</span>
+    <span class="wizard__step wizard__step--active">3. Media &amp; References</span>
     <span class="wizard__step">4. Declarations</span>
   </div>
-  <h1 class="wizard__title">Upload Media Assets</h1>
-  <p>Upload images, audio, video, datasets, and supplementary files referenced in your manuscript.</p>
+  <h1 class="wizard__title">Upload Media &amp; Reference Files</h1>
+
+  <!-- Instructions panel -->
+  <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-5);margin-bottom:var(--spacing-6);">
+    <h2 style="margin-top:0;font-size:var(--size-base);">What to upload and why</h2>
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-4);">The platform matches each file you upload to the corresponding command in your <code>.tex</code> manuscript using the <strong>exact filename</strong>. Upload every file that your manuscript references.</p>
+
+    <div style="display:grid;gap:var(--spacing-4);">
+
+      <div style="border-left:3px solid #E86B1F;padding-left:var(--spacing-3);">
+        <p style="margin:0 0 4px;font-weight:600;font-size:var(--size-sm);">Bibliography file — <code>references.bib</code> (required)</p>
+        <p style="margin:0;font-size:var(--size-sm);color:var(--color-muted);">Your BibTeX file containing all cited references. The platform parses it to render the bibliography section with full author names, titles, and years. Without it, only cite keys (e.g. <em>smith2024art</em>) will appear. Upload whichever <code>.bib</code> filename your manuscript uses in <code>\bibliography{…}</code>.</p>
+      </div>
+
+      <div style="border-left:3px solid #6B9FE4;padding-left:var(--spacing-3);">
+        <p style="margin:0 0 4px;font-weight:600;font-size:var(--size-sm);">Images — <code>\ARJfigure{filename}{caption}{alt text}</code></p>
+        <p style="margin:0;font-size:var(--size-sm);color:var(--color-muted);">Upload each image file referenced in your <code>\ARJfigure</code> commands. Supported formats: JPEG, PNG, WebP, GIF, TIFF. The filename in the macro must match the file you upload exactly (including extension and case).</p>
+        <p style="margin:6px 0 0;font-size:var(--size-sm);background:#f4f3ef;padding:4px 8px;border-radius:4px;font-family:monospace;">\ARJfigure{photo1.jpg}{My caption}{Alt description}</p>
+      </div>
+
+      <div style="border-left:3px solid #8B5CF6;padding-left:var(--spacing-3);">
+        <p style="margin:0 0 4px;font-weight:600;font-size:var(--size-sm);">Video — <code>\ARJvideo{filename}{caption}{poster}{transcript}</code></p>
+        <p style="margin:0;font-size:var(--size-sm);color:var(--color-muted);">Upload the video file and optionally a poster (thumbnail) image and a transcript file. All three filenames must match what you wrote in the macro. Supported video formats: MP4, WebM, MOV.</p>
+        <p style="margin:6px 0 0;font-size:var(--size-sm);background:#f4f3ef;padding:4px 8px;border-radius:4px;font-family:monospace;">\ARJvideo{performance.mp4}{Caption}{poster.jpg}{transcript.pdf}</p>
+      </div>
+
+      <div style="border-left:3px solid #10B981;padding-left:var(--spacing-3);">
+        <p style="margin:0 0 4px;font-weight:600;font-size:var(--size-sm);">Audio — <code>\ARJaudio{filename}{caption}{transcript}</code></p>
+        <p style="margin:0;font-size:var(--size-sm);color:var(--color-muted);">Upload the audio file and optionally a transcript. Supported formats: MP3, WAV, OGG, FLAC, AAC.</p>
+        <p style="margin:6px 0 0;font-size:var(--size-sm);background:#f4f3ef;padding:4px 8px;border-radius:4px;font-family:monospace;">\ARJaudio{soundwork.mp3}{Caption}{transcript.pdf}</p>
+      </div>
+
+      <div style="border-left:3px solid #94A3B8;padding-left:var(--spacing-3);">
+        <p style="margin:0 0 4px;font-weight:600;font-size:var(--size-sm);">Supplementary files — datasets, appendices, PDFs</p>
+        <p style="margin:0;font-size:var(--size-sm);color:var(--color-muted);">Any additional files associated with your submission (datasets, code archives, extended appendices) can be uploaded here. They will be listed as supplementary materials.</p>
+      </div>
+
+    </div>
+
+    <div style="margin-top:var(--spacing-4);padding:var(--spacing-3);background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:var(--size-sm);">
+      <strong>Tip:</strong> If you upload a file with the same filename as one already listed, it will replace the previous version automatically.
+    </div>
+  </div>
+
+  <!-- Upload form -->
   <form method="post" enctype="multipart/form-data" class="form">
     {% csrf_token %}
     <div class="form__group">
-      <label class="form__label" for="assets">Files (multiple allowed)</label>
+      <label class="form__label" for="assets">Select files (multiple allowed)</label>
       <input class="form__file" type="file" id="assets" name="assets" multiple>
     </div>
+
     {% if assets %}
+    <h3 style="font-size:var(--size-sm);font-weight:600;margin-bottom:var(--spacing-2);">Uploaded files</h3>
     <table class="assets-table">
-      <thead><tr><th>File</th><th>Type</th><th>Size</th></tr></thead>
+      <thead><tr><th>Filename</th><th>Type</th><th>Size</th><th></th></tr></thead>
       <tbody>
         {% for asset in assets %}
-        <tr><td>{{ asset.original_filename }}</td><td>{{ asset.get_kind_display }}</td><td>{{ asset.size_bytes|filesizeformat }}</td></tr>
+        <tr>
+          <td><code style="font-size:var(--size-sm);">{{ asset.original_filename }}</code></td>
+          <td>{{ asset.get_kind_display }}</td>
+          <td>{{ asset.size_bytes|filesizeformat }}</td>
+          <td>
+            <form method="post" action="{% url 'delete_revision_asset' submission.pk revision.pk asset.pk %}?next={% url 'submission_step3' submission.pk revision.pk %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn--small btn--danger" onclick="return confirm('Remove {{ asset.original_filename }}?')">Remove</button>
+            </form>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
     {% endif %}
-    <div class="form__actions">
+
+    <div class="form__actions" style="margin-top:var(--spacing-4);">
       <button type="submit" class="btn btn--secondary">Upload More</button>
       <button type="submit" name="done" value="1" class="btn btn--primary">Continue →</button>
     </div>

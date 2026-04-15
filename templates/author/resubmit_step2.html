@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Submit Revision — Step 2 — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="wizard container">
+  <div class="wizard__progress">
+    <span class="wizard__step wizard__step--done">1. Manuscript &amp; Response</span>
+    <span class="wizard__step wizard__step--active">2. Media &amp; References</span>
+    <span class="wizard__step">3. Confirm</span>
+  </div>
+  <h1 class="wizard__title">Media &amp; Reference Files</h1>
+
+  <!-- Instructions panel -->
+  <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-5);margin-bottom:var(--spacing-6);">
+    <h2 style="margin-top:0;font-size:var(--size-base);">What to upload and why</h2>
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-3);">Files from your previous revision have been carried over automatically. You only need to upload files that are <strong>new or have changed</strong>. Uploading a file with the same filename as an existing one will replace it.</p>
+
+    <div style="display:grid;gap:var(--spacing-4);">
+
+      <div style="border-left:3px solid #E86B1F;padding-left:var(--spacing-3);">
+        <p style="margin:0 0 4px;font-weight:600;font-size:var(--size-sm);">Bibliography file — <code>references.bib</code> (required)</p>
+        <p style="margin:0;font-size:var(--size-sm);color:var(--color-muted);">Your BibTeX file. The platform parses it to render the bibliography with full author, title, and year. If you added or changed references, upload the updated <code>.bib</code> file — it must use the same filename referenced in your <code>\bibliography{…}</code> command.</p>
+      </div>
+
+      <div style="border-left:3px solid #6B9FE4;padding-left:var(--spacing-3);">
+        <p style="margin:0 0 4px;font-weight:600;font-size:var(--size-sm);">Images — <code>\ARJfigure{filename}{caption}{alt text}</code></p>
+        <p style="margin:0;font-size:var(--size-sm);color:var(--color-muted);">Upload replacement images only if they changed. Any new <code>\ARJfigure</code> command you added to the revised manuscript needs its image file uploaded here. Filename must match exactly.</p>
+      </div>
+
+      <div style="border-left:3px solid #8B5CF6;padding-left:var(--spacing-3);">
+        <p style="margin:0 0 4px;font-weight:600;font-size:var(--size-sm);">Video — <code>\ARJvideo{filename}{caption}{poster}{transcript}</code></p>
+        <p style="margin:0;font-size:var(--size-sm);color:var(--color-muted);">Upload new or updated video files, poster images, and transcripts. Supported formats: MP4, WebM, MOV.</p>
+      </div>
+
+      <div style="border-left:3px solid #10B981;padding-left:var(--spacing-3);">
+        <p style="margin:0 0 4px;font-weight:600;font-size:var(--size-sm);">Audio — <code>\ARJaudio{filename}{caption}{transcript}</code></p>
+        <p style="margin:0;font-size:var(--size-sm);color:var(--color-muted);">Upload new or updated audio files and transcripts. Supported formats: MP3, WAV, OGG, FLAC, AAC.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Upload form -->
+  <form method="post" enctype="multipart/form-data" class="form">
+    {% csrf_token %}
+    <div class="form__group">
+      <label class="form__label" for="assets">Select files to add or replace (multiple allowed)</label>
+      <input class="form__file" type="file" id="assets" name="assets" multiple>
+    </div>
+
+    {% if assets %}
+    <h3 style="font-size:var(--size-sm);font-weight:600;margin:var(--spacing-4) 0 var(--spacing-2);">Current files for this revision</h3>
+    <table class="assets-table">
+      <thead><tr><th>Filename</th><th>Type</th><th>Size</th><th></th></tr></thead>
+      <tbody>
+        {% for asset in assets %}
+        <tr>
+          <td><code style="font-size:var(--size-sm);">{{ asset.original_filename }}</code></td>
+          <td>{{ asset.get_kind_display }}</td>
+          <td>{{ asset.size_bytes|filesizeformat }}</td>
+          <td>
+            <form method="post" action="{% url 'delete_revision_asset' submission.pk revision.pk asset.pk %}?next={% url 'resubmit_step2' submission.pk revision.pk %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn--small btn--danger" onclick="return confirm('Remove {{ asset.original_filename }}?')">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="font-size:var(--size-sm);color:var(--color-muted);">No files uploaded yet.</p>
+    {% endif %}
+
+    <div class="form__actions" style="margin-top:var(--spacing-4);">
+      <button type="submit" class="btn btn--secondary">Upload More</button>
+      <button type="submit" name="done" value="1" class="btn btn--primary">Continue →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

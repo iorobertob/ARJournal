@@ -39,10 +39,17 @@ def build_html(request, document_pk):
     """Build and publish the HTML for a canonical document."""
     doc = get_object_or_404(CanonicalDocument, pk=document_pk)
     from apps.documents.renderers.html_renderer import render_html, build_toc
-    html = render_html(doc.data, doc.revision.submission)
+    submission = doc.revision.submission
+    html = render_html(doc.data, submission)
     toc = build_toc(doc.data)
     build_hash = hashlib.sha256(html.encode()).hexdigest()[:16]
-    build, _ = HTMLBuild.objects.get_or_create(document=doc)
+    build = HTMLBuild.objects.filter(
+        document__revision__submission=submission
+    ).first()
+    if build:
+        build.document = doc
+    else:
+        build = HTMLBuild(document=doc)
     build.html_content = html
     build.table_of_contents = toc
     build.build_hash = build_hash
@@ -106,32 +113,84 @@ def admin_request_pdf(request, document_pk):
 
 
 def request_pdf(request, document_pk):
-    """Request an ephemeral PDF export."""
+    """
+    Request a PDF export.
+
+    Flat mode  → generate synchronously, return FileResponse immediately.
+                 No intermediate page needed.
+    Interactive → dispatch (possibly async), redirect to the waiting/polling page.
+    """
     doc = get_object_or_404(CanonicalDocument, pk=document_pk)
-    build = get_object_or_404(HTMLBuild, document=doc, is_published=True)
+    get_object_or_404(HTMLBuild, document=doc, is_published=True)
+    mode = request.GET.get('mode', 'flat')
     from datetime import timedelta
+    from .tasks import generate_pdf
+
     exp = PDFExport.objects.create(
         document=doc,
-        mode=request.GET.get('mode', 'flat'),
+        mode=mode,
         expires_at=timezone.now() + timedelta(minutes=30),
     )
-    from .tasks import generate_pdf
-    _dispatch_task(generate_pdf, exp.pk)
-    exp.refresh_from_db()
-    return render(request, 'public/pdf_pending.html', {
-        'export': exp,
-        'build': build,
-    })
+
+    if mode == 'flat':
+        # Run synchronously regardless of Celery config — flat PDFs are fast
+        # and the user expects an immediate download.
+        generate_pdf.apply(args=(exp.pk,))
+        exp.refresh_from_db()
+        if exp.file:
+            fname = f'{doc.revision.submission.slug or "article"}.pdf'
+            response = FileResponse(
+                exp.file.open('rb'),
+                content_type='application/pdf',
+                as_attachment=True,
+                filename=fname,
+            )
+            return response
+        # Generation failed — show a simple error
+        messages.error(request, 'PDF generation failed. Please try again.')
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    else:
+        # Interactive PDF: always show the spinner page so the user sees
+        # progress feedback. In dev (always-eager) the task runs synchronously
+        # before this line, so polling will return ready immediately and
+        # auto-trigger the download. In production the worker runs it async.
+        _dispatch_task(generate_pdf, exp.pk)
+        return render(request, 'public/pdf_pending.html', {'export': exp})
 
 
 def download_pdf(request, token):
+    """
+    Serve a completed PDF export, or show/poll its status.
+
+    GET ?json=1  → JSON status check for the polling page: {ready, error}
+    Otherwise    → serve the file (attachment) if ready, else render waiting page.
+    """
+    from django.http import JsonResponse
     exp = get_object_or_404(PDFExport, download_token=token)
-    if exp.expires_at < timezone.now():
+
+    expired = exp.expires_at < timezone.now()
+
+    if request.GET.get('json'):
+        if expired:
+            return JsonResponse({'error': 'expired'})
+        return JsonResponse({'ready': bool(exp.file)})
+
+    if expired:
         raise Http404('This PDF export has expired.')
+
     if not exp.file:
         return render(request, 'public/pdf_pending.html', {'export': exp})
-    response = FileResponse(exp.file.open('rb'), content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="article.pdf"'
+
+    fname = (
+        exp.document.revision.submission.slug or 'article'
+    ) + '.pdf'
+    response = FileResponse(
+        exp.file.open('rb'),
+        content_type='application/pdf',
+        as_attachment=True,
+        filename=fname,
+    )
     exp.downloaded = True
     exp.save(update_fields=['downloaded'])
     return response

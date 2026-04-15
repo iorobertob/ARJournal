@@ -312,6 +312,8 @@
     <div class="decision-record">
       <p>Round {{ dec.round }}: <strong>{{ dec.get_decision_type_display }}</strong> &middot; {{ dec.sent_at|date:"d M Y" }}</p>
       {% if dec.letter %}<p style="font-size:var(--size-sm);color:var(--color-muted);margin-top:var(--spacing-2);">{{ dec.letter|truncatewords:30 }}</p>{% endif %}
+      {% if dec.priority_issues %}<p style="font-size:var(--size-sm);margin-top:var(--spacing-1);"><strong>Priority issues:</strong> {{ dec.priority_issues|truncatewords:20 }}</p>{% endif %}
+      {% if dec.instructions_to_author %}<p style="font-size:var(--size-sm);margin-top:var(--spacing-1);"><strong>Instructions:</strong> {{ dec.instructions_to_author|truncatewords:20 }}</p>{% endif %}
     </div>
     {% endfor %}
     {% endif %}
@@ -326,6 +328,7 @@
             <option value="accept">Accept</option>
             <option value="minor_revision">Minor Revision</option>
             <option value="major_revision">Major Revision</option>
+            <option value="reject_resubmit">Reject — Invite Resubmission</option>
             <option value="reject">Reject</option>
             <option value="desk_reject">Desk Reject</option>
           </select>

@@ -32,8 +32,8 @@ def _uid(prefix: str, counters: dict) -> str:
 
 
 def _strip_comments(text: str) -> str:
-    """Remove LaTeX line comments (% … end-of-line) and trim."""
-    return re.sub(r'%[^\n]*', '', text).strip()
+    """Remove LaTeX line comments (% … end-of-line) but not escaped \\%."""
+    return re.sub(r'(?<!\\)%[^\n]*', '', text).strip()
 
 
 def _extract_macro(text: str, macro: str) -> str | None:
@@ -317,7 +317,7 @@ def _parse_section_content(
 
     # ── table environments ────────────────────────────────────────────────────
     tbl_pat = re.compile(
-        r'\\begin\{table\}.*?\\caption\{([^}]*)\}.*?'
+        r'\\begin\{table\}(?:\[[^\]]*\])?.*?\\caption\{([^}]*)\}.*?'
         r'\\begin\{tabular\}\{[^}]*\}(.*?)\\end\{tabular\}.*?\\end\{table\}',
         re.DOTALL,
     )
@@ -471,10 +471,13 @@ def _parse_section_content(
         elif kind == 'table':
             caption, raw_latex = data
             tbl_id = _uid('blk_tbl', counters)
+            columns, rows = _parse_tabular(raw_latex)
             blocks.append({
                 'id': tbl_id,
                 'type': 'table',
                 'caption': caption,
+                'columns': columns,
+                'rows': rows,
                 'rawLatex': raw_latex,
                 'sectionId': sec_id,
             })
@@ -525,6 +528,52 @@ def _add_paragraphs(
     return para_num
 
 
+# ── Table parser ─────────────────────────────────────────────────────────────
+
+def _parse_tabular(raw_latex: str) -> tuple[list[dict], list[list[dict]]]:
+    """
+    Parse a \\begin{tabular}…\\end{tabular} block into (columns, rows).
+
+    Returns:
+        columns — list of {'label': str} dicts derived from the first data row.
+        rows    — list of rows; each row is a list of {'value': str} dicts.
+
+    The first row is treated as a header row (column labels).
+    \\hline and leading/trailing whitespace are stripped.
+    """
+    body_m = re.search(
+        r'\\begin\{tabular\}\{[^}]*\}(.*?)\\end\{tabular\}',
+        raw_latex, re.DOTALL,
+    )
+    if not body_m:
+        return [], []
+
+    body = body_m.group(1)
+    # Remove booktabs / horizontal rule commands
+    body = re.sub(r'\\(?:toprule|midrule|bottomrule|hline|cline\{[^}]*\})\s*', '', body)
+    # Convert escaped percent \% back to a plain % for display
+    body = body.replace(r'\%', '%')
+
+    # Split on \\ (row separator); ignore empty fragments
+    row_strings = [r.strip() for r in re.split(r'\\\\', body) if r.strip()]
+
+    columns: list[dict] = []
+    rows: list[list[dict]] = []
+
+    for i, row_str in enumerate(row_strings):
+        # Strip inline LaTeX formatting (bold/italic) from cell text for readability
+        cell_str = re.sub(r'\\textbf\{([^}]*)\}', r'\1', row_str)
+        cell_str = re.sub(r'\\textit\{([^}]*)\}', r'\1', cell_str)
+        cell_str = re.sub(r'\\emph\{([^}]*)\}',   r'\1', cell_str)
+        cells = [c.strip() for c in cell_str.split('&')]
+        if i == 0:
+            columns = [{'label': c} for c in cells]
+        else:
+            rows.append([{'value': c} for c in cells])
+
+    return columns, rows
+
+
 # ── Main parser ───────────────────────────────────────────────────────────────
 
 def parse_latex(tex_source: str, submission_metadata: dict | None = None) -> dict:
@@ -560,7 +609,7 @@ def parse_latex(tex_source: str, submission_metadata: dict | None = None) -> dic
     # Strip line comments before extracting the body so that comment text like
     # "%% Write between \begin{document} and \end{document}" does not confuse
     # the regex and cause it to match the comment tokens instead of the real ones.
-    tex_no_comments = re.sub(r'%[^\n]*', '', tex_source)
+    tex_no_comments = re.sub(r'(?<!\\)%[^\n]*', '', tex_source)
     body_match = re.search(r'\\begin\{document\}(.*?)(?:\\end\{document\}|$)', tex_no_comments, re.DOTALL)
     body = body_match.group(1) if body_match else tex_source
     body = re.sub(r'\\makearjtitle|\\ARJprintdeclarations', '', body)

@@ -24,7 +24,12 @@
           <td>{{ sub.get_article_type_display }}</td>
           <td><span class="status-badge status-badge--{{ sub.status }}">{{ sub.get_status_display }}</span></td>
           <td>{{ sub.submission_date|date:"d M Y"|default:"—" }}</td>
-          <td><a href="{% url 'submission_detail' sub.pk %}">View →</a></td>
+          <td>
+            <a href="{% url 'submission_detail' sub.pk %}">View →</a>
+            {% if sub.status == 'revision_requested' %}
+            &nbsp;<a href="{% url 'resubmit_step1' sub.pk %}" style="color:var(--color-accent);font-weight:600;">Revise →</a>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>

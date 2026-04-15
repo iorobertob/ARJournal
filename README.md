@@ -16,7 +16,7 @@ A Django-based journal management platform supporting the full lifecycle of an a
 | Auth | django-allauth (email/password + optional ORCID OAuth) |
 | Storage | Local filesystem (documented S3 upgrade path) |
 | Dev server | Port **5002** |
-| Production | Nginx + Gunicorn + Docker Compose |
+| Production | Nginx + Gunicorn + systemd (bare-metal Linux) |
 
 ---
 
@@ -50,11 +50,11 @@ sudo apt-get install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
 ```
 `setup_dev.sh` installs any missing packages automatically.
 
-**Docker / production:** the `Dockerfile` already installs all required packages. No extra steps needed.
+**Linux (production):** `scripts/deploy.sh` installs all required packages automatically.
 
 ---
 
-### Quick Setup (without Docker)
+### Quick Setup
 
 ```bash
 git clone <repo>
@@ -73,23 +73,6 @@ Visit:
 - Admin: http://localhost:5002/admin/
 - Author portal: http://localhost:5002/author/dashboard/
 - Editorial: http://localhost:5002/editorial/
-
-### With Docker Compose
-
-```bash
-cp .env.example .env
-# Edit .env — at minimum set DJANGO_SUPERUSER_PASSWORD
-
-docker-compose up -d
-docker-compose exec app python manage.py migrate
-docker-compose exec app python manage.py createsuperuser --email admin@trans-act-journal.org
-docker-compose exec app python manage.py shell -c "
-from apps.journal.models import JournalConfig
-j = JournalConfig.get(); j.name = 'Trans/Act'; j.save()
-"
-```
-
-Visit http://localhost:5002/
 
 ---
 
@@ -175,41 +158,138 @@ All integrations are feature-flagged and disabled by default:
 
 ---
 
-## Production Deployment (Linux VPS)
+## Production Deployment (Linux VPS — bare metal)
 
-### First Deployment
+Tested on **Ubuntu 22.04 LTS** and **Debian 12**. No Docker required.
+
+### Prerequisites on the server
+
+- A clean Ubuntu/Debian VPS with SSH root access
+- A domain pointing at the server's IP (DNS must propagate before running certbot)
+- The repository accessible (GitHub, GitLab, or SFTP)
+
+### First deployment
+
+**1. Edit the deploy script configuration**
+
+Open `scripts/deploy.sh` and set the variables at the top:
 
 ```bash
-# On the server
-git clone <repo> /opt/transact
+REPO_URL="git@github.com:your-org/journal.git"   # or https://
+DOMAIN="trans-act-journal.org"
+GUNICORN_WORKERS=3    # 2 × CPU cores + 1
+```
+
+**2. Copy the repository to the server and run the script**
+
+```bash
+# From your local machine — push the repo to the server, then:
+ssh root@your-server
 cd /opt/transact
-cp .env.example .env
-# Edit .env: DEBUG=False, strong SECRET_KEY, ALLOWED_HOSTS=your-domain.com, DB/email config
-
-docker-compose -f docker-compose.yml up -d --build
-docker-compose exec app python manage.py migrate
-docker-compose exec app python manage.py collectstatic --noinput
-docker-compose exec app python manage.py createsuperuser --email admin@your-domain.com
+sudo bash scripts/deploy.sh
 ```
 
-### Nginx
+The script will:
+- Install Python 3.11, PostgreSQL, Redis, Nginx, Certbot
+- Install all **WeasyPrint** native libraries (libcairo2, libpango, libgdk-pixbuf2.0, libharfbuzz0b, libffi-dev, shared-mime-info, fonts-liberation, fonts-dejavu-core)
+- Install **libmagic1** (required by python-magic for file type detection)
+- Install all Python packages from `requirements/production.txt` (including **pikepdf** via binary wheel — no extra build deps needed on Ubuntu 22.04+)
+- Create the `transact` system user and `/opt/transact` directory
+- Prompt you to edit `.env` with production values before continuing
+- Run `migrate` and `collectstatic`
+- Write systemd unit files for Gunicorn, Celery worker, and Celery Beat
+- Deploy Nginx config and obtain SSL certificate via Let's Encrypt
+- Start and enable all services
+
+**3. Required `.env` values for production**
 
 ```bash
-sudo cp nginx/nginx.conf /etc/nginx/sites-available/transact
-# Edit the server_name lines to match your domain
-sudo ln -s /etc/nginx/sites-available/transact /etc/nginx/sites-enabled/
-sudo certbot --nginx -d your-domain.com     # SSL via Let's Encrypt
-sudo nginx -t && sudo systemctl reload nginx
+DEBUG=False
+SECRET_KEY=<generate: python -c "import secrets; print(secrets.token_hex(50))">
+ALLOWED_HOSTS=trans-act-journal.org,www.trans-act-journal.org
+DJANGO_SETTINGS_MODULE=config.settings.production
+
+# Database (PostgreSQL on localhost)
+DB_NAME=transact_journal
+DB_USER=transact
+DB_PASSWORD=<strong password>
+DB_HOST=localhost
+DB_PORT=5432
+
+# Celery / Redis
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_TASK_ALWAYS_EAGER=False
+
+# Email (MailerSend, SendGrid, Mailgun, or console)
+ANYMAIL_BACKEND=mailersend
+MAILERSEND_API_TOKEN=<token>
+DEFAULT_FROM_EMAIL=noreply@trans-act-journal.org
+
+# Django admin superuser (created on first deploy)
+DJANGO_SUPERUSER_EMAIL=admin@trans-act-journal.org
+DJANGO_SUPERUSER_PASSWORD=<strong password>
 ```
 
-### Updates
+### Updating an existing deployment
 
 ```bash
+ssh root@your-server
 cd /opt/transact
 git pull
-docker-compose up -d --build
-docker-compose exec app python manage.py migrate
-docker-compose exec app python manage.py collectstatic --noinput
+sudo bash scripts/deploy.sh --update
+```
+
+`--update` skips system package installation, user creation, and SSL steps — it only: pulls code, reinstalls Python deps, runs migrations, collects static files, and restarts services.
+
+### Service management
+
+```bash
+# Status
+sudo systemctl status transact-gunicorn
+sudo systemctl status transact-celery
+sudo systemctl status transact-celerybeat
+
+# Restart
+sudo systemctl restart transact-gunicorn
+sudo systemctl restart transact-celery
+
+# Live logs
+sudo journalctl -u transact-gunicorn -f
+sudo journalctl -u transact-celery -f
+
+# Application log files
+tail -f /opt/transact/logs/gunicorn-error.log
+tail -f /opt/transact/logs/celery.log
+```
+
+### Nginx and SSL
+
+The deploy script installs `nginx/nginx.conf` and runs certbot automatically. To renew SSL manually:
+
+```bash
+sudo certbot renew --dry-run     # test renewal
+sudo certbot renew               # renew
+sudo systemctl reload nginx
+```
+
+Certbot installs a cron job / systemd timer that auto-renews certificates — no manual action needed after the first run.
+
+### Celery and async PDF generation
+
+The Celery worker handles **interactive PDF generation** (WeasyPrint + pikepdf media embedding). It connects to Redis on `localhost:6379`.
+
+- Flat PDFs (plain print layout) run synchronously in the request — no Celery needed.
+- Interactive PDFs (bookmarks + embedded media annotations) are dispatched to Celery and the user sees a polling spinner page.
+
+If you do not need interactive PDFs, you can disable the Celery services and set `CELERY_TASK_ALWAYS_EAGER=True` in `.env` — all PDF generation will run synchronously in the web process (slower but simpler).
+
+### pikepdf note
+
+pikepdf is installed as a binary wheel from PyPI (`pikepdf>=9.0,<11`) — no compilation needed on Ubuntu 22.04+. If installation fails on an older distro or ARM:
+
+```bash
+sudo apt-get install libqpdf-dev
+pip install pikepdf --no-binary pikepdf
 ```
 
 ---

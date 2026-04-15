@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Submit Revision — Confirm — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="wizard container">
+  <div class="wizard__progress">
+    <span class="wizard__step wizard__step--done">1. Manuscript &amp; Response</span>
+    <span class="wizard__step wizard__step--done">2. Media</span>
+    <span class="wizard__step wizard__step--active">3. Confirm</span>
+  </div>
+
+  <h1 class="wizard__title">Confirm Revision Submission</h1>
+  <p>Please review the details below before submitting your revision.</p>
+
+  <div style="border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-4);margin-bottom:var(--spacing-6);">
+    <p><strong>Submission:</strong> {{ submission.title }}</p>
+    <p><strong>Revision version:</strong> {{ revision.version }}</p>
+    <p><strong>Manuscript:</strong> {{ revision.manuscript_file.name|default:"—" }}</p>
+    {% if revision.response_letter %}<p><strong>Response letter:</strong> uploaded</p>{% endif %}
+    {% if revision.notes %}<p><strong>Notes to editors:</strong> {{ revision.notes }}</p>{% endif %}
+    {% if assets %}
+    <p><strong>Media assets ({{ assets.count }}):</strong>
+      {% for asset in assets %}{{ asset.original_filename }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </p>
+    {% endif %}
+  </div>
+
+  <form method="post" class="form">
+    {% csrf_token %}
+    <div class="form__actions">
+      <a href="{% url 'resubmit_step2' submission.pk revision.pk %}" class="btn btn--secondary">← Back</a>
+      <button type="submit" class="btn btn--primary">Submit Revision</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

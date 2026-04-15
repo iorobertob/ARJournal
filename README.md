@@ -16,7 +16,9 @@ A Django-based journal management platform supporting the full lifecycle of an a
 | Auth | django-allauth (email/password + optional ORCID OAuth) |
 | Storage | Local filesystem (documented S3 upgrade path) |
 | Dev server | Port **5002** |
-| Production | Nginx + Gunicorn + systemd (bare-metal Linux) |
+| Staging | Nginx + Gunicorn + systemd — `misc.lmta.lt/journal` (subpath) |
+| Production | Nginx + Gunicorn + systemd — `journal.lmta.lt` (bare-metal) |
+| Production | Nginx + Docker Compose — `journal.lmta.lt` (containerised) |
 
 ---
 
@@ -158,134 +160,252 @@ All integrations are feature-flagged and disabled by default:
 
 ---
 
-## Production Deployment (Linux VPS — bare metal)
+## Deployment
 
-Tested on **Ubuntu 22.04 LTS** and **Debian 12**. No Docker required.
+Three deployment stages, in order of progression:
 
-### Prerequisites on the server
+| Stage | URL | Method | Script |
+|---|---|---|---|
+| 1 — Staging | `https://misc.lmta.lt/journal` | Bare-metal, subpath | `scripts/deploy-staging.sh` |
+| 2 — Production | `https://journal.lmta.lt` | Bare-metal, subdomain | `scripts/deploy.sh` |
+| 3 — Production | `https://journal.lmta.lt` | Docker Compose | `scripts/deploy-docker.sh` |
 
-- A clean Ubuntu/Debian VPS with SSH root access
-- A domain pointing at the server's IP (DNS must propagate before running certbot)
-- The repository accessible (GitHub, GitLab, or SFTP)
+All scripts tested on **Ubuntu 22.04 LTS** and **Debian 12**. Each script accepts `--update` to skip system package installation and run only: git pull → pip install → migrate → collectstatic → service restart.
 
-### First deployment
+---
 
-**1. Edit the deploy script configuration**
+### Stage 1 — Staging at `misc.lmta.lt/journal`
 
-Open `scripts/deploy.sh` and set the variables at the top:
+The app runs at a **subpath** (`/journal`) on an existing server that already hosts other things at `misc.lmta.lt`. A `staging` Django settings module handles the subpath configuration — Nginx strips the `/journal` prefix before forwarding to Gunicorn, and `FORCE_SCRIPT_NAME='/journal'` tells Django to include it in all generated URLs.
+
+**Settings module:** `config.settings.staging`
+**App directory:** `/opt/transact-staging`
+**Gunicorn port:** `5003` (separate from production so both can coexist)
+**Systemd units:** `transact-staging-gunicorn`, `transact-staging-celery`
+
+**1. Set the repo URL in the script:**
 
 ```bash
-REPO_URL="git@github.com:your-org/journal.git"   # or https://
-DOMAIN="trans-act-journal.org"
+# scripts/deploy-staging.sh — edit REPO_URL at the top
+REPO_URL="git@github.com:your-org/journal.git"
+```
+
+**2. Run on the server:**
+
+```bash
+ssh root@misc.lmta.lt
+git clone https://github.com/iorobertob/ARJournal.git ARJournal
+cd ARJournal
+sudo bash scripts/deploy-staging.sh
+```
+
+The script prompts you to edit `.env` before continuing. Required staging `.env` values:
+
+```bash
+DEBUG=False
+SECRET_KEY=<50+ random chars>
+DJANGO_SETTINGS_MODULE=config.settings.staging
+ALLOWED_HOSTS=misc.lmta.lt
+CSRF_TRUSTED_ORIGINS=https://misc.lmta.lt
+SITE_URL=https://misc.lmta.lt/ARJournal
+
+DB_NAME=transact_staging
+DB_USER=transact
+DB_PASSWORD=<password>
+DB_HOST=localhost
+
+CELERY_BROKER_URL=redis://localhost:6379/1   # db=1, separate from production
+CELERY_TASK_ALWAYS_EAGER=False
+
+ANYMAIL_BACKEND=console   # or real backend for email testing
+DJANGO_SUPERUSER_EMAIL=admin@lmta.lt
+DJANGO_SUPERUSER_PASSWORD=<password>
+```
+
+**3. Add Nginx location blocks** to the existing `misc.lmta.lt` server block:
+
+```bash
+sudo nano /etc/nginx/sites-available/misc.lmta.lt
+# Paste the contents of nginx/nginx-staging.conf inside the server { } block
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+`nginx/nginx-staging.conf` contains the three location blocks (`/journal/static/`, `/journal/media/`, `/journal/`) with comments explaining how the proxy stripping works.
+
+**Update:**
+```bash
+cd /opt/transact-staging && git pull
+sudo bash scripts/deploy-staging.sh --update
+```
+
+**Logs:**
+```bash
+sudo journalctl -u transact-staging-gunicorn -f
+tail -f /opt/transact-staging/logs/gunicorn-error.log
+```
+
+---
+
+### Stage 2 — Production at `journal.lmta.lt` (bare-metal)
+
+Full subdomain deployment, no Docker. The script installs all system packages, creates a dedicated `transact` system user, sets up the venv, writes systemd units, deploys Nginx, and obtains SSL via Let's Encrypt.
+
+**Settings module:** `config.settings.production`
+**App directory:** `/opt/transact`
+**Gunicorn port:** `5002`
+**Systemd units:** `transact-gunicorn`, `transact-celery`, `transact-celerybeat`
+**Nginx config:** `nginx/nginx-production.conf`
+
+**1. Edit the script configuration:**
+
+```bash
+# scripts/deploy.sh — edit at the top
+REPO_URL="git@github.com:your-org/journal.git"
+DOMAIN="journal.lmta.lt"
 GUNICORN_WORKERS=3    # 2 × CPU cores + 1
 ```
 
-**2. Copy the repository to the server and run the script**
+**2. Run on the server:**
 
 ```bash
-# From your local machine — push the repo to the server, then:
-ssh root@your-server
+ssh root@journal.lmta.lt
+git clone <repo> /opt/transact
 cd /opt/transact
 sudo bash scripts/deploy.sh
 ```
 
-The script will:
-- Install Python 3.11, PostgreSQL, Redis, Nginx, Certbot
-- Install all **WeasyPrint** native libraries (libcairo2, libpango, libgdk-pixbuf2.0, libharfbuzz0b, libffi-dev, shared-mime-info, fonts-liberation, fonts-dejavu-core)
-- Install **libmagic1** (required by python-magic for file type detection)
-- Install all Python packages from `requirements/production.txt` (including **pikepdf** via binary wheel — no extra build deps needed on Ubuntu 22.04+)
-- Create the `transact` system user and `/opt/transact` directory
-- Prompt you to edit `.env` with production values before continuing
-- Run `migrate` and `collectstatic`
-- Write systemd unit files for Gunicorn, Celery worker, and Celery Beat
-- Deploy Nginx config and obtain SSL certificate via Let's Encrypt
-- Start and enable all services
+The script installs:
+- Python 3.11, PostgreSQL 16, Redis, Nginx, Certbot
+- WeasyPrint native libs: `libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libharfbuzz0b libffi-dev shared-mime-info fonts-liberation fonts-dejavu-core`
+- `libmagic1` (python-magic file type detection)
+- All Python packages from `requirements/production.txt`, including **pikepdf** (binary wheel, no extra build deps on Ubuntu 22.04+)
 
-**3. Required `.env` values for production**
+Required production `.env` values:
 
 ```bash
 DEBUG=False
-SECRET_KEY=<generate: python -c "import secrets; print(secrets.token_hex(50))">
-ALLOWED_HOSTS=trans-act-journal.org,www.trans-act-journal.org
+SECRET_KEY=<50+ random chars>
 DJANGO_SETTINGS_MODULE=config.settings.production
+ALLOWED_HOSTS=journal.lmta.lt,www.journal.lmta.lt
+CSRF_TRUSTED_ORIGINS=https://journal.lmta.lt,https://www.journal.lmta.lt
+SITE_URL=https://journal.lmta.lt
 
-# Database (PostgreSQL on localhost)
 DB_NAME=transact_journal
 DB_USER=transact
 DB_PASSWORD=<strong password>
 DB_HOST=localhost
-DB_PORT=5432
 
-# Celery / Redis
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_TASK_ALWAYS_EAGER=False
 
-# Email (MailerSend, SendGrid, Mailgun, or console)
 ANYMAIL_BACKEND=mailersend
 MAILERSEND_API_TOKEN=<token>
-DEFAULT_FROM_EMAIL=noreply@trans-act-journal.org
+DEFAULT_FROM_EMAIL=noreply@journal.lmta.lt
 
-# Django admin superuser (created on first deploy)
-DJANGO_SUPERUSER_EMAIL=admin@trans-act-journal.org
+DJANGO_SUPERUSER_EMAIL=admin@lmta.lt
 DJANGO_SUPERUSER_PASSWORD=<strong password>
 ```
 
-### Updating an existing deployment
-
+**Update:**
 ```bash
-ssh root@your-server
-cd /opt/transact
-git pull
+cd /opt/transact && git pull
 sudo bash scripts/deploy.sh --update
 ```
 
-`--update` skips system package installation, user creation, and SSL steps — it only: pulls code, reinstalls Python deps, runs migrations, collects static files, and restarts services.
-
-### Service management
-
+**Service management:**
 ```bash
-# Status
 sudo systemctl status transact-gunicorn
-sudo systemctl status transact-celery
-sudo systemctl status transact-celerybeat
-
-# Restart
 sudo systemctl restart transact-gunicorn
-sudo systemctl restart transact-celery
-
-# Live logs
 sudo journalctl -u transact-gunicorn -f
-sudo journalctl -u transact-celery -f
-
-# Application log files
 tail -f /opt/transact/logs/gunicorn-error.log
 tail -f /opt/transact/logs/celery.log
 ```
 
-### Nginx and SSL
-
-The deploy script installs `nginx/nginx.conf` and runs certbot automatically. To renew SSL manually:
-
+**SSL renewal** (Certbot auto-renews via systemd timer, but to renew manually):
 ```bash
-sudo certbot renew --dry-run     # test renewal
-sudo certbot renew               # renew
-sudo systemctl reload nginx
+sudo certbot renew --dry-run
+sudo certbot renew && sudo systemctl reload nginx
 ```
 
-Certbot installs a cron job / systemd timer that auto-renews certificates — no manual action needed after the first run.
+---
 
-### Celery and async PDF generation
+### Stage 3 — Production at `journal.lmta.lt` (Docker)
 
-The Celery worker handles **interactive PDF generation** (WeasyPrint + pikepdf media embedding). It connects to Redis on `localhost:6379`.
+PostgreSQL, Redis, Gunicorn, and Celery run inside Docker containers. Nginx and Certbot run on the host and proxy to the Docker app container on port 5002. Media files are bind-mounted from the container to `/opt/transact-docker/media/` so Nginx can serve them directly. Static files are served by WhiteNoise from inside the app container.
 
-- Flat PDFs (plain print layout) run synchronously in the request — no Celery needed.
-- Interactive PDFs (bookmarks + embedded media annotations) are dispatched to Celery and the user sees a polling spinner page.
+**Docker Compose file:** `docker-compose.prod.yml`
+**Nginx config:** `nginx/nginx-docker.conf`
+**Script:** `scripts/deploy-docker.sh`
 
-If you do not need interactive PDFs, you can disable the Celery services and set `CELERY_TASK_ALWAYS_EAGER=True` in `.env` — all PDF generation will run synchronously in the web process (slower but simpler).
+**1. Clone the repo and run the script:**
+
+```bash
+ssh root@journal.lmta.lt
+git clone <repo> /opt/transact-docker
+cd /opt/transact-docker
+sudo bash scripts/deploy-docker.sh
+```
+
+The script installs Docker CE (official repo), Nginx, and Certbot on the host. It then builds the images, runs containers, runs migrations inside the app container, obtains SSL, and starts Nginx.
+
+Required `.env` values — **note `DB_HOST=db`** (Docker service name, not localhost):
+
+```bash
+DEBUG=False
+SECRET_KEY=<50+ random chars>
+DJANGO_SETTINGS_MODULE=config.settings.production
+ALLOWED_HOSTS=journal.lmta.lt,www.journal.lmta.lt
+CSRF_TRUSTED_ORIGINS=https://journal.lmta.lt,https://www.journal.lmta.lt
+SITE_URL=https://journal.lmta.lt
+
+DB_NAME=transact_journal
+DB_USER=transact
+DB_PASSWORD=<strong password>
+DB_HOST=db                          # ← Docker service name, NOT localhost
+DB_PORT=5432
+
+CELERY_BROKER_URL=redis://redis:6379/0   # ← 'redis' = Docker service name
+CELERY_TASK_ALWAYS_EAGER=False
+
+ANYMAIL_BACKEND=mailersend
+MAILERSEND_API_TOKEN=<token>
+DEFAULT_FROM_EMAIL=noreply@journal.lmta.lt
+
+DJANGO_SUPERUSER_EMAIL=admin@lmta.lt
+DJANGO_SUPERUSER_PASSWORD=<strong password>
+```
+
+**Update:**
+```bash
+cd /opt/transact-docker && git pull
+sudo bash scripts/deploy-docker.sh --update
+```
+
+**Docker management:**
+```bash
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f app
+docker compose -f docker-compose.prod.yml logs -f celery
+docker compose -f docker-compose.prod.yml restart app
+
+# Run a management command inside the container
+docker compose -f docker-compose.prod.yml exec app python manage.py <command>
+```
+
+---
+
+### Celery and PDF generation (all stages)
+
+The Celery worker handles **interactive PDF generation** (WeasyPrint + pikepdf media embedding). Without a running worker, interactive PDFs will queue but never complete.
+
+- **Flat PDFs** run synchronously in the request — no Celery needed.
+- **Interactive PDFs** are dispatched to Celery; the user sees a polling spinner page.
+
+To skip Celery entirely (simpler setup, all PDFs synchronous and slower), set `CELERY_TASK_ALWAYS_EAGER=True` in `.env` and disable/don't start the Celery service.
 
 ### pikepdf note
 
-pikepdf is installed as a binary wheel from PyPI (`pikepdf>=9.0,<11`) — no compilation needed on Ubuntu 22.04+. If installation fails on an older distro or ARM:
+pikepdf ships as a binary wheel from PyPI (`pikepdf>=9.0,<11`) — no compilation needed on Ubuntu 22.04+. If installation fails on older distros or ARM:
 
 ```bash
 sudo apt-get install libqpdf-dev

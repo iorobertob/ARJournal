@@ -1,0 +1,102 @@
+version: '3.9'
+
+# Trans/Act Journal — PRODUCTION Docker Compose
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml exec app python manage.py migrate
+#
+# The app container binds port 5002 to 127.0.0.1 only (localhost).
+# Nginx on the host terminates SSL and proxies to it.
+# Media files are bind-mounted to /opt/transact-docker/media so Nginx
+# can serve them directly without going through the container.
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME:-transact_journal}
+      POSTGRES_USER: ${DB_USER:-transact}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    # Ports intentionally not exposed — only reachable within Docker network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-transact}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    # Ports intentionally not exposed — only reachable within Docker network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: always
+    command: >
+      gunicorn config.wsgi:application
+        --bind 0.0.0.0:5002
+        --workers 3
+        --timeout 120
+        --access-logfile -
+        --error-logfile -
+    volumes:
+      # Bind-mount media to host so Nginx can serve files directly
+      - /opt/transact-docker/media:/app/media
+    ports:
+      # Expose only on localhost — Nginx on the host proxies to this
+      - "127.0.0.1:5002:5002"
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DB_HOST: db
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_TASK_ALWAYS_EAGER: "False"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery:
+    build: .
+    restart: always
+    command: celery -A config.celery worker --loglevel=info --concurrency=2
+    volumes:
+      - /opt/transact-docker/media:/app/media
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DB_HOST: db
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_TASK_ALWAYS_EAGER: "False"
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build: .
+    restart: always
+    command: >
+      celery -A config.celery beat
+        --loglevel=info
+        --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DB_HOST: db
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:

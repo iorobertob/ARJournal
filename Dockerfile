@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 # System deps for psycopg2, Pillow, python-magic, and WeasyPrint.
 #

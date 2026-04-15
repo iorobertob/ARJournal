@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import FileResponse, Http404
 from django.contrib import messages
+from django.urls import reverse
 from django.utils import timezone
 from .models import HTMLBuild, PDFExport, DOIDeposit
 from apps.documents.models import CanonicalDocument
@@ -148,7 +149,7 @@ def request_pdf(request, document_pk):
             return response
         # Generation failed — show a simple error
         messages.error(request, 'PDF generation failed. Please try again.')
-        return redirect(request.META.get('HTTP_REFERER', '/'))
+        return redirect(request.META.get('HTTP_REFERER') or reverse('home'))
 
     else:
         # Interactive PDF: always show the spinner page so the user sees

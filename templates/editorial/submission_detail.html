@@ -420,7 +420,7 @@
     </div>
 
     {% else %}
-    <form method="post" action="/api/v1/submissions/{{ submission.pk }}/ingest/">
+    <form method="post" action="{% url 'api-submission-ingest' submission.pk %}">
       {% csrf_token %}
       <button type="submit" class="btn btn--secondary">Parse &amp; Ingest Manuscript</button>
     </form>

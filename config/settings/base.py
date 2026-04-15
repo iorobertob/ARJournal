@@ -133,8 +133,10 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
-LOGIN_REDIRECT_URL = '/author/dashboard/'
-LOGOUT_REDIRECT_URL = '/'
+# Use URL names, not paths — resolve_url() calls reverse() which respects
+# SCRIPT_NAME so subpath deployments (e.g. /ARJournal/) work correctly.
+LOGIN_REDIRECT_URL = 'author_dashboard'
+LOGOUT_REDIRECT_URL = 'home'
 
 # ORCID OAuth
 SOCIALACCOUNT_PROVIDERS = {}

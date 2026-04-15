@@ -14,11 +14,17 @@ request.path_info arrives as '/' — making that check always fail.
 from .production import *  # noqa: F401, F403
 
 # ── Subpath URL prefixes ──────────────────────────────────────────────────────
-# Must match the SCRIPT_NAME value in .env so that Nginx can route
-# /ARJournal/static/ and /ARJournal/media/ directly from disk.
-SCRIPT_NAME = env('SCRIPT_NAME', default='/ARJournal')
-STATIC_URL = f'{SCRIPT_NAME}/static/'
-MEDIA_URL = f'{SCRIPT_NAME}/media/'
+# Use a private variable so the subpath prefix is available for computing
+# STATIC_URL / MEDIA_URL but is NOT stored as settings.SCRIPT_NAME.
+# allauth's AccountMiddleware checks settings.SCRIPT_NAME (and FORCE_SCRIPT_NAME)
+# and raises a 400 if request.path doesn't start with it — but Nginx strips the
+# subpath prefix before forwarding (proxy_pass trailing slash), so request.path
+# is always '/', making that check fail. The WSGI wrapper in config/wsgi.py
+# injects SCRIPT_NAME into the WSGI environ directly, which is how Django picks
+# it up for URL generation without triggering allauth's validation.
+_script_name = env('SCRIPT_NAME', default='/ARJournal')
+STATIC_URL = f'{_script_name}/static/'
+MEDIA_URL = f'{_script_name}/media/'
 
 # ── Proxy / SSL ───────────────────────────────────────────────────────────────
 # SSL is terminated at Nginx — the app receives plain HTTP from Gunicorn.

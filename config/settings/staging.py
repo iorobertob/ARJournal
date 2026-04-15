@@ -2,35 +2,29 @@
 Staging settings — app served at a subpath on a shared server
 (e.g. https://misc.lmta.lt/ARJournal).
 
-Extends production settings and overrides what changes for subpath deployment.
-Set SCRIPT_NAME in .env to the subpath (e.g. SCRIPT_NAME=/ARJournal).
+Set SCRIPT_NAME=/ARJournal in .env. The WSGI-level SCRIPT_NAME injection is
+handled by config/wsgi.py, which reads SCRIPT_NAME from os.environ and sets
+it on every incoming request. Django uses it for URL generation automatically.
 
-How the subpath proxy works:
-  Nginx receives:  GET /ARJournal/articles/
-  proxy_pass (with trailing slash) strips the prefix, forwards: GET /articles/
-  Django sees /articles/ — matches URL patterns normally.
-  FORCE_SCRIPT_NAME tells Django to prefix all generated URLs so that links,
-  redirects, and form actions resolve correctly in the browser.
+We deliberately do NOT set FORCE_SCRIPT_NAME here. allauth's AccountMiddleware
+checks that request.path starts with FORCE_SCRIPT_NAME, but Nginx strips the
+subpath prefix before forwarding (proxy_pass with trailing slash), so
+request.path_info arrives as '/' — making that check always fail.
 """
 from .production import *  # noqa: F401, F403
 
-# ── Subpath configuration ─────────────────────────────────────────────────────
-# Read SCRIPT_NAME from .env (e.g. SCRIPT_NAME=/ARJournal)
-# The value must start with / and have no trailing slash.
-SCRIPT_NAME = env('SCRIPT_NAME', default='/journal')
-FORCE_SCRIPT_NAME = SCRIPT_NAME
-
-# Static and media URLs must include the subpath so Nginx can route them to
-# the correct alias and serve them directly from disk.
+# ── Subpath URL prefixes ──────────────────────────────────────────────────────
+# Must match the SCRIPT_NAME value in .env so that Nginx can route
+# /ARJournal/static/ and /ARJournal/media/ directly from disk.
+SCRIPT_NAME = env('SCRIPT_NAME', default='/ARJournal')
 STATIC_URL = f'{SCRIPT_NAME}/static/'
 MEDIA_URL = f'{SCRIPT_NAME}/media/'
 
 # ── Proxy / SSL ───────────────────────────────────────────────────────────────
-# SSL is terminated at Nginx — don't redirect again inside the app.
+# SSL is terminated at Nginx — the app receives plain HTTP from Gunicorn.
 SECURE_SSL_REDIRECT = False
-# Tell Django the original request was HTTPS (Nginx sets X-Forwarded-Proto).
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Shorter HSTS for staging — easy to roll back if something goes wrong.
+# Shorter HSTS for staging.
 SECURE_HSTS_SECONDS = 3600
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False

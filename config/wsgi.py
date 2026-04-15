@@ -9,18 +9,19 @@ _django_app = get_wsgi_application()
 #
 # When the app is mounted at a URL subpath, Nginx strips the prefix before
 # forwarding to Gunicorn (proxy_pass with trailing slash), so Django's
-# PATH_INFO is '/' instead of '/ARJournal/...'. Setting SCRIPT_NAME in the
-# WSGI environ tells Django what prefix to add when generating URLs.
+# PATH_INFO is '/' instead of '/ARJournal/...'. We inject SCRIPT_NAME into
+# the WSGI environ per-request so Django uses it for URL generation.
 #
-# We do NOT use settings.FORCE_SCRIPT_NAME for this because allauth's
-# AccountMiddleware validates that request.path starts with FORCE_SCRIPT_NAME —
-# a check that fails when Nginx has already stripped the prefix.
+# IMPORTANT: Gunicorn also reads os.environ['SCRIPT_NAME'] (gunicorn/http/wsgi.py
+# line 118) and validates that the request path starts with it. Since Nginx has
+# already stripped the prefix, paths arrive as '/' and Gunicorn's own check
+# fires with a 400. To prevent this, we pop SCRIPT_NAME from os.environ right
+# here — django-environ's read_env() (called inside get_wsgi_application above)
+# will have set it from .env. We keep the value in a local variable and inject
+# it ourselves per-request below, bypassing Gunicorn's check entirely.
 #
 # Set SCRIPT_NAME=/ARJournal (or your subpath) in .env.
-# django-environ's read_env() (called during settings load above) writes it
-# into os.environ, so it's available here immediately after get_wsgi_application().
-#
-_script_name = os.environ.get('SCRIPT_NAME', '').rstrip('/')
+_script_name = os.environ.pop('SCRIPT_NAME', '').rstrip('/')
 
 if _script_name:
     def application(environ, start_response):

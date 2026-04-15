@@ -1,29 +1,27 @@
 #!/usr/bin/env bash
 # Trans/Act Journal — STAGING deploy script
-# Target: https://misc.lmta.lt/journal  (subpath on shared server)
+# Target: https://misc.lmta.lt/<subpath>  (subpath on shared server)
 # Tested on Ubuntu 22.04 LTS / Debian 12
 #
-# Usage (first deploy):
-#   sudo bash scripts/deploy-staging.sh
+# Run from inside the repository:
+#   sudo bash scripts/deploy-staging.sh           # first deploy
+#   sudo bash scripts/deploy-staging.sh --update  # subsequent deploys
 #
-# Usage (update only — skip system package install):
-#   sudo bash scripts/deploy-staging.sh --update
-#
-# What this script does:
-#   - Installs system packages (Python 3.11, WeasyPrint libs, libmagic1, etc.)
-#   - Creates /opt/transact-staging and the 'transact' system user
-#   - Sets up a Python venv, installs requirements/production.txt
-#   - Writes systemd unit files for Gunicorn on port 5003
-#     (separate from production so both can coexist on the same server)
-#   - Does NOT touch Nginx — see nginx/nginx-staging.conf for the location
-#     blocks you need to paste into the existing misc.lmta.lt server block
-#   - Runs migrate + collectstatic
+# The script auto-detects the repo root from its own location, so the repo can
+# live anywhere (/var/www/ARJournal, /opt/transact-staging, etc.).
+# All file operations (venv, pip, Django) run as the repo's actual owner, not
+# a created system user — this avoids permission issues on shared web servers.
 #
 set -euo pipefail
 
-APP_DIR="/opt/transact-staging"
-APP_USER="transact"
-REPO_URL=""                      # set if cloning fresh; leave empty if already present
+# ── Auto-detect paths ─────────────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# User who owns the repo files (the person who cloned it / ran sudo)
+# SUDO_USER is set by sudo to the original caller; fall back to directory owner.
+RUN_AS="${SUDO_USER:-$(stat -c '%U' "$APP_DIR")}"
+
 DJANGO_SETTINGS="config.settings.staging"
 GUNICORN_PORT=5003
 GUNICORN_WORKERS=2
@@ -32,16 +30,28 @@ UPDATE_ONLY=false
 [[ "${1:-}" == "--update" ]] && UPDATE_ONLY=true
 
 if [[ $EUID -ne 0 ]]; then
-  echo "ERROR: Run with sudo."
+  echo "ERROR: Run with sudo: sudo bash scripts/deploy-staging.sh"
   exit 1
 fi
 
 log() { echo ""; echo "==> $*"; }
 
-# ── 1. System packages ───────────────────────────────────────────────────────
+log "App directory: $APP_DIR"
+log "Running file operations as: $RUN_AS"
+
+# ── 1. Verify repo ────────────────────────────────────────────────────────────
+if [ ! -f "$APP_DIR/manage.py" ]; then
+  echo "ERROR: manage.py not found in $APP_DIR"
+  echo "  Run this script from inside the repository."
+  exit 1
+fi
+
+# ── 2. System packages ────────────────────────────────────────────────────────
 if ! $UPDATE_ONLY; then
   log "Installing system packages..."
-  apt-get update -q
+  # --allow-releaseinfo-change: accepts PPAs that changed their Label metadata
+  # (e.g. ondrej/apache2 on Ubuntu 22.04) without interactive prompts.
+  apt-get update -q --allow-releaseinfo-change
   apt-get install -y --no-install-recommends \
     python3.11 python3.11-venv python3.11-dev python3-pip \
     postgresql postgresql-contrib \
@@ -53,70 +63,56 @@ if ! $UPDATE_ONLY; then
     libmagic1
 fi
 
-# ── 2. App user and directory ────────────────────────────────────────────────
-if ! $UPDATE_ONLY; then
-  log "Creating app user and directory..."
-  id "$APP_USER" &>/dev/null || useradd --system --home "$APP_DIR" --shell /bin/bash "$APP_USER"
-  mkdir -p "$APP_DIR"
-  chown "$APP_USER:$APP_USER" "$APP_DIR"
-fi
-
-# ── 3. Clone or pull ─────────────────────────────────────────────────────────
-if [ ! -d "$APP_DIR/.git" ]; then
-  if [ -z "$REPO_URL" ]; then
-    echo ""
-    echo "ERROR: REPO_URL not set and $APP_DIR is not a git repo."
-    echo "  Clone manually: git clone <repo> $APP_DIR"
-    echo "  Then re-run with --update"
-    exit 1
-  fi
-  log "Cloning repository..."
-  sudo -u "$APP_USER" git clone "$REPO_URL" "$APP_DIR"
-else
-  log "Pulling latest code..."
-  sudo -u "$APP_USER" git -C "$APP_DIR" pull
-fi
+# ── 3. Pull latest code ───────────────────────────────────────────────────────
+log "Pulling latest code..."
+sudo -u "$RUN_AS" git -C "$APP_DIR" pull || echo "  (git pull skipped)"
 
 # ── 4. .env file ─────────────────────────────────────────────────────────────
 if [ ! -f "$APP_DIR/.env" ]; then
-  cp "$APP_DIR/.env.example" "$APP_DIR/.env"
-  chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
+  sudo -u "$RUN_AS" cp "$APP_DIR/.env.example" "$APP_DIR/.env"
   chmod 640 "$APP_DIR/.env"
   echo ""
   echo "  IMPORTANT: Edit $APP_DIR/.env now."
-  echo "  At minimum set these for staging:"
+  echo "  Required staging values:"
   echo ""
   echo "    DEBUG=False"
   echo "    SECRET_KEY=<50+ random chars>"
   echo "    DJANGO_SETTINGS_MODULE=config.settings.staging"
+  echo "    SCRIPT_NAME=/ARJournal        # URL subpath — must start with /"
   echo "    ALLOWED_HOSTS=misc.lmta.lt"
   echo "    CSRF_TRUSTED_ORIGINS=https://misc.lmta.lt"
-  echo "    SITE_URL=https://misc.lmta.lt/journal"
-  echo "    DB_NAME, DB_USER, DB_PASSWORD, DB_HOST=localhost"
-  echo "    CELERY_BROKER_URL=redis://localhost:6379/1  (db=1, separate from prod)"
+  echo "    SITE_URL=https://misc.lmta.lt/ARJournal"
+  echo "    DB_NAME=transact_staging"
+  echo "    DB_USER=transact"
+  echo "    DB_PASSWORD=<password>"
+  echo "    DB_HOST=localhost"
+  echo "    CELERY_BROKER_URL=redis://localhost:6379/1"
   echo "    CELERY_TASK_ALWAYS_EAGER=False"
-  echo "    ANYMAIL_BACKEND=console  (or real backend for staging email tests)"
+  echo "    ANYMAIL_BACKEND=console"
+  echo "    DJANGO_SUPERUSER_EMAIL=admin@lmta.lt"
+  echo "    DJANGO_SUPERUSER_PASSWORD=<password>"
   echo ""
   read -rp "  Press Enter after editing .env to continue..." _
 fi
 
-# ── 5. Python virtual environment ────────────────────────────────────────────
+# Read DB config from .env
+DB_NAME=$(grep '^DB_NAME=' "$APP_DIR/.env" | cut -d= -f2 | tr -d ' ')
+DB_USER=$(grep '^DB_USER=' "$APP_DIR/.env" | cut -d= -f2 | tr -d ' ')
+DB_PASS=$(grep '^DB_PASSWORD=' "$APP_DIR/.env" | cut -d= -f2 | tr -d ' ')
+DB_NAME="${DB_NAME:-transact_staging}"
+DB_USER="${DB_USER:-transact}"
+
+# ── 5. Python virtual environment ─────────────────────────────────────────────
 log "Setting up Python virtual environment..."
 if [ ! -d "$APP_DIR/venv" ]; then
-  sudo -u "$APP_USER" python3.11 -m venv "$APP_DIR/venv"
+  sudo -u "$RUN_AS" python3.11 -m venv "$APP_DIR/venv"
 fi
-sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install -q --upgrade pip
-sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install -q -r "$APP_DIR/requirements/production.txt"
+sudo -u "$RUN_AS" "$APP_DIR/venv/bin/pip" install -q --upgrade pip
+sudo -u "$RUN_AS" "$APP_DIR/venv/bin/pip" install -q -r "$APP_DIR/requirements/production.txt"
 
-# ── 6. Database (staging uses its own DB on the same Postgres instance) ───────
+# ── 6. PostgreSQL ─────────────────────────────────────────────────────────────
 if ! $UPDATE_ONLY; then
   log "Setting up PostgreSQL (staging database)..."
-  DB_NAME=$(grep '^DB_NAME=' "$APP_DIR/.env" | cut -d= -f2 | tr -d ' ')
-  DB_USER=$(grep '^DB_USER=' "$APP_DIR/.env" | cut -d= -f2 | tr -d ' ')
-  DB_PASS=$(grep '^DB_PASSWORD=' "$APP_DIR/.env" | cut -d= -f2 | tr -d ' ')
-  DB_NAME="${DB_NAME:-transact_staging}"
-  DB_USER="${DB_USER:-transact}"
-
   systemctl enable --now postgresql
 
   sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" | grep -q 1 || \
@@ -128,20 +124,19 @@ if ! $UPDATE_ONLY; then
   sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};"
 fi
 
-# ── 7. Directories ───────────────────────────────────────────────────────────
-mkdir -p "$APP_DIR/media" "$APP_DIR/staticfiles" "$APP_DIR/logs"
-chown -R "$APP_USER:$APP_USER" "$APP_DIR/media" "$APP_DIR/staticfiles" "$APP_DIR/logs"
+# ── 7. Directories ────────────────────────────────────────────────────────────
+sudo -u "$RUN_AS" mkdir -p "$APP_DIR/media" "$APP_DIR/staticfiles" "$APP_DIR/logs"
 
-# ── 8. Django migrate + collectstatic ────────────────────────────────────────
+# ── 8. migrate + collectstatic ────────────────────────────────────────────────
 log "Running Django migrations..."
-sudo -u "$APP_USER" env DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS" \
+sudo -u "$RUN_AS" env DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS" \
   "$APP_DIR/venv/bin/python" "$APP_DIR/manage.py" migrate --noinput
 
 log "Collecting static files..."
-sudo -u "$APP_USER" env DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS" \
+sudo -u "$RUN_AS" env DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS" \
   "$APP_DIR/venv/bin/python" "$APP_DIR/manage.py" collectstatic --noinput
 
-# ── 9. Systemd: Gunicorn (staging, port 5003) ─────────────────────────────────
+# ── 9. Systemd: Gunicorn ──────────────────────────────────────────────────────
 log "Writing systemd unit: transact-staging-gunicorn.service..."
 cat > /etc/systemd/system/transact-staging-gunicorn.service << EOF
 [Unit]
@@ -149,8 +144,8 @@ Description=Trans/Act Journal STAGING — Gunicorn (port ${GUNICORN_PORT})
 After=network.target postgresql.service
 
 [Service]
-User=${APP_USER}
-Group=${APP_USER}
+User=${RUN_AS}
+Group=${RUN_AS}
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${APP_DIR}/.env
 Environment=DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS}
@@ -168,7 +163,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-# ── 10. Systemd: Celery worker (staging, redis db=1) ─────────────────────────
+# ── 10. Systemd: Celery ───────────────────────────────────────────────────────
 log "Writing systemd unit: transact-staging-celery.service..."
 cat > /etc/systemd/system/transact-staging-celery.service << EOF
 [Unit]
@@ -176,8 +171,8 @@ Description=Trans/Act Journal STAGING — Celery worker
 After=network.target redis.service
 
 [Service]
-User=${APP_USER}
-Group=${APP_USER}
+User=${RUN_AS}
+Group=${RUN_AS}
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${APP_DIR}/.env
 Environment=DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS}
@@ -193,19 +188,19 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# ── 11. Enable and start ─────────────────────────────────────────────────────
-log "Enabling and starting services..."
+# ── 11. Enable and start ──────────────────────────────────────────────────────
+log "Starting services..."
 systemctl enable --now redis-server
 systemctl daemon-reload
-systemctl enable --now transact-staging-gunicorn
-systemctl enable --now transact-staging-celery
+systemctl enable transact-staging-gunicorn transact-staging-celery
+systemctl restart transact-staging-gunicorn transact-staging-celery
 
-# ── 12. Superuser (first deploy) ─────────────────────────────────────────────
+# ── 12. Superuser (first deploy only) ─────────────────────────────────────────
 if ! $UPDATE_ONLY; then
   SU_EMAIL=$(grep '^DJANGO_SUPERUSER_EMAIL=' "$APP_DIR/.env" | cut -d= -f2 | tr -d ' ')
   SU_PASS=$(grep '^DJANGO_SUPERUSER_PASSWORD=' "$APP_DIR/.env" | cut -d= -f2 | tr -d ' ')
 
-  sudo -u "$APP_USER" env DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS" \
+  sudo -u "$RUN_AS" env DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS" \
     "$APP_DIR/venv/bin/python" "$APP_DIR/manage.py" shell -c "
 from apps.accounts.models import User
 email = '${SU_EMAIL}'
@@ -218,7 +213,7 @@ else:
     print('Superuser already exists:', email)
 "
 
-  sudo -u "$APP_USER" env DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS" \
+  sudo -u "$RUN_AS" env DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS" \
     "$APP_DIR/venv/bin/python" "$APP_DIR/manage.py" shell -c "
 from apps.journal.models import JournalConfig
 j = JournalConfig.get()
@@ -228,24 +223,30 @@ if not j.name:
 "
 fi
 
-# ── Done ─────────────────────────────────────────────────────────────────────
+# Read SCRIPT_NAME from .env for the summary message
+SCRIPT_NAME_VAL=$(grep '^SCRIPT_NAME=' "$APP_DIR/.env" 2>/dev/null | cut -d= -f2 | tr -d ' ' || echo "/ARJournal")
+
+# ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 echo "============================================================"
 echo "  Trans/Act Journal STAGING deployed."
 echo ""
-echo "  App is running on 127.0.0.1:${GUNICORN_PORT}"
+echo "  Gunicorn running on 127.0.0.1:${GUNICORN_PORT}"
 echo ""
-echo "  NEXT STEP — add the Nginx location blocks:"
+echo "  NEXT STEP — add location blocks to the Nginx server for misc.lmta.lt:"
+echo ""
 echo "    sudo nano /etc/nginx/sites-available/misc.lmta.lt"
-echo "    (paste the blocks from nginx/nginx-staging.conf)"
+echo "    # Paste the blocks from: $APP_DIR/nginx/nginx-staging.conf"
 echo "    sudo nginx -t && sudo systemctl reload nginx"
 echo ""
-echo "  Then visit: https://misc.lmta.lt/journal"
+echo "  Then visit: https://misc.lmta.lt${SCRIPT_NAME_VAL}"
+echo "  Admin:       https://misc.lmta.lt${SCRIPT_NAME_VAL}/admin/"
 echo ""
 echo "  Service management:"
 echo "    sudo systemctl status transact-staging-gunicorn"
-echo "    sudo systemctl status transact-staging-celery"
+echo "    sudo systemctl restart transact-staging-gunicorn"
 echo "    sudo journalctl -u transact-staging-gunicorn -f"
 echo "    tail -f ${APP_DIR}/logs/gunicorn-error.log"
+echo "    tail -f ${APP_DIR}/logs/celery.log"
 echo "============================================================"
 echo ""

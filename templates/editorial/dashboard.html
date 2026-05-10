@@ -27,7 +27,11 @@
       <div class="submission-card">
         <a href="{% url 'editorial_submission' sub.pk %}" class="submission-card__title">{{ sub.title|truncatechars:60 }}</a>
         <p class="submission-card__meta">{{ sub.author.display_name }} &middot; {{ sub.submission_date|date:"d M Y"|default:"—" }}</p>
+        {% if sub.is_returned_to_author %}
+        <span class="status-badge status-badge--returned_to_author">Returned for Correction</span>
+        {% else %}
         <span class="status-badge status-badge--{{ sub.status }}">{{ sub.get_status_display }}</span>
+        {% endif %}
       </div>
       {% empty %}<p class="empty">No submissions pending.</p>{% endfor %}
     </div>
@@ -58,6 +62,20 @@
         <span class="status-badge status-badge--{{ sub.status }}">{{ sub.get_status_display }}</span>
       </div>
       {% empty %}<p class="empty">No submissions under review.</p>{% endfor %}
+    </div>
+
+    <div class="dashboard-column">
+      <h2 class="dashboard-column__heading">
+        Pending Revision
+        {% if revision_pending %}<span class="badge">{{ revision_pending.count }}</span>{% endif %}
+      </h2>
+      {% for sub in revision_pending %}
+      <div class="submission-card">
+        <a href="{% url 'editorial_submission' sub.pk %}" class="submission-card__title">{{ sub.title|truncatechars:60 }}</a>
+        <p class="submission-card__meta">{{ sub.author.display_name }}</p>
+        <span class="status-badge status-badge--{{ sub.status }}">{{ sub.get_status_display }}</span>
+      </div>
+      {% empty %}<p class="empty">No revisions pending.</p>{% endfor %}
     </div>
 
     <div class="dashboard-column">
@@ -112,7 +130,13 @@
             </a>
           </td>
           <td style="font-size:var(--size-sm);color:var(--color-muted);">{{ asgn.submission.author.display_name }}</td>
-          <td><span class="status-badge status-badge--{{ asgn.submission.status }}">{{ asgn.submission.get_status_display }}</span></td>
+          <td>
+            {% if asgn.submission.is_returned_to_author %}
+            <span class="status-badge status-badge--returned_to_author">Returned for Correction</span>
+            {% else %}
+            <span class="status-badge status-badge--{{ asgn.submission.status }}">{{ asgn.submission.get_status_display }}</span>
+            {% endif %}
+          </td>
           <td style="font-size:var(--size-sm);">{{ asgn.get_role_display }}</td>
           <td style="font-size:var(--size-sm);">{{ asgn.assigned_at|date:"d M Y" }}</td>
           <td><a href="{% url 'editorial_submission' asgn.submission.pk %}" class="btn btn--small btn--secondary">View</a></td>

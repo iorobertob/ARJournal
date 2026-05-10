@@ -9,4 +9,5 @@ urlpatterns = [
     path('remove/<int:suggestion_pk>/', views.remove_suggestion, name='remove_suggestion'),
     path('invite/<int:submission_pk>/', views.send_invitations, name='send_invitations'),
     path('invitation/<uuid:token>/', views.invitation_response, name='invitation_response'),
+    path('invitation/<int:invitation_pk>/respond/', views.respond_to_invitation, name='respond_to_invitation'),
 ]

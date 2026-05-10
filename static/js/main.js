@@ -7,14 +7,18 @@ document.addEventListener('alpine:init', function () {
     type: 'alert',   // 'alert' | 'confirm'
     title: '',
     message: '',
+    okLabel: null,   // null → default ('Confirm' / 'OK')
     _resolve: null,
 
-    _open(type, message, title) {
+    _open(type, message, opts) {
+      // opts: string (legacy title) or { title, okLabel }
+      const options = typeof opts === 'object' && opts !== null ? opts : { title: opts };
       return new Promise((resolve) => {
-        this.type = type;
+        this.type    = type;
         this.message = message;
-        this.title = title || '';
-        this.show = true;
+        this.title   = options.title   || '';
+        this.okLabel = options.okLabel || null;
+        this.show    = true;
         this._resolve = resolve;
       });
     },
@@ -32,11 +36,12 @@ document.addEventListener('alpine:init', function () {
     },
   });
 
-  window.showAlert   = (msg, title) => Alpine.store('modal')._open('alert',   msg, title);
-  window.showConfirm = (msg, title) => Alpine.store('modal')._open('confirm', msg, title);
+  window.showAlert   = (msg, opts) => Alpine.store('modal')._open('alert',   msg, opts);
+  window.showConfirm = (msg, opts) => Alpine.store('modal')._open('confirm', msg, opts);
 });
 
-// ── data-confirm interceptor (forms and buttons) ──────────────
+// ── data-confirm interceptor — forms ─────────────────────────
+// Handles <form data-confirm="…"> — intercepts the submit event.
 document.addEventListener('submit', function (e) {
   const form = e.target;
   const msg = form.dataset.confirm;
@@ -44,6 +49,41 @@ document.addEventListener('submit', function (e) {
   e.preventDefault();
   showConfirm(msg).then((ok) => {
     if (ok) form.submit();
+  });
+}, true);
+
+// ── data-confirm interceptor — buttons and links ──────────────
+// Handles <button data-confirm="…"> and <a data-confirm="…">.
+// For submit buttons inside a form, injects a hidden input so the
+// button's name/value is preserved when form.submit() is called.
+document.addEventListener('click', function (e) {
+  const el = e.target.closest('[data-confirm]');
+  if (!el || el.tagName === 'FORM') return; // forms handled above
+
+  const msg     = el.dataset.confirm;
+  const okLabel = el.dataset.confirmOk || null;
+  e.preventDefault();
+  e.stopPropagation();
+
+  showConfirm(msg, { okLabel }).then((ok) => {
+    if (!ok) return;
+
+    if ((el.tagName === 'BUTTON' || el.tagName === 'INPUT') && el.form) {
+      const form = el.form;
+      let hidden = null;
+      if (el.name) {
+        hidden = document.createElement('input');
+        hidden.type  = 'hidden';
+        hidden.name  = el.name;
+        hidden.value = el.value || '';
+        form.appendChild(hidden);
+      }
+      form.submit();
+      // Clean up in case the page doesn't navigate (validation failure etc.)
+      if (hidden) setTimeout(() => hidden.remove(), 500);
+    } else if (el.tagName === 'A') {
+      window.location.href = el.href;
+    }
   });
 }, true);
 

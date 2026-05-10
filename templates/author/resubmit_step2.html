@@ -44,41 +44,97 @@
   </div>
 
   <!-- Upload form -->
-  <form method="post" enctype="multipart/form-data" class="form">
+  <form method="post" enctype="multipart/form-data" class="form" id="upload-form">
     {% csrf_token %}
+
     <div class="form__group">
-      <label class="form__label" for="assets">Select files to add or replace (multiple allowed)</label>
-      <input class="form__file" type="file" id="assets" name="assets" multiple>
+      <label class="form__label">Add files</label>
+      <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;">
+        <button type="button" class="btn btn--secondary" id="choose-files-btn">Choose Files</button>
+        <span id="upload-status" style="font-size:var(--size-sm);color:var(--color-muted);"></span>
+      </div>
+      <input type="file" id="assets" name="assets" multiple aria-hidden="true" tabindex="-1"
+             style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
     </div>
 
-    {% if assets %}
-    <h3 style="font-size:var(--size-sm);font-weight:600;margin:var(--spacing-4) 0 var(--spacing-2);">Current files for this revision</h3>
-    <table class="assets-table">
-      <thead><tr><th>Filename</th><th>Type</th><th>Size</th><th></th></tr></thead>
-      <tbody>
-        {% for asset in assets %}
-        <tr>
-          <td><code style="font-size:var(--size-sm);">{{ asset.original_filename }}</code></td>
-          <td>{{ asset.get_kind_display }}</td>
-          <td>{{ asset.size_bytes|filesizeformat }}</td>
-          <td>
-            <form method="post" action="{% url 'delete_revision_asset' submission.pk revision.pk asset.pk %}?next={% url 'resubmit_step2' submission.pk revision.pk %}" style="display:inline;">
-              {% csrf_token %}
-              <button type="submit" class="btn btn--small btn--danger" onclick="return confirm('Remove {{ asset.original_filename }}?')">Remove</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p style="font-size:var(--size-sm);color:var(--color-muted);">No files uploaded yet.</p>
-    {% endif %}
+    <div id="assets-section">
+      {% if assets %}
+      <h3 style="font-size:var(--size-sm);font-weight:600;margin:var(--spacing-4) 0 var(--spacing-2);">Current files for this revision</h3>
+      <table class="assets-table">
+        <thead><tr><th>Filename</th><th>Type</th><th>Size</th><th></th></tr></thead>
+        <tbody>
+          {% for asset in assets %}
+          <tr>
+            <td><code style="font-size:var(--size-sm);">{{ asset.original_filename }}</code></td>
+            <td>{{ asset.get_kind_display }}</td>
+            <td>{{ asset.size_bytes|filesizeformat }}</td>
+            <td>
+              <form method="post" action="{% url 'delete_revision_asset' submission.pk revision.pk asset.pk %}?next={% url 'resubmit_step2' submission.pk revision.pk %}" style="display:inline;"
+                    data-confirm="Remove {{ asset.original_filename }}?">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--small btn--danger">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p style="font-size:var(--size-sm);color:var(--color-muted);">No files uploaded yet.</p>
+      {% endif %}
+    </div>
 
     <div class="form__actions" style="margin-top:var(--spacing-4);">
-      <button type="submit" class="btn btn--secondary">Upload More</button>
+      <a href="{% url 'resubmit_step1' submission.pk %}" class="btn btn--secondary">← Back</a>
       <button type="submit" name="done" value="1" class="btn btn--primary">Continue →</button>
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const input  = document.getElementById('assets');
+  const btn    = document.getElementById('choose-files-btn');
+  const status = document.getElementById('upload-status');
+  const csrf   = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  btn.addEventListener('click', () => input.click());
+
+  input.addEventListener('change', async () => {
+    const files = Array.from(input.files);
+    if (!files.length) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Uploading…';
+
+    for (const file of files) {
+      status.textContent = file.name;
+      const fd = new FormData();
+      fd.append('assets', file);
+      fd.append('csrfmiddlewaretoken', csrf);
+
+      try {
+        const resp = await fetch(window.location.href, { method: 'POST', body: fd });
+        const html = await resp.text();
+        const doc  = new DOMParser().parseFromString(html, 'text/html');
+        const next = doc.getElementById('assets-section');
+        const cur  = document.getElementById('assets-section');
+        if (next && cur) cur.innerHTML = next.innerHTML;
+      } catch {
+        status.textContent = 'Upload failed — please try again.';
+        btn.disabled = false;
+        btn.textContent = 'Choose Files';
+        return;
+      }
+    }
+
+    input.value     = '';
+    btn.disabled    = false;
+    btn.textContent = 'Choose Files';
+    status.textContent = '';
+  });
+})();
+</script>
 {% endblock %}

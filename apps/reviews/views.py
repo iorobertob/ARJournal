@@ -56,8 +56,7 @@ def reviewer_workspace(request, invitation_pk):
     invitation = get_object_or_404(ReviewerInvitation, pk=invitation_pk)
     # Allow the assigned reviewer OR any editorial user
     if invitation.reviewer != request.user and not request.user.has_editorial_access():
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden('You do not have access to this review workspace.')
+        return render(request, '403.html', {'message': 'You do not have access to this review workspace.'}, status=403)
     review, _ = Review.objects.get_or_create(invitation=invitation)
     submission = invitation.submission
     revision = submission.get_current_revision()
@@ -175,8 +174,7 @@ def editorial_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.has_editorial_access():
-            from django.http import HttpResponseForbidden
-            return HttpResponseForbidden('Editorial access required.')
+            return render(request, '403.html', {'message': 'Editorial access required.'}, status=403)
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -184,6 +182,7 @@ def editorial_required(view_func):
 @editorial_required
 def moderate_review(request, review_pk):
     review = get_object_or_404(Review, pk=review_pk)
+    annotations = review.annotations.all().order_by('created_at')
     moderation, _ = ReviewModeration.objects.get_or_create(
         review=review,
         defaults={
@@ -198,16 +197,149 @@ def moderate_review(request, review_pk):
         moderation.moderation_notes = request.POST.get('notes', moderation.moderation_notes)
         moderation.conflict_flagged = bool(request.POST.get('conflict_flagged'))
         moderation.conflict_note = request.POST.get('conflict_note', '')
-        moderation.status = ModerationStatus.MODERATED
         moderation.editor = request.user
         moderation.moderated_at = timezone.now()
+
+        # Annotation release selection
+        released_pks = {
+            int(pk) for pk in request.POST.getlist('released_annotations')
+            if str(pk).isdigit()
+        }
+        annotations.update(released_to_author=False)
+        if released_pks:
+            annotations.filter(pk__in=released_pks).update(released_to_author=True)
+
+        action = request.POST.get('action', 'save')
+        if action == 'release':
+            moderation.status = ModerationStatus.RELEASED
+            moderation.released_at = timezone.now()
+            review.status = ReviewStatus.RELEASED
+            review.save()
+            from apps.notifications.tasks import notify_review_released
+            notify_review_released(review.pk)
+            messages.success(request, 'Review released to author.')
+        else:
+            moderation.status = ModerationStatus.MODERATED
+            review.status = ReviewStatus.MODERATED
+            review.save()
+            messages.success(request, 'Moderation saved.')
+
         moderation.save()
-        review.status = ReviewStatus.MODERATED
-        review.save()
-        messages.success(request, 'Review moderated.')
         return redirect('editorial_submission', pk=review.submission.pk)
+
+    canonical_doc = None
+    try:
+        revision = review.invitation.submission.get_current_revision()
+        if revision:
+            canonical_doc = revision.canonical_document
+    except Exception:
+        pass
+
     return render(request, 'editorial/moderate_review.html', {
-        'review': review, 'moderation': moderation
+        'review': review,
+        'moderation': moderation,
+        'annotations': annotations,
+        'canonical_doc': canonical_doc,
+    })
+
+
+@login_required
+def review_detail(request, review_pk):
+    """Read-only view of a submitted review — for reviewer, editor, or author."""
+    review = get_object_or_404(Review, pk=review_pk)
+    submission = review.submission
+
+    is_reviewer = review.invitation.reviewer == request.user
+    is_editor = request.user.has_editorial_access()
+    is_author = submission.author == request.user
+
+    if not (is_reviewer or is_editor or is_author):
+        return render(request, '403.html', {'message': 'Access denied.'}, status=403)
+
+    if review.status == ReviewStatus.DRAFT:
+        return render(request, '403.html', {'message': 'This review has not been submitted yet.'}, status=403)
+
+    if is_author and review.status != ReviewStatus.RELEASED:
+        return render(request, '403.html', {'message': 'This review has not been released to you yet.'}, status=403)
+
+    if is_author:
+        annotations = review.annotations.filter(released_to_author=True).order_by('created_at')
+    else:
+        annotations = review.annotations.all().order_by('created_at')
+
+    moderation = None
+    try:
+        moderation = review.moderation
+    except Exception:
+        pass
+
+    canonical_doc = None
+    try:
+        revision = submission.get_current_revision()
+        if revision:
+            canonical_doc = revision.canonical_document
+    except Exception:
+        pass
+
+    html_build = None
+    try:
+        if canonical_doc:
+            from apps.production.models import HTMLBuild
+            html_build = HTMLBuild.objects.filter(document=canonical_doc, is_published=True).first()
+    except Exception:
+        pass
+
+    return render(request, 'reviews/review_detail.html', {
+        'review': review,
+        'submission': submission,
+        'annotations': annotations,
+        'moderation': moderation,
+        'is_reviewer': is_reviewer,
+        'is_editor': is_editor,
+        'is_author': is_author,
+        'canonical_doc': canonical_doc,
+        'html_build': html_build,
+    })
+
+
+@login_required
+def author_preprint(request, review_pk):
+    """
+    Read-only preprint view for the author.
+    Shows the rendered manuscript with released annotations highlighted.
+    Accessible only to the submission author once the review is released.
+    """
+    review = get_object_or_404(Review, pk=review_pk)
+    submission = review.invitation.submission
+
+    if submission.author != request.user:
+        return render(request, '403.html', {'message': 'Access denied.'}, status=403)
+
+    if review.status != ReviewStatus.RELEASED:
+        return render(request, '403.html', {'message': 'This review has not been released yet.'}, status=403)
+
+    annotations = review.annotations.filter(released_to_author=True).order_by('created_at')
+    annotated_block_ids = list(annotations.values_list('block_id', flat=True))
+
+    revision = submission.get_current_revision()
+    article_html = None
+    toc = []
+    if revision:
+        try:
+            doc = revision.canonical_document
+            from apps.documents.renderers.html_renderer import render_html, build_toc
+            article_html = render_html(doc.data, submission)
+            toc = build_toc(doc.data)
+        except Exception:
+            pass
+
+    return render(request, 'reviews/author_preprint.html', {
+        'review': review,
+        'submission': submission,
+        'annotations': annotations,
+        'annotated_block_ids': json.dumps(annotated_block_ids),
+        'article_html': article_html,
+        'toc': toc,
     })
 
 

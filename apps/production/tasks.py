@@ -823,9 +823,10 @@ def generate_pdf(export_pk):
 
     from weasyprint import HTML
 
+    from django.conf import settings as _settings
     weasy = HTML(
         string=html_doc,
-        base_url='http://localhost/',
+        base_url=_settings.SITE_URL,
         url_fetcher=_pdf_url_fetcher,
     )
 

@@ -13,8 +13,7 @@ def editorial_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.has_editorial_access():
-            from django.http import HttpResponseForbidden
-            return HttpResponseForbidden('Editorial access required.')
+            return render(request, '403.html', {'message': 'Editorial access required.'}, status=403)
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -26,7 +25,9 @@ def editorial_dashboard(request):
     ).order_by('submission_date')
     desk_queue = Submission.objects.filter(status=SubmissionStatus.DESK_REVIEW).order_by('submission_date')
     under_review = Submission.objects.filter(status=SubmissionStatus.UNDER_REVIEW)
-    revision_pending = Submission.objects.filter(status=SubmissionStatus.REVISION_REQUESTED)
+    revision_pending = Submission.objects.filter(
+        status__in=[SubmissionStatus.REVISION_REQUESTED, SubmissionStatus.REVISED]
+    ).order_by('updated_at')
     accepted = Submission.objects.filter(status=SubmissionStatus.ACCEPTED)
 
     # Submissions this editor is actively supervising
@@ -67,7 +68,13 @@ def submission_detail(request, pk):
     suggestions = ReviewerSuggestion.objects.filter(submission=submission)
     invitations = ReviewerInvitation.objects.filter(submission=submission)
     from apps.reviews.models import Review
-    reviews = Review.objects.filter(invitation__submission=submission)
+    reviews = (
+        Review.objects
+        .filter(invitation__submission=submission)
+        .select_related('invitation', 'invitation__reviewer')
+        .prefetch_related('annotations')
+        .order_by('invitation__sent_at')
+    )
     # Production state
     build = None
     canonical_doc = None
@@ -113,6 +120,9 @@ def record_screening(request, pk):
         elif result == 'reject':
             submission.status = SubmissionStatus.DESK_REJECTED
         submission.save()
+        if result == 'return_to_author':
+            from apps.notifications.tasks import notify_returned_to_author
+            notify_returned_to_author(submission.pk)
         messages.success(request, 'Screening saved.')
     return redirect('editorial_submission', pk=pk)
 
@@ -134,6 +144,18 @@ def record_decision(request, pk):
             instructions_to_author=request.POST.get('instructions_to_author', ''),
             sent_at=timezone.now(),
         )
+        # If requesting revisions on a live article, take it off the public site first
+        revision_decisions = (DecisionType.MINOR_REVISION, DecisionType.MAJOR_REVISION,
+                              DecisionType.REJECT_RESUBMIT)
+        if decision_type in revision_decisions and submission.status == SubmissionStatus.PUBLISHED:
+            try:
+                build = submission.get_current_revision().canonical_document.html_build
+                build.is_published = False
+                build.published_at = None
+                build.save(update_fields=['is_published', 'published_at'])
+            except Exception:
+                pass  # no HTMLBuild — nothing to unpublish
+
         # Update submission status
         status_map = {
             DecisionType.ACCEPT: SubmissionStatus.ACCEPTED,

@@ -55,6 +55,7 @@ class ReviewAnnotation(models.Model):
     comment = models.TextField()
     selector_data = models.JSONField(default=dict, blank=True)
     resolved = models.BooleanField(default=False)
+    released_to_author = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

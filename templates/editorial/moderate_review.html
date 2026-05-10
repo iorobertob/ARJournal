@@ -7,40 +7,137 @@
 {% block content %}
 <div class="moderate-review container">
   <p><a href="{% url 'editorial_submission' review.submission.pk %}">&larr; Back to submission</a></p>
-  <h1>Moderate Review</h1>
-  <div style="display:flex;gap:var(--spacing-8);font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-6);">
-    <p>Reviewer: <strong style="color:var(--color-text);">{{ review.reviewer.display_name }}</strong></p>
-    <p>Recommendation: <strong style="color:var(--color-text);">{{ review.get_recommendation_display }}</strong></p>
+
+  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:var(--spacing-4);flex-wrap:wrap;margin-bottom:var(--spacing-6);">
+    <h1 style="margin:0;">Moderate Review</h1>
+    <span class="status-badge status-badge--{{ review.status }}">{{ review.get_status_display }}</span>
   </div>
 
+  <div style="display:flex;gap:var(--spacing-8);font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-6);">
+    <p>Reviewer: <strong style="color:var(--color-text);">{{ review.reviewer.display_name }}</strong></p>
+    {% if review.recommendation %}<p>Recommendation: <strong style="color:var(--color-text);">{{ review.get_recommendation_display }}</strong></p>{% endif %}
+    {% if review.submitted_at %}<p>Submitted: <strong style="color:var(--color-text);">{{ review.submitted_at|date:"d M Y, H:i" }}</strong></p>{% endif %}
+  </div>
+
+  <!-- Full review content (read-only) -->
+  <section class="editorial-section">
+    <h2>Full Review Content</h2>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-4);">
+      {% if review.expertise_self_rating %}
+      <div><p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Expertise self-rating</p><p style="font-size:var(--size-sm);">{{ review.expertise_self_rating }}/5</p></div>
+      {% endif %}
+      {% if review.summary %}
+      <div><p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Summary</p><p style="font-size:var(--size-sm);white-space:pre-wrap;line-height:var(--leading-loose);">{{ review.summary }}</p></div>
+      {% endif %}
+      {% if review.strengths %}
+      <div><p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Strengths</p><p style="font-size:var(--size-sm);white-space:pre-wrap;line-height:var(--leading-loose);">{{ review.strengths }}</p></div>
+      {% endif %}
+      {% if review.major_issues %}
+      <div><p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Major Issues</p><p style="font-size:var(--size-sm);white-space:pre-wrap;line-height:var(--leading-loose);">{{ review.major_issues }}</p></div>
+      {% endif %}
+      {% if review.minor_issues %}
+      <div><p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Minor Issues</p><p style="font-size:var(--size-sm);white-space:pre-wrap;line-height:var(--leading-loose);">{{ review.minor_issues }}</p></div>
+      {% endif %}
+      {% if review.ethical_concerns %}
+      <div><p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Ethical Concerns</p><p style="font-size:var(--size-sm);white-space:pre-wrap;line-height:var(--leading-loose);">{{ review.ethical_concerns }}</p></div>
+      {% endif %}
+      {% if review.comments_to_editor %}
+      <div style="background:#fafafa;border:1px dashed var(--color-border);border-radius:6px;padding:var(--spacing-3);">
+        <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Confidential — Comments to Editor</p>
+        <p style="font-size:var(--size-sm);white-space:pre-wrap;line-height:var(--leading-loose);">{{ review.comments_to_editor }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Annotations -->
+  <section class="editorial-section">
+    <h2>
+      Paragraph Annotations
+      {% if annotations %}<span class="badge">{{ annotations|length }}</span>{% endif %}
+    </h2>
+    {% if annotations %}
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-4);">
+      Check the annotations you want to release to the author. Unchecked annotations remain internal.
+    </p>
+    <div id="annotations-list" style="display:flex;flex-direction:column;gap:var(--spacing-3);">
+      {% for ann in annotations %}
+      <div style="display:flex;align-items:flex-start;gap:var(--spacing-3);padding:var(--spacing-3) var(--spacing-4);border:1px solid var(--color-border);border-radius:8px;{% if ann.released_to_author %}background:#f0fdf4;border-color:#86efac;{% endif %}">
+        <input type="checkbox" name="released_annotations" value="{{ ann.pk }}"
+               form="moderation-form"
+               id="ann-{{ ann.pk }}"
+               {% if ann.released_to_author %}checked{% endif %}
+               style="margin-top:3px;flex-shrink:0;width:16px;height:16px;accent-color:var(--color-accent);">
+        <label for="ann-{{ ann.pk }}" style="flex:1;cursor:pointer;">
+          <span style="font-size:var(--size-xs);font-family:var(--font-sans);color:var(--color-muted);display:block;margin-bottom:4px;">
+            {% if ann.selector_data.para %}
+              {% if canonical_doc %}
+                <a href="{% url 'admin_preview' canonical_doc.pk %}#{{ ann.block_id }}" target="_blank" style="color:var(--color-accent);text-decoration:none;">¶{{ ann.selector_data.para }}</a>
+              {% else %}
+                ¶{{ ann.selector_data.para }}
+              {% endif %}
+              {% if ann.selector_data.section %}&middot; <em>{{ ann.selector_data.section }}</em>{% endif %}
+            {% elif ann.block_id %}
+              {% if canonical_doc %}
+                <a href="{% url 'admin_preview' canonical_doc.pk %}#{{ ann.block_id }}" target="_blank" style="color:var(--color-accent);text-decoration:none;">{{ ann.block_id }}</a>
+              {% else %}
+                {{ ann.block_id }}
+              {% endif %}
+            {% endif %}
+            &middot; {{ ann.created_at|date:"d M Y, H:i" }}
+          </span>
+          <span style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;">{{ ann.comment }}</span>
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:var(--color-muted);font-size:var(--size-sm);">No paragraph annotations on this review.</p>
+    {% endif %}
+  </section>
+
+  <!-- Moderation form -->
   <div class="moderation-columns">
     <div>
       <h2>Original Comments to Author</h2>
       <div class="review-text-box">{{ moderation.original_comments_to_author|linebreaks }}</div>
     </div>
     <div>
-      <h2>Moderated Comments (author-visible)</h2>
-      <form method="post" class="form">
+      <h2>Moderated Comments <small style="font-weight:400;color:var(--color-muted);">(author-visible)</small></h2>
+      <form method="post" class="form" id="moderation-form">
         {% csrf_token %}
-        <textarea class="form__textarea" name="moderated_comments" rows="12">{{ moderation.moderated_comments_to_author }}</textarea>
-        <div class="form__group form__group--checkbox">
+        <textarea class="form__textarea" name="moderated_comments" rows="10">{{ moderation.moderated_comments_to_author }}</textarea>
+
+        <div class="form__group form__group--checkbox" style="margin-top:var(--spacing-4);">
           <input type="checkbox" name="conflict_flagged" id="conflict_flagged" {% if moderation.conflict_flagged %}checked{% endif %}>
           <label for="conflict_flagged">Flag as conflicting review</label>
         </div>
-        <div class="form__group">
+        <div class="form__group" id="conflict-note-group" style="{% if not moderation.conflict_flagged %}display:none;{% endif %}">
           <label class="form__label">Conflict note</label>
-          <textarea class="form__textarea" name="conflict_note" rows="3" placeholder="Explain the conflict...">{{ moderation.conflict_note }}</textarea>
+          <textarea class="form__textarea" name="conflict_note" rows="3" placeholder="Explain the conflict…">{{ moderation.conflict_note }}</textarea>
         </div>
         <div class="form__group">
-          <label class="form__label">Moderation Notes (internal)</label>
-          <textarea class="form__textarea" name="notes" rows="4" placeholder="Internal notes about this moderation...">{{ moderation.moderation_notes }}</textarea>
+          <label class="form__label">Moderation notes <small style="color:var(--color-muted);">(internal only)</small></label>
+          <textarea class="form__textarea" name="notes" rows="4" placeholder="Internal notes…">{{ moderation.moderation_notes }}</textarea>
         </div>
-        <div class="form__actions">
-          <button type="submit" class="btn btn--primary">Save Moderation</button>
-          <a href="{% url 'editorial_submission' review.submission.pk %}" class="btn btn--secondary">Cancel</a>
+
+        <div class="form__actions" style="flex-wrap:wrap;gap:var(--spacing-3);">
+          <button type="submit" name="action" value="save" class="btn btn--secondary">Save Draft Moderation</button>
+          <button type="submit" name="action" value="release" class="btn btn--primary"
+                  data-confirm="Release this review (with selected annotations) to the author? This cannot be undone."
+                  data-confirm-ok="Release">
+            Release to Author
+          </button>
+          <a href="{% url 'editorial_submission' review.submission.pk %}" class="btn btn--ghost">Cancel</a>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+<script>
+document.getElementById('conflict_flagged').addEventListener('change', function () {
+  document.getElementById('conflict-note-group').style.display = this.checked ? '' : 'none';
+});
+</script>
 {% endblock %}

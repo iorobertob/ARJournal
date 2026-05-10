@@ -8,4 +8,6 @@ urlpatterns = [
     path('<int:review_pk>/submit/', views.submit_review, name='review_submit'),
     path('<int:review_pk>/annotate/', views.add_annotation, name='review_annotate'),
     path('<int:review_pk>/moderate/', views.moderate_review, name='moderate_review'),
+    path('<int:review_pk>/detail/', views.review_detail, name='review_detail'),
+    path('<int:review_pk>/preprint/', views.author_preprint, name='review_author_preprint'),
 ]

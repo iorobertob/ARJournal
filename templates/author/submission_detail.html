@@ -10,9 +10,15 @@
     <p><a href="{% url 'author_dashboard' %}">← My Submissions</a></p>
     <h1>{{ submission.title }}</h1>
     <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;margin-top:var(--spacing-2);">
+      {% if returned_from_screening %}
+      <span class="status-badge status-badge--returned_to_author">Returned for Correction</span>
+      {% else %}
       <span class="status-badge status-badge--{{ submission.status }}">{{ submission.get_status_display }}</span>
+      {% endif %}
       {% if can_resubmit %}
       <a href="{% url 'resubmit_step1' submission.pk %}" class="btn btn--primary">Submit Revision →</a>
+      {% elif returned_from_screening %}
+      <a href="{% url 'resubmit_after_screening' submission.pk %}" class="btn btn--primary">Correct &amp; Resubmit →</a>
       {% endif %}
     </div>
   </div>
@@ -57,6 +63,37 @@
         <div style="background:var(--color-surface);padding:var(--spacing-3);border-radius:4px;font-size:var(--size-sm);white-space:pre-line;">{{ dec.instructions_to_author }}</div>
       </div>
       {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Reviewer feedback (only when released) -->
+  {% if released_reviews %}
+  <div class="submission-detail__reviews" style="margin-bottom:var(--spacing-6);">
+    <h2>Reviewer Feedback</h2>
+    {% for review in released_reviews %}
+    <div style="border:1px solid var(--color-border);border-radius:10px;overflow:hidden;margin-bottom:var(--spacing-4);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--spacing-3);padding:var(--spacing-4);background:var(--color-surface);">
+        <div>
+          <span style="font-weight:600;">Reviewer {{ forloop.counter }}</span>
+          {% if review.recommendation %}
+          <span style="margin-left:var(--spacing-3);font-size:var(--size-sm);font-weight:600;color:var(--color-accent);">&#8594; {{ review.get_recommendation_display }}</span>
+          {% endif %}
+        </div>
+        <div style="text-align:right;font-size:var(--size-sm);color:var(--color-muted);">
+          <div>{{ review.submitted_at|date:"d M Y" }}</div>
+          {% with ann_count=review.annotations.all|length %}
+          {% if ann_count %}<div>{{ ann_count }} paragraph annotation{{ ann_count|pluralize }}</div>{% endif %}
+          {% endwith %}
+        </div>
+      </div>
+      <div style="padding:var(--spacing-4);border-top:1px solid var(--color-border);">
+        {% if review.summary %}
+        <p style="font-size:var(--size-sm);line-height:var(--leading-loose);margin-bottom:var(--spacing-3);">{{ review.summary|truncatewords:60 }}</p>
+        {% endif %}
+        <a href="{% url 'review_detail' review.pk %}" class="btn btn--small btn--secondary">Read full review &amp; annotations &rarr;</a>
+      </div>
     </div>
     {% endfor %}
   </div>

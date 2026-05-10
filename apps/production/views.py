@@ -29,8 +29,7 @@ def editorial_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.has_editorial_access():
-            from django.http import HttpResponseForbidden
-            return HttpResponseForbidden('Editorial access required.')
+            return render(request, '403.html', {'message': 'Editorial access required.'}, status=403)
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -74,7 +73,26 @@ def publish_article(request, document_pk):
         submission = doc.revision.submission
         submission.status = SubmissionStatus.PUBLISHED
         submission.save()
+        from apps.notifications.tasks import notify_article_published, notify_editors_article_published
+        notify_article_published(submission.pk)
+        notify_editors_article_published(submission.pk)
         messages.success(request, 'Article published.')
+    return redirect('editorial_submission', pk=doc.revision.submission.pk)
+
+
+@editorial_required
+def unpublish_article(request, document_pk):
+    doc = get_object_or_404(CanonicalDocument, pk=document_pk)
+    build = get_object_or_404(HTMLBuild, document=doc)
+    if request.method == 'POST':
+        build.is_published = False
+        build.published_at = None
+        build.save()
+        from apps.submissions.models import SubmissionStatus
+        submission = doc.revision.submission
+        submission.status = SubmissionStatus.IN_PRODUCTION
+        submission.save()
+        messages.success(request, 'Article unpublished and returned to in-production.')
     return redirect('editorial_submission', pk=doc.revision.submission.pk)
 
 

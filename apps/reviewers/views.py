@@ -13,8 +13,7 @@ def editorial_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.has_editorial_access():
-            from django.http import HttpResponseForbidden
-            return HttpResponseForbidden('Editorial access required.')
+            return render(request, '403.html', {'message': 'Editorial access required.'}, status=403)
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -115,8 +114,10 @@ def send_invitations(request, submission_pk):
             recompute_reviewer_profile(suggestion.reviewer)
             sent_count += 1
         from apps.submissions.models import SubmissionStatus
-        submission.status = SubmissionStatus.UNDER_REVIEW
-        submission.save()
+        _late = {SubmissionStatus.ACCEPTED, SubmissionStatus.IN_PRODUCTION, SubmissionStatus.PUBLISHED}
+        if submission.status not in _late:
+            submission.status = SubmissionStatus.UNDER_REVIEW
+            submission.save()
         messages.success(request, f'Invitations sent to {sent_count} reviewer{"s" if sent_count != 1 else ""}.')
     return redirect('editorial_submission', pk=submission_pk)
 
@@ -276,12 +277,41 @@ def invitation_response(request, token):
         if response == 'accept':
             inv.status = 'accepted'
             inv.save()
+            from apps.notifications.tasks import notify_editors_reviewer_response
+            notify_editors_reviewer_response(inv.pk)
             messages.success(request, 'You have accepted the review invitation.')
             return redirect('reviewer_workspace', invitation_pk=inv.pk)
         elif response == 'decline':
             inv.status = 'declined'
             inv.decline_reason = request.POST.get('decline_reason', '')
             inv.save()
+            from apps.notifications.tasks import notify_editors_reviewer_response
+            notify_editors_reviewer_response(inv.pk)
             messages.info(request, 'You have declined the invitation. Thank you for letting us know.')
             return redirect('home')
     return render(request, 'reviewer/invitation_response.html', {'invitation': inv})
+
+
+@login_required
+@require_POST
+def respond_to_invitation(request, invitation_pk):
+    """Inline accept/decline from the reviewer dashboard."""
+    inv = get_object_or_404(ReviewerInvitation, pk=invitation_pk, reviewer=request.user)
+    response = request.POST.get('response')
+
+    if response == 'accept' and inv.status == 'pending':
+        inv.status = 'accepted'
+        inv.save()
+        from apps.notifications.tasks import notify_editors_reviewer_response
+        notify_editors_reviewer_response(inv.pk)
+        messages.success(request, f'You have accepted the review for “{inv.submission.title}”.')
+        return redirect('reviewer_workspace', invitation_pk=inv.pk)
+    elif response == 'decline' and inv.status == 'pending':
+        inv.status = 'declined'
+        inv.decline_reason = request.POST.get('decline_reason', '')
+        inv.save()
+        from apps.notifications.tasks import notify_editors_reviewer_response
+        notify_editors_reviewer_response(inv.pk)
+        messages.info(request, 'You have declined the invitation. Thank you for letting us know.')
+
+    return redirect('reviewer_dashboard')

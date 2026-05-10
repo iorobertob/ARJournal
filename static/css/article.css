@@ -252,12 +252,18 @@ p.article-meta-sidebar__label {
   position: relative;
   margin-bottom: var(--spacing-4);
   scroll-margin-top: 80px;
-  cursor: pointer;
+  cursor: default;
   transition: background var(--transition);
   text-align: justify;
 }
 
-.article-paragraph:hover { background: var(--color-accent-light); }
+/* Hover + pointer only active when annotation mode is on */
+.annotation-mode .article-paragraph,
+.annotation-mode .article-figure,
+.annotation-mode .article-table,
+.annotation-mode .article-heading { cursor: crosshair; }
+
+.annotation-mode .article-paragraph:hover { background: var(--color-accent-light); }
 .article-paragraph.annotation-target { background: rgba(232,107,31,0.1); }
 
 .para-num {

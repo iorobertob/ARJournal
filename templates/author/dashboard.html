@@ -22,12 +22,20 @@
         <tr>
           <td><a href="{% url 'submission_detail' sub.pk %}">{{ sub.title|truncatechars:60 }}</a></td>
           <td>{{ sub.get_article_type_display }}</td>
-          <td><span class="status-badge status-badge--{{ sub.status }}">{{ sub.get_status_display }}</span></td>
+          <td>
+            {% if sub.is_returned_to_author %}
+            <span class="status-badge status-badge--returned_to_author">Returned for Correction</span>
+            {% else %}
+            <span class="status-badge status-badge--{{ sub.status }}">{{ sub.get_status_display }}</span>
+            {% endif %}
+          </td>
           <td>{{ sub.submission_date|date:"d M Y"|default:"—" }}</td>
           <td>
             <a href="{% url 'submission_detail' sub.pk %}">View →</a>
             {% if sub.status == 'revision_requested' %}
             &nbsp;<a href="{% url 'resubmit_step1' sub.pk %}" style="color:var(--color-accent);font-weight:600;">Revise →</a>
+            {% elif sub.is_returned_to_author %}
+            &nbsp;<a href="{% url 'resubmit_after_screening' sub.pk %}" style="color:var(--color-accent);font-weight:600;">Correct &amp; Resubmit →</a>
             {% endif %}
           </td>
         </tr>

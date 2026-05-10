@@ -233,7 +233,7 @@ else:
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@trans-act-journal.org')
 SERVER_EMAIL = env('SERVER_EMAIL', default=DEFAULT_FROM_EMAIL)
 # Public URL of the site — used to build absolute URLs in emails.
-SITE_URL = env('SITE_URL', default='https://trans-act-journal.org')
+SITE_URL = env('SITE_URL', default='http://localhost:5002')
 
 # Feature flags
 DOI_ENABLED = env('DOI_ENABLED')

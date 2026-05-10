@@ -7,11 +7,18 @@ class NotificationType(models.TextChoices):
     SUBMISSION_RECEIVED = 'submission_received', 'Submission Received'
     CORRECTIONS_REQUESTED = 'corrections_requested', 'Corrections Requested'
     REVIEWER_INVITED = 'reviewer_invited', 'Reviewer Invited'
+    REVIEWER_ACCEPTED = 'reviewer_accepted', 'Reviewer Accepted'
+    REVIEWER_DECLINED = 'reviewer_declined', 'Reviewer Declined'
     REVIEW_SUBMITTED = 'review_submitted', 'Review Submitted'
+    REVIEW_RELEASED = 'review_released', 'Review Released to Author'
     REVIEW_OVERDUE = 'review_overdue', 'Review Overdue'
+    UNDER_REVIEW = 'under_review', 'Submission Under Review'
     DECISION_SENT = 'decision_sent', 'Decision Sent'
     PROOF_READY = 'proof_ready', 'Proof Ready'
     PUBLISHED = 'published', 'Article Published'
+    ISSUE_PUBLISHED = 'issue_published', 'Issue Published'
+    RETURNED_TO_AUTHOR = 'returned_to_author', 'Returned for Correction'
+    REVISION_SUBMITTED = 'revision_submitted', 'Revision Submitted'
     GENERAL = 'general', 'General'
 
 

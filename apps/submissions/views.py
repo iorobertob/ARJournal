@@ -121,8 +121,9 @@ def new_submission_step4(request, pk, rev):
         revision.status = 'submitted'
         revision.submitted_at = timezone.now()
         revision.save()
-        from apps.notifications.tasks import notify_submission_received
+        from apps.notifications.tasks import notify_submission_received, notify_editors_new_submission
         notify_submission_received(sub.pk)
+        notify_editors_new_submission(sub.pk)
         messages.success(request, 'Submission received! You will receive a confirmation email.')
         return redirect('author_dashboard')
     return render(request, 'author/submit_step4.html', {
@@ -135,11 +136,20 @@ def submission_detail(request, pk):
     sub = get_object_or_404(Submission, pk=pk, author=request.user)
     revisions = sub.revisions.all()
     decisions = sub.editorial_decisions.order_by('round')
+    from apps.reviews.models import Review, ReviewStatus
+    released_reviews = (
+        Review.objects
+        .filter(invitation__submission=sub, status=ReviewStatus.RELEASED)
+        .prefetch_related('annotations')
+        .order_by('submitted_at')
+    )
     return render(request, 'author/submission_detail.html', {
         'submission': sub,
         'revisions': revisions,
         'decisions': decisions,
         'can_resubmit': sub.status == SubmissionStatus.REVISION_REQUESTED,
+        'returned_from_screening': sub.is_returned_to_author,
+        'released_reviews': released_reviews,
     })
 
 
@@ -250,6 +260,63 @@ def resubmit_step3(request, pk, rev):
         'submission': sub,
         'revision': revision,
         'assets': revision.assets.all(),
+    })
+
+
+@login_required
+def resubmit_after_screening(request, pk):
+    """Single-step resubmission after a failed technical screening check."""
+    sub = get_object_or_404(Submission, pk=pk, author=request.user)
+    if not sub.is_returned_to_author:
+        messages.error(request, 'This submission is not currently awaiting a correction.')
+        return redirect('submission_detail', pk=pk)
+
+    screening = sub.screening_checks.filter(result='return_to_author').order_by('-checked_at').first()
+
+    if request.method == 'POST':
+        if not request.FILES.get('manuscript'):
+            messages.error(request, 'Please upload your corrected manuscript (.tex).')
+            return render(request, 'author/resubmit_screening.html', {
+                'submission': sub, 'screening': screening,
+            })
+        current_version = sub.revisions.order_by('-version').first()
+        next_version = (current_version.version if current_version else 0) + 1
+        rev = SubmissionRevision.objects.create(
+            submission=sub,
+            version=next_version,
+            manuscript_file=request.FILES['manuscript'],
+            notes=request.POST.get('notes', ''),
+            status='submitted',
+            submitted_at=timezone.now(),
+        )
+        # Copy assets from previous revision — author only needs to replace what changed
+        if current_version:
+            for old_asset in current_version.assets.all():
+                new_asset = SubmissionAsset.objects.create(
+                    revision=rev,
+                    kind=old_asset.kind,
+                    file=old_asset.file.name,
+                    original_filename=old_asset.original_filename,
+                    mime_type=old_asset.mime_type,
+                    caption=old_asset.caption,
+                    alt_text=old_asset.alt_text,
+                    rights_cleared=old_asset.rights_cleared,
+                )
+                try:
+                    new_asset.size_bytes = new_asset.file.size
+                    new_asset.save(update_fields=['size_bytes'])
+                except Exception:
+                    pass
+        sub.status = SubmissionStatus.SUBMITTED
+        sub.save()
+        from apps.notifications.tasks import notify_revision_submitted
+        notify_revision_submitted(rev.pk)
+        messages.success(request, 'Corrected manuscript submitted. The editorial team will be in touch.')
+        return redirect('author_dashboard')
+
+    return render(request, 'author/resubmit_screening.html', {
+        'submission': sub,
+        'screening': screening,
     })
 
 

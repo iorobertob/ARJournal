@@ -56,6 +56,8 @@ def deposit_doi(document, doi_suffix: str) -> dict:
 
 
 def _build_crossref_xml(title: str, contributors: list, doi: str, submission) -> str:
+    from django.conf import settings
+    site_url = settings.SITE_URL.rstrip('/')
     cfg = _cfg()
     depositor_name = cfg.crossref_depositor_name
     depositor_email = cfg.crossref_depositor_email
@@ -83,7 +85,7 @@ def _build_crossref_xml(title: str, contributors: list, doi: str, submission) ->
         <titles><title>{title}</title></titles>
         <contributors>{contributors_xml}</contributors>
         <publication_date><year>{year}</year></publication_date>
-        <doi_data><doi>{doi}</doi><resource>https://trans-act-journal.org/articles/{doi.split("/")[-1]}/</resource></doi_data>
+        <doi_data><doi>{doi}</doi><resource>{site_url}/articles/{doi.split("/")[-1]}/</resource></doi_data>
       </journal_article>
     </journal>
   </body>

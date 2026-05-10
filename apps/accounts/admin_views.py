@@ -23,8 +23,7 @@ def journal_admin_required(view_func):
                 UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
             )
         ):
-            from django.http import HttpResponseForbidden
-            return HttpResponseForbidden('Journal admin access required.')
+            return render(request, '403.html', {'message': 'Journal admin access required.'}, status=403)
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -264,6 +263,8 @@ def issue_edit(request, pk):
             issue.is_published = True
             issue.published_at = timezone.now().date()
             issue.save()
+            from apps.notifications.tasks import notify_editors_issue_published
+            notify_editors_issue_published(issue.pk)
             messages.success(request, f'Issue #{issue.number} published!')
 
         elif action == 'unpublish':
@@ -282,9 +283,21 @@ def issue_edit(request, pk):
     ).select_related('author')
     sections = issue.sections.all()
 
+    from apps.production.models import HTMLBuild
+    build_map = {
+        b.document.revision.submission_id: b
+        for b in HTMLBuild.objects.filter(
+            document__revision__submission__issue=issue
+        ).select_related('document__revision')
+    }
+    # Attach build directly so the template can use sub.html_build without a filter
+    assigned_articles_list = list(assigned_articles)
+    for sub in assigned_articles_list:
+        sub.html_build = build_map.get(sub.pk)
+
     return render(request, 'journal_admin/issue_edit.html', {
         'issue': issue,
-        'assigned_articles': assigned_articles,
+        'assigned_articles': assigned_articles_list,
         'available_articles': available_articles,
         'sections': sections,
     })

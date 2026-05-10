@@ -14,7 +14,7 @@ from django.utils import timezone
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _site_url() -> str:
-    return getattr(settings, 'SITE_URL', 'https://trans-act-journal.org').rstrip('/')
+    return settings.SITE_URL.rstrip('/')
 
 
 def _e(text: str) -> str:
@@ -192,6 +192,45 @@ def _log_email(to: str, subject: str, status: str, error: str = '') -> None:
     )
 
 
+# ── Editor helpers ────────────────────────────────────────────────────────────
+
+def _editorial_users():
+    """Return all active users with editorial access."""
+    from django.db.models import Q
+    from apps.accounts.models import User, UserRole
+    editorial_roles = [
+        UserRole.EDITORIAL_ASSISTANT, UserRole.HANDLING_EDITOR,
+        UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
+        UserRole.JOURNAL_ADMIN, UserRole.SYSTEM_ADMIN,
+    ]
+    q = Q()
+    for role in editorial_roles:
+        q |= Q(roles__contains=[role])
+    return list(User.objects.filter(is_active=True).filter(q))
+
+
+def _assigned_editors(submission):
+    """Return the active assigned editors for a submission."""
+    from apps.editorial.models import EditorialAssignment
+    return [
+        a.editor for a in
+        EditorialAssignment.objects.filter(submission=submission, is_active=True).select_related('editor')
+        if a.editor
+    ]
+
+
+def _notify_editors_inapp(editors, notif_type, message, url):
+    """Create an in-app Notification for each editor in the list."""
+    from .models import Notification
+    for editor in editors:
+        Notification.objects.create(
+            user=editor,
+            notification_type=notif_type,
+            message=message,
+            url=url,
+        )
+
+
 # ── Notification tasks ────────────────────────────────────────────────────────
 
 @shared_task
@@ -292,32 +331,29 @@ def notify_reviewer_invited(invitation_pk):
 
 @shared_task
 def notify_review_submitted(review_pk):
-    """Notify handling editors that a review has been submitted."""
+    """Notify handling editors AND the author that a review has been submitted."""
     from apps.reviews.models import Review
-    review = Review.objects.select_related('invitation__submission').get(pk=review_pk)
+    review = Review.objects.select_related('invitation__submission__author').get(pk=review_pk)
     submission = review.invitation.submission
-    subject = f'Review submitted — {submission.title[:70]}'
+    author = submission.author
+    subject_editors = f'Review submitted — {submission.title[:70]}'
 
+    # ── Notify editors ────────────────────────────────────────────────────────
     for assignment in submission.assignments.filter(is_active=True):
         editor = assignment.editor
         if not editor:
             continue
-
         dashboard_url = f'{_site_url()}/editorial/submission/{submission.pk}/'
-
-        # ── HTML ─────────────────────────────────────────────────────────────
         html_body = (
             _greeting(editor.display_name)
-            + _p(f'A peer review has been submitted for the following manuscript and is '
-                 f'now available in the editorial dashboard.')
+            + _p('A peer review has been submitted for the following manuscript and is '
+                 'now available in the editorial dashboard.')
             + _detail_box('Submission title', submission.title)
             + _p('Please log in to review the submitted assessment and determine next steps '
                  'in the editorial process.')
             + _btn(dashboard_url, 'View submission in dashboard')
             + _signature()
         )
-
-        # ── Plain text ────────────────────────────────────────────────────────
         plain = (
             f'Dear {editor.display_name},\n\n'
             f'A peer review has been submitted for "{submission.title}" '
@@ -325,12 +361,37 @@ def notify_review_submitted(review_pk):
             f'{dashboard_url}\n\n'
             f'Warm regards,\nThe Trans/Act Editorial Office'
         )
-
         try:
-            _send(editor.email, subject, plain, html_body)
-            _log_email(editor.email, subject, 'sent')
+            _send(editor.email, subject_editors, plain, html_body)
+            _log_email(editor.email, subject_editors, 'sent')
         except Exception as exc:
-            _log_email(editor.email, subject, 'failed', str(exc))
+            _log_email(editor.email, subject_editors, 'failed', str(exc))
+
+    # ── In-app badge for assigned editors ────────────────────────────────────
+    try:
+        _notify_editors_inapp(
+            _assigned_editors(submission),
+            'review_submitted',
+            f'Peer review submitted for “{submission.title[:55]}”.',
+            f'/editorial/submission/{submission.pk}/',
+        )
+    except Exception:
+        pass
+
+    # ── Notify author (in-app only — review not yet moderated) ───────────────
+    try:
+        from .models import Notification
+        Notification.objects.create(
+            user=author,
+            notification_type='review_submitted',
+            message=(
+                f'A peer review has been received for “{submission.title[:55]}”. '
+                f'The editorial team will review the feedback before sharing it with you.'
+            ),
+            url=f'/author/submission/{submission.pk}/',
+        )
+    except Exception:
+        pass
 
 
 @shared_task
@@ -436,6 +497,18 @@ def notify_revision_submitted(revision_pk):
         except Exception as exc:
             _log_email(email, subject, 'failed', str(exc))
 
+    # In-app badge for assigned editors
+    try:
+        editors = _assigned_editors(submission)
+        _notify_editors_inapp(
+            editors,
+            'revision_submitted',
+            f'Revised manuscript received for "{submission.title[:55]}".',
+            f'/editorial/submission/{submission.pk}/',
+        )
+    except Exception:
+        pass
+
     # In-app notification for the author confirming receipt
     try:
         from .models import Notification
@@ -447,6 +520,144 @@ def notify_revision_submitted(revision_pk):
         )
     except Exception:
         pass
+
+
+@shared_task
+def notify_returned_to_author(submission_pk):
+    """Notify the author that their submission has been returned from technical screening."""
+    from apps.submissions.models import Submission
+    sub = Submission.objects.select_related('author').get(pk=submission_pk)
+
+    last_check = sub.screening_checks.order_by('-checked_at').first()
+    notes = last_check.notes if last_check and last_check.notes else ''
+
+    subject = f'Your submission has been returned for correction — {sub.title[:60]}'
+    dashboard_url = f'{_site_url()}/author/submission/{sub.pk}/'
+
+    html_body = (
+        _greeting(sub.author.display_name)
+        + _p('Thank you for your submission to <strong>Trans/Act: Journal of Artistic '
+             'Research</strong>. Our editorial team has reviewed your manuscript and '
+             'is returning it for correction before it can proceed to peer review.')
+        + _detail_box('Submission title', sub.title)
+        + (_quoted_block(notes) if notes else '')
+        + _p('Please log in to your author dashboard, correct the issues described '
+             'above, and upload the revised manuscript.')
+        + _btn(dashboard_url, 'Correct & resubmit')
+        + _signature()
+    )
+
+    plain = (
+        f'Dear {sub.author.display_name},\n\n'
+        f'Your submission "{sub.title}" has been returned for correction.\n\n'
+        + (f'Notes from the editorial team:\n{notes}\n\n' if notes else '')
+        + f'Please log in and upload a corrected version:\n{dashboard_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial Office'
+    )
+
+    try:
+        _send(sub.author.email, subject, plain, html_body)
+        _log_email(sub.author.email, subject, 'sent')
+        from .models import Notification
+        Notification.objects.create(
+            user=sub.author,
+            notification_type='returned_to_author',
+            message=f'Your submission “{sub.title[:55]}” has been returned for correction.',
+            url=f'/author/submission/{sub.pk}/',
+        )
+    except Exception as exc:
+        _log_email(sub.author.email, subject, 'failed', str(exc))
+
+
+@shared_task
+def notify_review_released(review_pk):
+    """Notify the author that a moderated review is now available to them."""
+    from apps.reviews.models import Review
+    review = Review.objects.select_related('invitation__submission__author').get(pk=review_pk)
+    submission = review.invitation.submission
+    author = submission.author
+
+    subject = f'Reviewer feedback available — {submission.title[:65]}'
+    dashboard_url = f'{_site_url()}/author/submission/{submission.pk}/'
+
+    # ── HTML ─────────────────────────────────────────────────────────────────
+    html_body = (
+        _greeting(author.display_name)
+        + _p('The editorial team has reviewed the peer assessment of your submission and '
+             'has made the reviewer feedback available to you.')
+        + _detail_box('Submission title', submission.title)
+        + _p('Please log in to your author dashboard to read the reviewer comments '
+             'and any paragraph annotations.')
+        + _btn(dashboard_url, 'Read reviewer feedback')
+        + _signature()
+    )
+
+    # ── Plain text ────────────────────────────────────────────────────────────
+    plain = (
+        f'Dear {author.display_name},\n\n'
+        f'Reviewer feedback for your submission "{submission.title}" is now available.\n\n'
+        f'Log in to read the reviewer comments:\n{dashboard_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial Office'
+    )
+
+    try:
+        _send(author.email, subject, plain, html_body)
+        _log_email(author.email, subject, 'sent')
+        from .models import Notification
+        Notification.objects.create(
+            user=author,
+            notification_type='review_released',
+            message=f'Reviewer feedback is now available for "{submission.title[:55]}".',
+            url=f'/author/submission/{submission.pk}/',
+        )
+    except Exception as exc:
+        _log_email(author.email, subject, 'failed', str(exc))
+
+
+@shared_task
+def notify_article_published(submission_pk):
+    """Notify the author that their article has been published."""
+    from apps.submissions.models import Submission
+    sub = Submission.objects.select_related('author').get(pk=submission_pk)
+    author = sub.author
+
+    subject = f'Your article has been published — {sub.title[:65]}'
+    # Try to build the public article URL from slug
+    article_url = f'{_site_url()}/articles/{sub.slug}/'
+    dashboard_url = f'{_site_url()}/author/submission/{sub.pk}/'
+
+    # ── HTML ─────────────────────────────────────────────────────────────────
+    html_body = (
+        _greeting(author.display_name)
+        + _p('Congratulations — your article has been published in '
+             '<strong>Trans/Act: Journal of Artistic Research</strong>.')
+        + _detail_box('Article title', sub.title)
+        + _p('Your work is now accessible to readers online.')
+        + _btn(article_url, 'View published article')
+        + _signature()
+    )
+
+    # ── Plain text ────────────────────────────────────────────────────────────
+    plain = (
+        f'Dear {author.display_name},\n\n'
+        f'Congratulations — your article "{sub.title}" has been published in '
+        f'Trans/Act: Journal of Artistic Research.\n\n'
+        f'Read it here:\n{article_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial Office'
+    )
+
+    try:
+        _send(author.email, subject, plain, html_body)
+        _log_email(author.email, subject, 'sent')
+        from .models import Notification
+        Notification.objects.create(
+            user=author,
+            notification_type='published',
+            message=f'Your article "{sub.title[:55]}" has been published.',
+            url=f'/articles/{sub.slug}/',
+        )
+    except Exception as exc:
+        _log_email(author.email, subject, 'failed', str(exc))
 
 
 @shared_task
@@ -531,3 +742,135 @@ def send_review_reminders():
             _log_email(inv.reviewer.email, subject, 'sent')
         except Exception as exc:
             _log_email(inv.reviewer.email, subject, 'failed', str(exc))
+
+
+# ── Editor-facing notification tasks ─────────────────────────────────────────
+
+@shared_task
+def notify_editors_new_submission(submission_pk):
+    """Email the editorial office and badge all editors when a new submission arrives."""
+    from apps.submissions.models import Submission
+    sub = Submission.objects.select_related('author').get(pk=submission_pk)
+
+    editorial_url = f'{_site_url()}/editorial/submission/{sub.pk}/'
+    subject = f'New submission — {sub.title[:70]}'
+
+    html_body = (
+        _p('A new submission has been received and is awaiting technical screening.')
+        + _detail_box('Title', sub.title)
+        + _detail_box('Author', sub.author.display_name)
+        + _detail_box('Type', sub.get_article_type_display())
+        + _btn(editorial_url, 'Open in editorial dashboard')
+        + _signature()
+    )
+    plain = (
+        f'A new submission has been received.\n\n'
+        f'Title: {sub.title}\n'
+        f'Author: {sub.author.display_name}\n'
+        f'Type: {sub.get_article_type_display()}\n\n'
+        f'Open in editorial dashboard:\n{editorial_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial System'
+    )
+
+    editorial_email = getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)
+    try:
+        _send(editorial_email, subject, plain, html_body)
+        _log_email(editorial_email, subject, 'sent')
+    except Exception as exc:
+        _log_email(editorial_email, subject, 'failed', str(exc))
+
+    try:
+        _notify_editors_inapp(
+            _editorial_users(),
+            'submission_received',
+            f'New submission: “{sub.title[:60]}” by {sub.author.display_name}.',
+            f'/editorial/submission/{sub.pk}/',
+        )
+    except Exception:
+        pass
+
+
+@shared_task
+def notify_editors_reviewer_response(invitation_pk):
+    """Email and badge assigned editors when a reviewer accepts or declines."""
+    from apps.reviewers.models import ReviewerInvitation
+    inv = ReviewerInvitation.objects.select_related('reviewer', 'submission').get(pk=invitation_pk)
+    submission = inv.submission
+    accepted = inv.status == 'accepted'
+    verb = 'accepted' if accepted else 'declined'
+    notif_type = 'reviewer_accepted' if accepted else 'reviewer_declined'
+    subject = f'Reviewer {verb} — {submission.title[:65]}'
+    editorial_url = f'{_site_url()}/editorial/submission/{submission.pk}/'
+
+    html_body = (
+        _p(f'A reviewer has <strong>{_e(verb)}</strong> their invitation to review '
+           f'the following submission.')
+        + _detail_box('Submission', submission.title)
+        + ((_detail_box('Decline reason', inv.decline_reason) if inv.decline_reason else '')
+           if not accepted else '')
+        + _btn(editorial_url, 'View submission')
+        + _signature()
+    )
+    plain = (
+        f'A reviewer has {verb} the review invitation for "{submission.title}".\n\n'
+        + (f'Decline reason: {inv.decline_reason}\n\n' if not accepted and inv.decline_reason else '')
+        + f'View submission:\n{editorial_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial System'
+    )
+
+    editors = _assigned_editors(submission)
+    recipients = [e.email for e in editors] or [getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)]
+    for email in recipients:
+        try:
+            _send(email, subject, plain, html_body)
+            _log_email(email, subject, 'sent')
+        except Exception as exc:
+            _log_email(email, subject, 'failed', str(exc))
+
+    try:
+        _notify_editors_inapp(
+            editors or _editorial_users(),
+            notif_type,
+            f'Reviewer {verb} invitation for “{submission.title[:55]}”.',
+            f'/editorial/submission/{submission.pk}/',
+        )
+    except Exception:
+        pass
+
+
+@shared_task
+def notify_editors_article_published(submission_pk):
+    """Badge assigned editors when an article goes live."""
+    from apps.submissions.models import Submission
+    sub = Submission.objects.get(pk=submission_pk)
+    try:
+        _notify_editors_inapp(
+            _assigned_editors(sub) or _editorial_users(),
+            'published',
+            f'“{sub.title[:60]}” is now live on the journal site.',
+            f'/articles/{sub.slug}/',
+        )
+    except Exception:
+        pass
+
+
+@shared_task
+def notify_editors_issue_published(issue_pk):
+    """Badge all editors when an issue is published."""
+    from apps.journal.models import Issue
+    issue = Issue.objects.get(pk=issue_pk)
+    article_count = issue.submissions.filter(status='published').count()
+    vol_str = f' (Vol. {issue.volume})' if issue.volume else ''
+    message = (
+        f'Issue #{issue.number}{vol_str} published — '
+        f'{article_count} article{"s" if article_count != 1 else ""}.'
+    )
+    try:
+        _notify_editors_inapp(
+            _editorial_users(),
+            'issue_published',
+            message,
+            f'/issues/{issue.pk}/',
+        )
+    except Exception:
+        pass

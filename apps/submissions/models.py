@@ -72,6 +72,17 @@ class Submission(models.Model):
     def get_current_revision(self):
         return self.revisions.order_by('-version').first()
 
+    @property
+    def is_returned_to_author(self):
+        """True when returned from technical screening and no rejection has followed."""
+        if self.status != SubmissionStatus.SUBMITTED:
+            return False
+        if not self.screening_checks.filter(result='return_to_author').exists():
+            return False
+        from apps.editorial.models import DecisionType
+        _rejections = {DecisionType.REJECT, DecisionType.DESK_REJECT}
+        return not self.editorial_decisions.filter(decision_type__in=_rejections).exists()
+
 
 class RevisionStatus(models.TextChoices):
     DRAFT = 'draft', 'Draft'

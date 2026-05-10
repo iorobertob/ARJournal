@@ -8,7 +8,9 @@ urlpatterns = [
     path('submit/<int:pk>/step3/<int:rev>/', views.new_submission_step3, name='submission_step3'),
     path('submit/<int:pk>/step4/<int:rev>/', views.new_submission_step4, name='submission_step4'),
     path('submission/<int:pk>/', views.submission_detail, name='submission_detail'),
-    # Resubmission wizard
+    # Correction after screening return (single step)
+    path('submit/<int:pk>/correct/', views.resubmit_after_screening, name='resubmit_after_screening'),
+    # Resubmission wizard (post-review revision)
     path('submit/<int:pk>/revise/step1/', views.resubmit_step1, name='resubmit_step1'),
     path('submit/<int:pk>/revise/<int:rev>/step2/', views.resubmit_step2, name='resubmit_step2'),
     path('submit/<int:pk>/revise/<int:rev>/step3/', views.resubmit_step3, name='resubmit_step3'),

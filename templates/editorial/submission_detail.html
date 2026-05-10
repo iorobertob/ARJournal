@@ -287,22 +287,129 @@
   </script>
 
   <!-- Reviews -->
-  {% if reviews %}
   <section class="editorial-section">
-    <h2>Reviews</h2>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--spacing-4);">
+      <h2 style="margin:0;">
+        Reviews
+        {% if reviews %}<span class="badge">{{ reviews|length }}</span>{% endif %}
+      </h2>
+    </div>
+
+    {% if reviews %}
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-4);">
     {% for review in reviews %}
-    <div class="review-summary">
-      <div>
-        <p><strong>{{ review.reviewer.display_name }}</strong> &middot; <span class="status-badge status-badge--{{ review.status }}">{{ review.get_status_display }}</span></p>
-        {% if review.recommendation %}<p style="margin-top:var(--spacing-1);">Recommendation: <strong>{{ review.get_recommendation_display }}</strong></p>{% endif %}
+    <div style="border:1px solid var(--color-border);border-radius:10px;overflow:hidden;">
+
+      <!-- Review header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--spacing-3);padding:var(--spacing-4);background:var(--color-surface);border-bottom:1px solid var(--color-border);">
+        <div>
+          <span style="font-weight:600;font-size:var(--size-base);">{{ review.reviewer.display_name }}</span>
+          <span style="color:var(--color-muted);font-size:var(--size-sm);margin-left:var(--spacing-2);">{{ review.reviewer.email }}</span>
+          <div style="margin-top:var(--spacing-1);display:flex;flex-wrap:wrap;align-items:center;gap:var(--spacing-2);">
+            <span class="status-badge status-badge--{{ review.status }}">{{ review.get_status_display }}</span>
+            {% if review.recommendation %}
+            <span style="font-size:var(--size-sm);font-weight:600;color:var(--color-accent);">&#8594; {{ review.get_recommendation_display }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div style="text-align:right;font-size:var(--size-sm);color:var(--color-muted);flex-shrink:0;">
+          {% if review.submitted_at %}
+          <div><strong style="color:var(--color-text);">Submitted {{ review.submitted_at|date:"d M Y, H:i" }}</strong></div>
+          {% elif review.status == 'draft' %}
+          <div>In progress — not yet submitted</div>
+          {% endif %}
+          <div style="margin-top:2px;">Invited {{ review.invitation.sent_at|date:"d M Y" }} &middot; Deadline {{ review.invitation.deadline|date:"d M Y" }}</div>
+          {% with ann_count=review.annotations.all|length %}
+          {% if ann_count %}
+          <div style="margin-top:2px;">{{ ann_count }} annotation{{ ann_count|pluralize }}</div>
+          {% endif %}
+          {% endwith %}
+        </div>
       </div>
-      {% if review.status == 'submitted' or review.status == 'moderation_required' %}
-      <a href="{% url 'moderate_review' review.pk %}" class="btn btn--small btn--secondary">Moderate</a>
+
+      <!-- Review body (only for submitted/moderated/released) -->
+      {% if review.status != 'draft' %}
+      <details {% if review.status == 'submitted' or review.status == 'moderation_required' %}open{% endif %}>
+        <summary style="padding:var(--spacing-3) var(--spacing-4);cursor:pointer;font-size:var(--size-sm);color:var(--color-muted);list-style:none;display:flex;align-items:center;gap:var(--spacing-2);">
+          <span>&#9654;</span> View full review
+        </summary>
+        <div style="padding:var(--spacing-4);border-top:1px solid var(--color-border);display:flex;flex-direction:column;gap:var(--spacing-4);">
+
+          {% if review.expertise_self_rating %}
+          <div>
+            <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Expertise self-rating</p>
+            <p style="font-size:var(--size-sm);">{{ review.expertise_self_rating }}/5</p>
+          </div>
+          {% endif %}
+
+          {% if review.summary %}
+          <div>
+            <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Summary</p>
+            <p style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.summary }}</p>
+          </div>
+          {% endif %}
+
+          {% if review.strengths %}
+          <div>
+            <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Strengths</p>
+            <p style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.strengths }}</p>
+          </div>
+          {% endif %}
+
+          {% if review.major_issues %}
+          <div>
+            <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Major Issues</p>
+            <p style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.major_issues }}</p>
+          </div>
+          {% endif %}
+
+          {% if review.minor_issues %}
+          <div>
+            <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Minor Issues</p>
+            <p style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.minor_issues }}</p>
+          </div>
+          {% endif %}
+
+          {% if review.ethical_concerns %}
+          <div>
+            <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Ethical Concerns</p>
+            <p style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.ethical_concerns }}</p>
+          </div>
+          {% endif %}
+
+          {% if review.comments_to_author %}
+          <div>
+            <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Comments to Author</p>
+            <p style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.comments_to_author }}</p>
+          </div>
+          {% endif %}
+
+          {% if review.comments_to_editor %}
+          <div style="background:#fafafa;border:1px dashed var(--color-border);border-radius:6px;padding:var(--spacing-3);">
+            <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Confidential — Comments to Editor</p>
+            <p style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.comments_to_editor }}</p>
+          </div>
+          {% endif %}
+
+        </div>
+      </details>
       {% endif %}
+
+      <!-- Action row -->
+      {% if review.status == 'submitted' or review.status == 'moderation_required' %}
+      <div style="padding:var(--spacing-3) var(--spacing-4);border-top:1px solid var(--color-border);background:var(--color-surface);">
+        <a href="{% url 'moderate_review' review.pk %}" class="btn btn--small btn--secondary">Moderate Review</a>
+      </div>
+      {% endif %}
+
     </div>
     {% endfor %}
+    </div>
+
+    {% else %}
+    <p style="color:var(--color-muted);font-size:var(--size-sm);">No reviews yet.</p>
+    {% endif %}
   </section>
-  {% endif %}
 
   <!-- Decision -->
   <section class="editorial-section">
@@ -390,14 +497,26 @@
         {% if build %}Rebuild HTML{% else %}Build HTML{% endif %}
       </a>
 
-      <!-- Publish — must be POST -->
+      <!-- Publish / Unpublish — mutually exclusive -->
       {% if build and not build.is_published %}
-      <form method="post" action="{% url 'publish_article' canonical_doc.pk %}" style="display:inline;"
-            data-confirm="Publish this article publicly?">
-        {% csrf_token %}
-        <input type="hidden" name="access_mode" value="open">
-        <button type="submit" class="btn btn--primary">Publish</button>
-      </form>
+      <div style="display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;">
+        <form method="post" action="{% url 'publish_article' canonical_doc.pk %}" style="display:inline;"
+              data-confirm="Publish this article publicly?">
+          {% csrf_token %}
+          <input type="hidden" name="access_mode" value="open">
+          <button type="submit" class="btn btn--primary">Publish Article</button>
+        </form>
+        <small style="color:var(--color-muted);font-size:var(--size-xs);">Also sets manuscript status → Published</small>
+      </div>
+      {% elif build and build.is_published %}
+      <div style="display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;">
+        <form method="post" action="{% url 'unpublish_article' canonical_doc.pk %}" style="display:inline;"
+              data-confirm="Unpublish this article? It will be removed from the public site and its status will return to In Production.">
+          {% csrf_token %}
+          <button type="submit" class="btn btn--secondary" style="border-color:#d97706;color:#d97706;">Unpublish Article</button>
+        </form>
+        <small style="color:var(--color-muted);font-size:var(--size-xs);">Returns manuscript status → In Production</small>
+      </div>
       {% endif %}
 
       <!-- View HTML (once built) -->

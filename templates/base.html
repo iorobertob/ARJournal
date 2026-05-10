@@ -45,7 +45,7 @@
               @click="$store.modal.cancel()">Cancel</button>
       <button class="btn btn--primary btn--small"
               @click="$store.modal.ok()"
-              x-text="$store.modal.type === 'confirm' ? 'Confirm' : 'OK'"></button>
+              x-text="$store.modal.okLabel || ($store.modal.type === 'confirm' ? 'Confirm' : 'OK')"></button>
     </div>
   </div>
 </div>

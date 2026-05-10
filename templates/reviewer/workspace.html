@@ -44,7 +44,7 @@
       <span class="workspace-main__article-type">{{ submission.get_article_type_display }}</span>
       <button class="btn btn--small btn--secondary" id="annotate-toggle">+ Annotate</button>
     </div>
-    <div class="workspace-article" id="article-content" data-review-id="{{ review.pk }}">
+    <div class="workspace-article article-body-content" id="article-content" data-review-id="{{ review.pk }}">
       {% if article_html %}
         {{ article_html|safe }}
       {% else %}
@@ -152,7 +152,13 @@
       <div id="annotations-list">
         {% for ann in annotations %}
         <div class="annotation-item" data-block-id="{{ ann.block_id }}">
-          <p class="annotation-item__block">Block: {{ ann.block_id }}</p>
+          <p class="annotation-item__block">
+            {% if ann.selector_data.para %}
+              ¶{{ ann.selector_data.para }}{% if ann.selector_data.section %} · {{ ann.selector_data.section }}{% endif %}
+            {% else %}
+              {{ ann.block_id }}
+            {% endif %}
+          </p>
           <p class="annotation-item__comment">{{ ann.comment }}</p>
         </div>
         {% empty %}

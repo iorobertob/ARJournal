@@ -13,23 +13,29 @@
       {% if issue.title %}— {{ issue.title }}{% endif %}
     </h1>
   </div>
-  <div id="publish-actions" style="display:flex;gap:var(--spacing-3);align-items:center;">
-    {% if issue.is_published %}
-      <span id="publish-badge" class="role-badge" style="background:#d1fae5;color:#065f46;font-size:var(--size-sm);">Published {{ issue.published_at|date:"d M Y" }}</span>
-      <form method="post" id="form-unpublish" style="display:inline;"
-            data-confirm="Unpublish this issue?">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="unpublish">
-        <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Unpublish</button>
-      </form>
-    {% else %}
-      <form method="post" id="form-publish" style="display:inline;"
-            data-confirm="Publish Issue #{{ issue.number }}? It will become visible on the public site.">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="publish">
-        <button type="submit" class="btn btn-primary">Publish Issue</button>
-      </form>
-    {% endif %}
+  <div id="publish-actions" style="display:flex;flex-direction:column;align-items:flex-end;gap:var(--spacing-1);">
+    <div style="font-size:var(--size-xs);color:var(--color-muted);text-align:right;max-width:280px;">
+      Issue publication controls the <strong>issue page</strong> visibility only.<br>
+      Individual articles are published separately in the Editorial view.
+    </div>
+    <div style="display:flex;gap:var(--spacing-3);align-items:center;margin-top:var(--spacing-1);">
+      {% if issue.is_published %}
+        <span id="publish-badge" class="role-badge" style="background:#d1fae5;color:#065f46;font-size:var(--size-sm);">Issue live since {{ issue.published_at|date:"d M Y" }}</span>
+        <form method="post" id="form-unpublish" style="display:inline;"
+              data-confirm="Unpublish this issue? The issue page will be hidden but individual published articles remain accessible.">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="unpublish">
+          <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Unpublish Issue</button>
+        </form>
+      {% else %}
+        <form method="post" id="form-publish" style="display:inline;"
+              data-confirm="Publish Issue #{{ issue.number }}? The issue page will become visible on the public site. Individual articles must be published separately.">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="publish">
+          <button type="submit" class="btn btn-primary">Publish Issue Page</button>
+        </form>
+      {% endif %}
+    </div>
   </div>
 </div>
 
@@ -126,10 +132,21 @@
           <input type="hidden" name="order[]" value="{{ sub.pk }}">
           <div class="issue-assembly-item__handle">{{ forloop.counter }}</div>
           <div class="issue-assembly-item__body">
-            <div class="issue-assembly-item__title">{{ sub.title|truncatechars:55 }}</div>
+            <div class="issue-assembly-item__title"><a href="{% url 'journal_admin_article' sub.pk %}" style="color:inherit;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ sub.title|truncatechars:55 }}</a></div>
             <div class="issue-assembly-item__meta">{{ sub.author.display_name }} · {{ sub.get_article_type_display }}</div>
-            <div class="issue-assembly-item__meta" style="margin-top:4px;">
+            <div class="issue-assembly-item__meta" style="margin-top:4px;display:flex;align-items:center;gap:var(--spacing-2);flex-wrap:wrap;">
               <span class="role-badge role-badge--{{ sub.status }}">{{ sub.get_status_display }}</span>
+              {% if sub.html_build %}
+                {% if sub.html_build.is_published and sub.status == 'published' %}
+                  <span style="font-size:var(--size-xs);color:#16a34a;font-weight:500;">● Live on site</span>
+                {% elif sub.html_build.is_published %}
+                  <a href="{% url 'editorial_submission' pk=sub.pk %}" style="font-size:var(--size-xs);color:#dc2626;font-weight:500;text-decoration:none;" title="HTML is publicly live but manuscript status is '{{ sub.get_status_display }}'. Fix in the Editorial view.">⚠ State conflict</a>
+                {% else %}
+                  <span style="font-size:var(--size-xs);color:#d97706;">◎ HTML built, not live</span>
+                {% endif %}
+              {% else %}
+                <span style="font-size:var(--size-xs);color:var(--color-muted);">○ No HTML build</span>
+              {% endif %}
             </div>
           </div>
           {% if sections %}
@@ -199,8 +216,7 @@
       <span style="font-size:var(--size-sm);font-weight:500;flex:1;">{{ section.name }}</span>
       {% if section.description %}<span style="font-size:var(--size-xs);color:var(--color-muted);">{{ section.description }}</span>{% endif %}
       <span style="font-size:var(--size-xs);color:var(--color-muted);">{{ section.submission_set.count }} article{{ section.submission_set.count|pluralize }}</span>
-      <form method="post" style="margin:0;"
-            data-confirm="Delete section '{{ section.name }}'? Articles in it will become unsectioned.">
+      <form method="post" style="margin:0;" class="delete-section-form">
         {% csrf_token %}
         <input type="hidden" name="action" value="delete_section">
         <input type="hidden" name="section_pk" value="{{ section.pk }}">
@@ -526,6 +542,7 @@
       toast('Article added to issue');
 
     } else if (action === 'add_section') {
+      e.preventDefault(); // stop default submit so we control when data is sent
       var nameInput = document.getElementById('section-name-input');
       var name      = nameInput ? nameInput.value.trim() : '';
       if (!name) return;
@@ -555,30 +572,48 @@
         sel.appendChild(opt);
       });
 
+      // Submit with the name still in the field, then clear (form.submit() captures
+      // current field values synchronously before the HTTP request is queued)
+      form.target = 'jadmin-sink';
+      form.submit();
       if (nameInput) nameInput.value = '';
       toast('Section "' + name + '" added — refresh to assign articles');
 
     } else if (action === 'delete_section') {
+      e.preventDefault();
       var secPk  = form.querySelector('[name="section_pk"]').value;
       var secRow = document.querySelector('.section-row[data-pk="' + secPk + '"]');
-      var secName = secRow ? (secRow.querySelector('span') || {}).textContent : 'section';
+      var secName = secRow ? (secRow.querySelector('span') || {}).textContent.trim() : 'this section';
 
-      if (secRow) {
-        secRow.style.opacity = '0';
-        setTimeout(function () { secRow.remove(); }, 220);
-      }
+      var confirmFn = window.showConfirm || function (msg) { return Promise.resolve(window.confirm(msg)); };
+      confirmFn('Delete "' + secName + '"? Articles in it will become unsectioned.').then(function (ok) {
+        if (!ok) return;
 
-      // Remove option from all pickers; reset any that had it selected
-      document.querySelectorAll('select.section-picker').forEach(function (sel) {
-        if (sel.value === secPk) {
-          sel.value = '';
-          sel.classList.remove('section-picker--assigned');
+        if (secRow) {
+          secRow.style.opacity = '0';
+          setTimeout(function () {
+            secRow.remove();
+            var secList = document.getElementById('sections-list');
+            if (secList && secList.querySelectorAll('.section-row').length === 0) {
+              secList.style.display = 'none';
+            }
+          }, 220);
         }
-        var opt = sel.querySelector('option[value="' + secPk + '"]');
-        if (opt) opt.remove();
-      });
 
-      toast('Section deleted');
+        // Remove option from all pickers; reset any that had it selected
+        document.querySelectorAll('select.section-picker').forEach(function (sel) {
+          if (sel.value === secPk) {
+            sel.value = '';
+            sel.classList.remove('section-picker--assigned');
+          }
+          var opt = sel.querySelector('option[value="' + secPk + '"]');
+          if (opt) opt.remove();
+        });
+
+        form.target = 'jadmin-sink'; // re-assert in async callback
+        form.submit();
+        toast('Section deleted');
+      });
 
     } else if (action === 'reorder') {
       toast('Order saved');

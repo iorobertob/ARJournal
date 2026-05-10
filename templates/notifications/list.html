@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Notifications — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="notif-page">
+
+  <div class="notif-page__header">
+    <div>
+      <h1 class="notif-page__title">Notifications</h1>
+      <p class="notif-page__subtitle">
+        {% if unread_count %}{{ unread_count }} unread notification{{ unread_count|pluralize }}{% else %}You're all caught up{% endif %}
+      </p>
+    </div>
+    {% if unread_count %}
+    <form method="post" style="flex-shrink:0;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="mark_read">
+      <button type="submit" class="btn btn--secondary btn--small">Mark all as read</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if notifications %}
+  <div class="notif-list">
+    {% for n in notifications %}
+    <article class="notif-card {% if not n.read %}notif-card--unread{% endif %}">
+
+      <div class="notif-card__top">
+        <span class="notif-card__type">{{ n.get_notification_type_display }}</span>
+        {% if not n.read %}<span class="notif-card__new">New</span>{% endif %}
+        <time class="notif-card__time" datetime="{{ n.created_at|date:'c' }}">{{ n.created_at|timesince }} ago</time>
+      </div>
+
+      <p class="notif-card__message">{{ n.message }}</p>
+
+      {% if n.url %}
+      <div class="notif-card__footer">
+        <span class="notif-card__footer-gap"></span>
+        <a href="{{ n.url }}" class="notif-card__link">
+          View
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </div>
+      {% endif %}
+
+    </article>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="notif-empty">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    <p>No notifications yet.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

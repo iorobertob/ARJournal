@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Pre-print — {{ submission.title|truncatechars:40 }} — {{ journal.name }}{% endblock %}
+{% block body_class %}reviewer-workspace{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/article.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="workspace-layout">
+
+  <!-- Left nav: TOC -->
+  <aside class="workspace-nav" aria-label="Manuscript navigation">
+    <div class="workspace-nav__header">
+      <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.08em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Pre-print · Read only</p>
+      <h2 class="workspace-nav__title">{{ submission.title|truncatechars:60 }}</h2>
+    </div>
+    <nav class="workspace-toc">
+      <p class="workspace-toc__label">Contents</p>
+      <ul>
+        <li><a href="#abstract">Abstract</a></li>
+        {% for item in toc %}
+        <li><a href="#{{ item.id }}">{{ item.text|truncatechars:40 }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+    <div class="workspace-nav__annotations" style="margin-top:var(--spacing-6);">
+      <p class="workspace-toc__label">Annotations ({{ annotations|length }})</p>
+      {% for ann in annotations %}
+      <div class="annotation-thumb" style="cursor:pointer;" data-scroll-to="{{ ann.block_id }}">
+        {% if ann.selector_data.para %}¶{{ ann.selector_data.para }}{% if ann.selector_data.section %} · {{ ann.selector_data.section|truncatechars:30 }}{% endif %}{% else %}{{ ann.block_id }}{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <!-- Main: article (read-only) -->
+  <main class="workspace-main" id="manuscript-pane">
+    <div class="workspace-main__toolbar">
+      <span class="workspace-main__article-type">{{ submission.get_article_type_display }} · Pre-print</span>
+      <a href="{% url 'review_detail' review.pk %}" class="btn btn--small btn--ghost">&larr; Back to review</a>
+    </div>
+    <div class="workspace-article article-body-content" id="article-content">
+      {% if article_html %}
+        {{ article_html|safe }}
+      {% else %}
+        <div style="padding:2rem;max-width:60ch;">
+          <p style="font-family:var(--font-serif);font-size:1.05rem;color:var(--color-muted);">
+            The HTML pre-print is not available for this manuscript.
+          </p>
+        </div>
+      {% endif %}
+    </div>
+  </main>
+
+  <!-- Right panel: annotations only -->
+  <aside class="workspace-panel" style="overflow-y:auto;">
+    <div style="padding:var(--spacing-4) var(--spacing-5);border-bottom:1px solid var(--color-border);">
+      <p style="font-family:var(--font-sans);font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);">
+        Reviewer Annotations
+        {% if annotations %}<span class="badge" style="margin-left:var(--spacing-2);">{{ annotations|length }}</span>{% endif %}
+      </p>
+    </div>
+    <div class="workspace-annotations-panel">
+      {% for ann in annotations %}
+      <div class="annotation-item" data-scroll-to="{{ ann.block_id }}" style="cursor:pointer;" title="Click to jump to paragraph">
+        <p class="annotation-item__block">
+          {% if ann.selector_data.para %}
+            ¶{{ ann.selector_data.para }}{% if ann.selector_data.section %} · <em>{{ ann.selector_data.section }}</em>{% endif %}
+          {% else %}
+            {{ ann.block_id }}
+          {% endif %}
+        </p>
+        <p class="annotation-item__comment">{{ ann.comment }}</p>
+      </div>
+      {% empty %}
+      <p style="font-size:var(--size-sm);color:var(--color-muted);">No annotations were released for this review.</p>
+      {% endfor %}
+    </div>
+  </aside>
+
+</div>
+
+<script>
+(function () {
+  const articleEl = document.getElementById('article-content');
+  const pane      = document.getElementById('manuscript-pane');
+  if (!articleEl || !pane) return;
+
+  // ── Paragraph numbers ────────────────────────────────────────
+  articleEl.querySelectorAll('.article-paragraph[data-para]').forEach(function (p) {
+    const num = p.dataset.para;
+    if (!num) return;
+    const span = document.createElement('span');
+    span.className = 'para-num';
+    span.setAttribute('aria-hidden', 'true');
+    span.textContent = num;
+    p.insertBefore(span, p.firstChild);
+  });
+
+  // ── Mark annotated paragraphs ────────────────────────────────
+  var annotatedIds = {{ annotated_block_ids|safe }};
+  annotatedIds.forEach(function (bid) {
+    var el = articleEl.querySelector('[data-block-id="' + bid + '"]');
+    if (el) el.classList.add('annotation-target');
+  });
+
+  // ── Scroll + flash ───────────────────────────────────────────
+  // Uses scrollBy (relative) so workspace-layout's overflow:hidden
+  // does not intercept the scroll the way scrollTo/scrollIntoView can.
+  // Uses inline style transitions instead of CSS @keyframes to avoid
+  // animation-restart unreliability.
+  function scrollToBlock(blockId) {
+    var target = articleEl.querySelector('[data-block-id="' + blockId + '"]');
+    if (!target) return;
+
+    // Center target in the pane
+    var paneTop     = pane.getBoundingClientRect().top;
+    var targetMid   = target.getBoundingClientRect().top + target.offsetHeight / 2;
+    var desiredMid  = paneTop + pane.clientHeight / 2;
+    pane.scrollBy({ top: targetMid - desiredMid, behavior: 'smooth' });
+
+    // Bright flash → fade to resting colour
+    target.style.transition = 'none';
+    target.style.background = 'rgba(232,107,31,0.38)';
+    target.style.outline    = '2px solid #E86B1F';
+    target.style.outlineOffset = '3px';
+    target.style.borderRadius  = '3px';
+
+    setTimeout(function () {
+      target.style.transition = 'background 1.3s ease-out, outline-color 1.3s ease-out';
+      // Annotated paragraphs have a resting tint; others return to transparent
+      target.style.background  = target.classList.contains('annotation-target')
+        ? 'rgba(232,107,31,0.10)' : '';
+      target.style.outlineColor = 'transparent';
+    }, 60);
+
+    setTimeout(function () {
+      // Strip inline styles once fade is done
+      target.style.transition    = '';
+      target.style.outline       = '';
+      target.style.outlineOffset = '';
+      target.style.borderRadius  = '';
+      // Leave background alone — annotation-target class handles it via CSS
+      if (!target.classList.contains('annotation-target')) {
+        target.style.background = '';
+      }
+    }, 1500);
+  }
+
+  // ── Wire every card; mark ones whose block no longer exists ──
+  document.querySelectorAll('[data-scroll-to]').forEach(function (el) {
+    var bid    = el.dataset.scrollTo;
+    var exists = bid && !!articleEl.querySelector('[data-block-id="' + bid + '"]');
+
+    if (!exists) {
+      // Stale annotation — block was removed or article was re-ingested
+      el.style.opacity = '0.45';
+      el.style.cursor  = 'not-allowed';
+      el.title = 'This paragraph is not present in the current version of the manuscript.';
+      var note = document.createElement('p');
+      note.style.cssText = 'font-size:0.7rem;color:#999;margin-top:4px;font-style:italic;';
+      note.textContent   = 'Paragraph not found in current version';
+      el.appendChild(note);
+    } else {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', function () { scrollToBlock(bid); });
+    }
+  });
+
+  // ── URL fragment on load (e.g. /preprint/#blk_p_001) ─────────
+  if (location.hash) {
+    var bid = location.hash.slice(1);
+    var exists = bid && !!articleEl.querySelector('[data-block-id="' + bid + '"]');
+    if (exists) {
+      setTimeout(function () { scrollToBlock(bid); }, 350);
+    } else if (bid) {
+      // Surface a visible warning instead of silent failure
+      var warn = document.createElement('div');
+      warn.style.cssText = [
+        'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%)',
+        'background:#1a1a1a;color:#fff;font-size:0.8rem;padding:0.6rem 1.2rem',
+        'border-radius:6px;z-index:500;font-family:var(--font-sans)',
+        'box-shadow:0 4px 16px rgba(0,0,0,0.25);pointer-events:none'
+      ].join(';');
+      warn.textContent = 'The referenced paragraph (' + bid + ') is not present in the current manuscript version.';
+      document.body.appendChild(warn);
+      setTimeout(function () { warn.remove(); }, 5000);
+    }
+  }
+})();
+</script>
+{% endblock %}

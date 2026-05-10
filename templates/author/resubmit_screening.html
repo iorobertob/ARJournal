@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Correct &amp; Resubmit — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="wizard container">
+
+  <p><a href="{% url 'submission_detail' submission.pk %}">← Back to submission</a></p>
+  <h1 class="wizard__title">Correct &amp; Resubmit — {{ submission.title|truncatechars:60 }}</h1>
+
+  <p style="color:var(--color-muted);font-size:var(--size-sm);margin-bottom:var(--spacing-6);">
+    Your manuscript has been returned by the editorial team for technical corrections
+    before it can proceed to peer review. Please address the notes below and upload
+    a corrected version.
+  </p>
+
+  {% if screening and screening.notes %}
+  <div style="border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-4);margin-bottom:var(--spacing-6);background:var(--color-surface);">
+    <h2 style="margin-top:0;font-size:var(--size-base);">Notes from the Editorial Team</h2>
+    <div style="border-left:3px solid var(--color-accent);padding:var(--spacing-3);background:#fff;font-size:var(--size-sm);white-space:pre-line;">{{ screening.notes }}</div>
+  </div>
+  {% endif %}
+
+  {% if messages %}
+  {% for message in messages %}
+  <p style="color:#dc2626;font-size:var(--size-sm);margin-bottom:var(--spacing-3);">{{ message }}</p>
+  {% endfor %}
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="form">
+    {% csrf_token %}
+    <div class="form__group">
+      <label class="form__label" for="manuscript">Corrected Manuscript (.tex) <span>*</span></label>
+      <input class="form__file" type="file" id="manuscript" name="manuscript" accept=".tex,.txt" required>
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="notes">Note to Editors (optional)</label>
+      <textarea class="form__textarea" id="notes" name="notes" rows="4"
+                placeholder="Briefly describe what was corrected…"></textarea>
+    </div>
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary">Submit Corrected Manuscript</button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

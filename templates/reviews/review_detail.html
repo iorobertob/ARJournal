@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Review — {{ submission.title|truncatechars:40 }} — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:800px;">
+
+  <!-- Back link -->
+  <p style="margin-bottom:var(--spacing-4);">
+    {% if is_editor %}
+    <a href="{% url 'editorial_submission' submission.pk %}">&larr; Back to submission</a>
+    {% elif is_reviewer %}
+    <a href="{% url 'reviewer_dashboard' %}">&larr; My reviews</a>
+    {% else %}
+    <a href="{% url 'submission_detail' submission.pk %}">&larr; My submission</a>
+    {% endif %}
+  </p>
+
+  <!-- Header -->
+  <div style="margin-bottom:var(--spacing-6);">
+    <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);margin-bottom:var(--spacing-1);">
+      {% if is_author %}Peer Review Feedback{% elif is_reviewer %}Your Submitted Review{% else %}Review{% endif %}
+    </p>
+    <h1 style="margin:0 0 var(--spacing-2);font-size:var(--size-xl);">{{ submission.title }}</h1>
+    <div style="display:flex;flex-wrap:wrap;gap:var(--spacing-3);align-items:center;font-size:var(--size-sm);color:var(--color-muted);">
+      {% if not is_author %}
+      <span>Reviewer: <strong style="color:var(--color-text);">{{ review.reviewer.display_name }}</strong></span>
+      {% endif %}
+      {% if review.submitted_at %}
+      <span>Submitted: <strong style="color:var(--color-text);">{{ review.submitted_at|date:"d M Y, H:i" }}</strong></span>
+      {% endif %}
+      <span class="status-badge status-badge--{{ review.status }}">{{ review.get_status_display }}</span>
+      {% if review.recommendation %}
+      <span>Recommendation: <strong style="color:var(--color-accent);">{{ review.get_recommendation_display }}</strong></span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if is_author %}
+  <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:var(--spacing-4);margin-bottom:var(--spacing-6);font-size:var(--size-sm);">
+    This feedback has been reviewed and moderated by the editorial team before being shared with you. The reviewer's identity is not disclosed.
+  </div>
+  {% endif %}
+
+  <!-- Review body -->
+  <div style="display:flex;flex-direction:column;gap:var(--spacing-6);">
+
+    {% if review.expertise_self_rating and not is_author %}
+    <div>
+      <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Expertise self-rating</p>
+      <p>{{ review.expertise_self_rating }}/5</p>
+    </div>
+    {% endif %}
+
+    {% if review.summary %}
+    <div>
+      <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Summary</p>
+      <p style="line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.summary }}</p>
+    </div>
+    {% endif %}
+
+    {% if review.strengths %}
+    <div>
+      <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Strengths</p>
+      <p style="line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.strengths }}</p>
+    </div>
+    {% endif %}
+
+    {% if review.major_issues %}
+    <div>
+      <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Major Issues</p>
+      <p style="line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.major_issues }}</p>
+    </div>
+    {% endif %}
+
+    {% if review.minor_issues %}
+    <div>
+      <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Minor Issues</p>
+      <p style="line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.minor_issues }}</p>
+    </div>
+    {% endif %}
+
+    {% if review.ethical_concerns %}
+    <div>
+      <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Ethical Concerns</p>
+      <p style="line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.ethical_concerns }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Comments to author: author and reviewer see the moderated version if available -->
+    {% if is_author %}
+      {% if moderation and moderation.moderated_comments_to_author %}
+      <div>
+        <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Comments to Author</p>
+        <p style="line-height:var(--leading-loose);white-space:pre-wrap;">{{ moderation.moderated_comments_to_author }}</p>
+      </div>
+      {% elif review.comments_to_author %}
+      <div>
+        <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Comments to Author</p>
+        <p style="line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.comments_to_author }}</p>
+      </div>
+      {% endif %}
+    {% else %}
+      {% if review.comments_to_author %}
+      <div>
+        <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Comments to Author</p>
+        <p style="line-height:var(--leading-loose);white-space:pre-wrap;">{{ review.comments_to_author }}</p>
+      </div>
+      {% endif %}
+      {% if review.comments_to_editor and not is_reviewer %}
+      <div style="background:#fafafa;border:1px dashed var(--color-border);border-radius:6px;padding:var(--spacing-3);">
+        <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Confidential — Comments to Editor</p>
+        <p style="font-size:var(--size-sm);white-space:pre-wrap;line-height:var(--leading-loose);">{{ review.comments_to_editor }}</p>
+      </div>
+      {% endif %}
+    {% endif %}
+
+  </div>
+
+  <!-- Annotations -->
+  {% if annotations %}
+  <hr style="border:none;border-top:1px solid var(--color-border);margin:var(--spacing-8) 0;">
+  <section>
+    <h2 style="margin-bottom:var(--spacing-4);">
+      Paragraph Annotations
+      <span class="badge" style="margin-left:var(--spacing-2);">{{ annotations|length }}</span>
+    </h2>
+    {% if is_author %}
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-3);">
+      The reviewer left the following notes on specific paragraphs of your manuscript.
+    </p>
+    {% if not html_build %}
+    <p style="margin-bottom:var(--spacing-4);">
+      <a href="{% url 'review_author_preprint' review.pk %}" class="btn btn--small btn--secondary">View annotations in manuscript &rarr;</a>
+    </p>
+    {% endif %}
+    {% endif %}
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-3);">
+      {% for ann in annotations %}
+      <div style="display:flex;gap:var(--spacing-4);padding:var(--spacing-3) var(--spacing-4);border:1px solid var(--color-border);border-radius:8px;border-left:3px solid var(--color-accent);">
+        <div style="flex:1;">
+          <p style="font-size:var(--size-xs);font-family:var(--font-sans);color:var(--color-muted);margin-bottom:var(--spacing-1);">
+            {% if ann.selector_data.para %}
+              {% if is_editor and canonical_doc %}
+                <a href="{% url 'admin_preview' canonical_doc.pk %}#{{ ann.block_id }}" target="_blank" style="color:var(--color-accent);text-decoration:none;font-weight:600;">¶{{ ann.selector_data.para }}</a>
+              {% elif html_build %}
+                <a href="{% url 'article_detail' html_build.slug %}#{{ ann.block_id }}" target="_blank" style="color:var(--color-accent);text-decoration:none;font-weight:600;">¶{{ ann.selector_data.para }}</a>
+              {% elif is_author %}
+                <a href="{% url 'review_author_preprint' review.pk %}#{{ ann.block_id }}" style="color:var(--color-accent);text-decoration:none;font-weight:600;">¶{{ ann.selector_data.para }}</a>
+              {% else %}
+                <strong>¶{{ ann.selector_data.para }}</strong>
+              {% endif %}
+              {% if ann.selector_data.section %}&nbsp;&middot; <em>{{ ann.selector_data.section }}</em>{% endif %}
+            {% elif ann.block_id %}
+              {% if is_editor and canonical_doc %}
+                <a href="{% url 'admin_preview' canonical_doc.pk %}#{{ ann.block_id }}" target="_blank" style="color:var(--color-accent);text-decoration:none;">{{ ann.block_id }}</a>
+              {% else %}
+                {{ ann.block_id }}
+              {% endif %}
+            {% else %}—{% endif %}
+            &middot; {{ ann.created_at|date:"d M Y, H:i" }}
+          </p>
+          <p style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;margin:0;">{{ ann.comment }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% elif not is_author %}
+  <hr style="border:none;border-top:1px solid var(--color-border);margin:var(--spacing-8) 0;">
+  <p style="color:var(--color-muted);font-size:var(--size-sm);">No paragraph annotations on this review.</p>
+  {% endif %}
+
+  {% if is_editor %}
+  <div style="margin-top:var(--spacing-8);padding-top:var(--spacing-4);border-top:1px solid var(--color-border);">
+    <a href="{% url 'moderate_review' review.pk %}" class="btn btn--secondary">Go to Moderation</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

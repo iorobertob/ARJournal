@@ -24,9 +24,11 @@ def editorial_dashboard(request):
         status__in=[SubmissionStatus.SUBMITTED, SubmissionStatus.TECHNICAL_CHECK]
     ).order_by('submission_date')
     desk_queue = Submission.objects.filter(status=SubmissionStatus.DESK_REVIEW).order_by('submission_date')
-    under_review = Submission.objects.filter(status=SubmissionStatus.UNDER_REVIEW)
+    under_review = Submission.objects.filter(
+        status__in=[SubmissionStatus.UNDER_REVIEW, SubmissionStatus.REVISED]
+    )
     revision_pending = Submission.objects.filter(
-        status__in=[SubmissionStatus.REVISION_REQUESTED, SubmissionStatus.REVISED]
+        status=SubmissionStatus.REVISION_REQUESTED
     ).order_by('updated_at')
     accepted = Submission.objects.filter(status=SubmissionStatus.ACCEPTED)
 
@@ -71,7 +73,7 @@ def submission_detail(request, pk):
     reviews = (
         Review.objects
         .filter(invitation__submission=submission)
-        .select_related('invitation', 'invitation__reviewer')
+        .select_related('invitation', 'invitation__reviewer', 'revision')
         .prefetch_related('annotations')
         .order_by('invitation__sent_at')
     )
@@ -85,6 +87,8 @@ def submission_detail(request, pk):
         except Exception:
             pass
 
+    default_deadline = (timezone.now().date() + timezone.timedelta(days=21)).isoformat()
+
     return render(request, 'editorial/submission_detail.html', {
         'submission': submission,
         'revision': revision,
@@ -96,6 +100,7 @@ def submission_detail(request, pk):
         'reviews': reviews,
         'build': build,
         'canonical_doc': canonical_doc,
+        'default_deadline': default_deadline,
     })
 
 
@@ -239,3 +244,49 @@ def editor_search_json(request, submission_pk):
         for u in qs[:30]
     ]
     return JsonResponse({'results': results})
+
+
+@editorial_required
+@require_POST
+def reinvite_reviewer(request, pk, reviewer_pk):
+    """Create a fresh invitation for a previous-round reviewer on a revised submission."""
+    from apps.accounts.models import User
+    from apps.reviewers.models import ReviewerInvitation
+    from apps.submissions.models import SubmissionStatus
+
+    submission = get_object_or_404(Submission, pk=pk)
+    reviewer = get_object_or_404(User, pk=reviewer_pk)
+
+    deadline_str = request.POST.get('deadline')
+    try:
+        from datetime import date
+        deadline = date.fromisoformat(deadline_str) if deadline_str else (
+            timezone.now().date() + timezone.timedelta(days=21)
+        )
+    except ValueError:
+        deadline = timezone.now().date() + timezone.timedelta(days=21)
+
+    inv = ReviewerInvitation.objects.create(
+        submission=submission,
+        reviewer=reviewer,
+        deadline=deadline,
+    )
+
+    from apps.notifications.tasks import notify_reviewer_invited
+    notify_reviewer_invited(inv.pk)
+
+    # Transition from revised → under_review now that we're actively re-inviting
+    if submission.status == SubmissionStatus.REVISED:
+        submission.status = SubmissionStatus.UNDER_REVIEW
+        submission.save()
+
+    from apps.notifications.models import AuditEvent
+    AuditEvent.objects.create(
+        submission=submission,
+        actor=request.user,
+        event_type='reviewer_reinvited',
+        payload={'note': f'{reviewer.display_name} re-invited for revised submission'},
+    )
+
+    messages.success(request, f'{reviewer.display_name} has been re-invited (deadline {deadline}).')
+    return redirect('editorial_submission', pk=pk)

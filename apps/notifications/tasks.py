@@ -328,6 +328,14 @@ def notify_reviewer_invited(invitation_pk):
     except Exception as exc:
         _log_email(inv.reviewer.email, subject, 'failed', str(exc))
 
+    from .models import Notification, NotificationType
+    Notification.objects.create(
+        user=inv.reviewer,
+        notification_type=NotificationType.REVIEWER_INVITED,
+        message=f'You have been invited to review "{inv.submission.title[:80]}" — deadline {deadline_str}.',
+        url=invitation_url,
+    )
+
 
 @shared_task
 def notify_review_submitted(review_pk):
@@ -509,7 +517,58 @@ def notify_revision_submitted(revision_pk):
     except Exception:
         pass
 
-    # In-app notification for the author confirming receipt
+    # \u2500\u2500 Email and badge active reviewers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    from apps.reviewers.models import ReviewerInvitation, InvitationStatus
+    active_invitations = (
+        ReviewerInvitation.objects
+        .filter(submission=submission, status=InvitationStatus.ACCEPTED)
+        .select_related('reviewer')
+    )
+    reviewer_subject = f'Revised manuscript submitted \u2014 {submission.title[:65]}'
+    reviewer_url = f'{_site_url()}/review/my-reviews/'
+
+    for inv in active_invitations:
+        reviewer = inv.reviewer
+        reviewer_html = (
+            _greeting(reviewer.display_name)
+            + _p(f'The author of a submission you reviewed has submitted a revised '
+                 f'manuscript (version {revision.version}).')
+            + _detail_box('Submission', submission.title)
+            + _p('The editorial team will be in touch if a further round of review '
+                 'is required. You can view your completed reviews from your dashboard.')
+            + _btn(reviewer_url, 'Go to my reviews')
+            + _signature()
+        )
+        reviewer_plain = (
+            f'Dear {reviewer.display_name},\n\n'
+            f'The author of a submission you reviewed has submitted a revised manuscript '
+            f'(version {revision.version}).\n\n'
+            f'Submission: {submission.title}\n\n'
+            f'The editorial team will be in touch if a further round of review is required.\n\n'
+            f'Your reviewer dashboard:\n{reviewer_url}\n\n'
+            f'Warm regards,\nThe Trans/Act Editorial Office'
+        )
+        try:
+            _send(reviewer.email, reviewer_subject, reviewer_plain, reviewer_html)
+            _log_email(reviewer.email, reviewer_subject, 'sent')
+        except Exception as exc:
+            _log_email(reviewer.email, reviewer_subject, 'failed', str(exc))
+
+        try:
+            from .models import Notification
+            Notification.objects.create(
+                user=reviewer,
+                notification_type='revision_submitted',
+                message=(
+                    f'A revised manuscript (v{revision.version}) has been submitted '
+                    f'for \u201c{submission.title[:50]}\u201d.'
+                ),
+                url='/review/my-reviews/',
+            )
+        except Exception:
+            pass
+
+    # \u2500\u2500 In-app notification for the author confirming receipt \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     try:
         from .models import Notification
         Notification.objects.create(

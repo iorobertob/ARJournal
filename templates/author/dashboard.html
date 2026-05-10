@@ -28,6 +28,9 @@
             {% else %}
             <span class="status-badge status-badge--{{ sub.status }}">{{ sub.get_status_display }}</span>
             {% endif %}
+            {% if sub.has_released_reviews and sub.status == 'under_review' %}
+            <span style="display:inline-block;margin-left:var(--spacing-2);font-size:var(--size-xs);font-weight:600;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;">Feedback available</span>
+            {% endif %}
           </td>
           <td>{{ sub.submission_date|date:"d M Y"|default:"—" }}</td>
           <td>

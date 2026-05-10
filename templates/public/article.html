@@ -385,4 +385,35 @@ function doCopy(fmt, btn) {
   }
 }
 </script>
+
+<style>
+@keyframes anchor-flash {
+  0%   { background-color: rgba(232, 107, 31, 0.30); outline: 2px solid rgba(232, 107, 31, 0.50); }
+  100% { background-color: transparent;               outline: 2px solid transparent; }
+}
+.anchor-highlight {
+  animation: anchor-flash 2.2s ease-out forwards;
+  border-radius: 3px;
+  outline-offset: 4px;
+}
+</style>
+<script>
+(function () {
+  function flash() {
+    var hash = window.location.hash;
+    if (!hash) return;
+    var el = document.getElementById(hash.slice(1));
+    if (!el) return;
+    el.classList.remove('anchor-highlight');
+    void el.offsetWidth; /* force reflow so re-entering same hash re-triggers */
+    el.classList.add('anchor-highlight');
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', flash);
+  } else {
+    flash();
+  }
+  window.addEventListener('hashchange', flash);
+})();
+</script>
 {% endblock %}

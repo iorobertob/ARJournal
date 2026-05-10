@@ -163,6 +163,43 @@
   }
   </script>
 
+  <!-- Re-invite Previous Reviewers (visible when submission is revised) -->
+  {% if submission.status == 'revised' %}
+  {% if invitations %}
+  <section class="editorial-section" style="border-left:4px solid #2563eb;">
+    <h2 style="margin-top:0;margin-bottom:var(--spacing-2);">Re-invite Reviewers from Previous Round</h2>
+    <p style="color:var(--color-muted);font-size:var(--size-sm);margin-bottom:var(--spacing-4);">
+      The author has resubmitted. These reviewers accepted an invitation in the previous round.
+      Use the forms below to send them a fresh invitation — or proceed to the Reviewer Suggestions panel to invite new ones.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-3);">
+      {% for inv in invitations %}
+      {% if inv.status == 'accepted' %}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-4);padding:var(--spacing-3) var(--spacing-4);background:#f8fafc;border:1px solid var(--color-border);border-radius:8px;flex-wrap:wrap;">
+        <div>
+          <p style="margin:0;font-weight:600;font-size:var(--size-sm);">{{ inv.reviewer.display_name }}</p>
+          <p style="margin:0;color:var(--color-muted);font-size:var(--size-xs);">{{ inv.reviewer.email }}
+            {% if inv.review.recommendation %}
+            &middot; Round 1 recommendation: <strong>{{ inv.review.get_recommendation_display }}</strong>
+            {% endif %}
+          </p>
+        </div>
+        <form method="post" action="{% url 'reinvite_reviewer' submission.pk inv.reviewer.pk %}"
+              style="display:flex;align-items:center;gap:var(--spacing-2);flex-wrap:wrap;">
+          {% csrf_token %}
+          <label style="font-size:var(--size-xs);color:var(--color-muted);">Deadline</label>
+          <input type="date" name="deadline" value="{{ default_deadline }}"
+                 style="padding:0.3rem 0.5rem;border:1px solid var(--color-border);border-radius:5px;font-size:var(--size-sm);">
+          <button type="submit" class="btn btn--primary btn--small">Re-invite</button>
+        </form>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% endif %}
+
   <!-- Reviewer Suggestions -->
   <section class="editorial-section" x-data="reviewerPanel({{ submission.pk }})">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--spacing-4);">
@@ -187,53 +224,71 @@
 
     <!-- Add / Replace Reviewer Modal -->
     <div x-show="modalOpen" x-cloak
-         style="position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);"
+         class="modal-backdrop"
          @click.self="closeModal()">
-      <div style="background:#fff;border-radius:12px;width:min(600px,95vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
-        <!-- Modal header -->
-        <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;">
-          <h3 style="margin:0;font-family:var(--font-serif);font-size:1.1rem;" x-text="replacePk ? 'Replace Reviewer' : 'Add Reviewer'"></h3>
-          <button @click="closeModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--color-muted);">&times;</button>
+      <div style="background:var(--color-bg);border-radius:12px;width:min(600px,100%);max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.22);overflow:hidden;">
+
+        <!-- Header -->
+        <div style="padding:var(--spacing-6);border-bottom:1px solid var(--color-border);display:flex;align-items:flex-start;justify-content:space-between;gap:var(--spacing-4);flex-shrink:0;">
+          <div>
+            <h3 style="margin:0 0 var(--spacing-1);font-family:var(--font-serif);font-size:var(--size-xl);font-weight:400;color:var(--color-text);"
+                x-text="replacePk ? 'Replace Reviewer' : 'Add Reviewer'"></h3>
+            <p style="margin:0;font-size:var(--size-xs);color:var(--color-muted);line-height:1.4;"
+               x-text="replacePk ? 'Search for a reviewer to take this slot.' : 'Search for a reviewer to add to the suggestion list.'"></p>
+          </div>
+          <button @click="closeModal()" aria-label="Close"
+                  style="flex-shrink:0;display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:none;border:1px solid var(--color-border);border-radius:var(--radius);cursor:pointer;color:var(--color-muted);font-size:1.1rem;line-height:1;transition:border-color 0.15s,color 0.15s;"
+                  onmouseover="this.style.borderColor='var(--color-text)';this.style.color='var(--color-text)';"
+                  onmouseout="this.style.borderColor='var(--color-border)';this.style.color='var(--color-muted)';">&times;</button>
         </div>
+
         <!-- Search -->
-        <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--color-border);">
+        <div style="padding:var(--spacing-4) var(--spacing-6);border-bottom:1px solid var(--color-border);flex-shrink:0;">
           <input type="text" x-model="query" @input.debounce.300ms="search()"
                  placeholder="Search by name, email or expertise…"
-                 style="width:100%;padding:0.55rem 0.75rem;border:1px solid var(--color-border);border-radius:6px;font-size:0.9rem;box-sizing:border-box;"
-                 x-ref="searchInput">
+                 x-ref="searchInput"
+                 style="width:100%;box-sizing:border-box;padding:var(--spacing-3) var(--spacing-4);border:1px solid var(--color-border);border-radius:var(--radius);font-family:var(--font-sans);font-size:var(--size-sm);color:var(--color-text);background:var(--color-bg);outline:none;transition:border-color 0.15s,box-shadow 0.15s;"
+                 onfocus="this.style.borderColor='var(--color-accent)';this.style.boxShadow='0 0 0 3px rgba(232,107,31,0.08)';"
+                 onblur="this.style.borderColor='var(--color-border)';this.style.boxShadow='none';">
         </div>
-        <!-- Results list -->
-        <div style="overflow-y:auto;flex:1;padding:0.5rem 0;">
+
+        <!-- Results -->
+        <div style="overflow-y:auto;flex:1;min-height:0;">
           <template x-if="loading">
-            <p style="padding:1.5rem;text-align:center;color:var(--color-muted);font-size:0.875rem;">Searching…</p>
+            <p style="margin:0;padding:var(--spacing-10);text-align:center;font-size:var(--size-sm);color:var(--color-muted);">Searching…</p>
           </template>
           <template x-if="!loading && results.length === 0 && query.length > 0">
-            <p style="padding:1.5rem;text-align:center;color:var(--color-muted);font-size:0.875rem;">No reviewers found.</p>
+            <p style="margin:0;padding:var(--spacing-10);text-align:center;font-size:var(--size-sm);color:var(--color-muted);">No reviewers found.</p>
           </template>
           <template x-if="!loading && results.length === 0 && query.length === 0">
-            <p style="padding:1.5rem;text-align:center;color:var(--color-muted);font-size:0.875rem;">Start typing to search reviewers.</p>
+            <p style="margin:0;padding:var(--spacing-10);text-align:center;font-size:var(--size-sm);color:var(--color-muted);">Start typing to search reviewers.</p>
           </template>
           <template x-for="r in results" :key="r.id">
-            <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem 1.5rem;cursor:pointer;border-bottom:1px solid var(--color-border);"
-                 :style="selectedId === r.id ? 'background:#fff7f2;' : ''"
-                 @click="selectReviewer(r)">
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.875rem 1.5rem;cursor:pointer;border-bottom:1px solid var(--color-border-light);transition:background 0.1s;"
+                 :style="{ background: selectedId === r.id ? 'var(--color-accent-light)' : '' }"
+                 @click="selectReviewer(r)"
+                 @mouseenter="if(selectedId !== r.id) $el.style.background='var(--color-surface)';"
+                 @mouseleave="if(selectedId !== r.id) $el.style.background='';">
               <div style="flex:1;min-width:0;">
-                <div style="font-weight:600;font-size:0.9rem;" x-text="r.name"></div>
-                <div style="font-size:0.75rem;color:var(--color-muted);" x-text="r.email"></div>
+                <p style="margin:0 0 2px;font-size:0.875rem;font-weight:600;color:var(--color-text);" x-text="r.name"></p>
+                <p style="margin:0;font-size:0.75rem;color:var(--color-muted);" x-text="r.email"></p>
               </div>
-              <div style="flex:2;min-width:0;">
-                <div style="font-size:0.78rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" x-text="r.expertise || '—'"></div>
+              <div style="flex:1;min-width:0;">
+                <p style="margin:0;font-size:0.75rem;color:var(--color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" x-text="r.expertise || '—'"></p>
               </div>
-              <div style="flex-shrink:0;">
-                <span x-show="selectedId === r.id" style="color:var(--color-accent);font-weight:600;font-size:0.85rem;">&#10003; Selected</span>
+              <div style="flex-shrink:0;width:72px;text-align:right;">
+                <span x-show="selectedId === r.id"
+                      style="font-size:0.75rem;font-weight:600;color:var(--color-accent);">&#10003; Selected</span>
               </div>
             </div>
           </template>
         </div>
+
         <!-- Footer -->
-        <div style="padding:1rem 1.5rem;border-top:1px solid var(--color-border);display:flex;justify-content:flex-end;gap:0.75rem;">
+        <div style="padding:var(--spacing-4) var(--spacing-6);border-top:1px solid var(--color-border);display:flex;align-items:center;justify-content:flex-end;gap:var(--spacing-3);flex-shrink:0;background:var(--color-surface);">
           <button @click="closeModal()" class="btn btn--secondary btn--small">Cancel</button>
-          <form method="post" :action="formAction" @submit="if(!selectedId){ $event.preventDefault(); showAlert('Please select a reviewer.'); }">
+          <form method="post" :action="formAction"
+                @submit="if(!selectedId){ $event.preventDefault(); showAlert('Please select a reviewer.'); }">
             {% csrf_token %}
             <input type="hidden" name="reviewer_id" :value="selectedId">
             <input type="hidden" name="replace_suggestion_pk" :value="replacePk || ''">
@@ -241,6 +296,7 @@
                     x-text="replacePk ? 'Confirm Replace' : 'Add to List'"></button>
           </form>
         </div>
+
       </div>
     </div>
   </section>
@@ -303,31 +359,43 @@
       <!-- Review header -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--spacing-3);padding:var(--spacing-4);background:var(--color-surface);border-bottom:1px solid var(--color-border);">
         <div>
+          {% if review.status != 'draft' %}
+          <a href="{% url 'moderate_review' review.pk %}" style="font-weight:600;font-size:var(--size-base);color:var(--color-text);text-decoration:none;">{{ review.reviewer.display_name }}</a>
+          {% else %}
           <span style="font-weight:600;font-size:var(--size-base);">{{ review.reviewer.display_name }}</span>
+          {% endif %}
           <span style="color:var(--color-muted);font-size:var(--size-sm);margin-left:var(--spacing-2);">{{ review.reviewer.email }}</span>
           <div style="margin-top:var(--spacing-1);display:flex;flex-wrap:wrap;align-items:center;gap:var(--spacing-2);">
             <span class="status-badge status-badge--{{ review.status }}">{{ review.get_status_display }}</span>
+            {% if review.revision %}
+            <span style="font-size:var(--size-xs);font-weight:600;color:var(--color-muted);background:var(--color-surface);border:1px solid var(--color-border);border-radius:4px;padding:1px 6px;">v{{ review.revision.version }}</span>
+            {% endif %}
             {% if review.recommendation %}
             <span style="font-size:var(--size-sm);font-weight:600;color:var(--color-accent);">&#8594; {{ review.get_recommendation_display }}</span>
             {% endif %}
           </div>
         </div>
-        <div style="text-align:right;font-size:var(--size-sm);color:var(--color-muted);flex-shrink:0;">
-          {% if review.submitted_at %}
-          <div><strong style="color:var(--color-text);">Submitted {{ review.submitted_at|date:"d M Y, H:i" }}</strong></div>
-          {% elif review.status == 'draft' %}
-          <div>In progress — not yet submitted</div>
+        <div style="display:flex;align-items:center;gap:var(--spacing-4);">
+          <div style="text-align:right;font-size:var(--size-sm);color:var(--color-muted);">
+            {% if review.submitted_at %}
+            <div><strong style="color:var(--color-text);">Submitted {{ review.submitted_at|date:"d M Y, H:i" }}</strong></div>
+            {% elif review.status == 'draft' %}
+            <div>In progress — not yet submitted</div>
+            {% endif %}
+            <div style="margin-top:2px;">Invited {{ review.invitation.sent_at|date:"d M Y" }} &middot; Deadline {{ review.invitation.deadline|date:"d M Y" }}</div>
+            {% with ann_count=review.annotations.all|length %}
+            {% if ann_count %}
+            <div style="margin-top:2px;">{{ ann_count }} annotation{{ ann_count|pluralize }}</div>
+            {% endif %}
+            {% endwith %}
+          </div>
+          {% if review.status != 'draft' %}
+          <a href="{% url 'moderate_review' review.pk %}" class="btn btn--small btn--secondary" style="flex-shrink:0;">Open review ↗</a>
           {% endif %}
-          <div style="margin-top:2px;">Invited {{ review.invitation.sent_at|date:"d M Y" }} &middot; Deadline {{ review.invitation.deadline|date:"d M Y" }}</div>
-          {% with ann_count=review.annotations.all|length %}
-          {% if ann_count %}
-          <div style="margin-top:2px;">{{ ann_count }} annotation{{ ann_count|pluralize }}</div>
-          {% endif %}
-          {% endwith %}
         </div>
       </div>
 
-      <!-- Review body (only for submitted/moderated/released) -->
+      <!-- Review body (collapsible, only for submitted/moderated/released) -->
       {% if review.status != 'draft' %}
       <details {% if review.status == 'submitted' or review.status == 'moderation_required' %}open{% endif %}>
         <summary style="padding:var(--spacing-3) var(--spacing-4);cursor:pointer;font-size:var(--size-sm);color:var(--color-muted);list-style:none;display:flex;align-items:center;gap:var(--spacing-2);">
@@ -391,15 +459,28 @@
           </div>
           {% endif %}
 
+          {% with annotations=review.annotations.all %}
+          {% if annotations %}
+          <div>
+            <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Paragraph Annotations ({{ annotations|length }})</p>
+            <div style="display:flex;flex-direction:column;gap:var(--spacing-2);">
+              {% for ann in annotations %}
+              <div style="padding:var(--spacing-3) var(--spacing-4);border:1px solid var(--color-border);border-radius:6px;{% if ann.released_to_author %}background:#f0fdf4;border-color:#86efac;{% endif %}">
+                <p style="font-size:var(--size-xs);color:var(--color-muted);margin-bottom:4px;">
+                  {% if ann.selector_data.para %}¶{{ ann.selector_data.para }}{% if ann.selector_data.section %} &middot; <em>{{ ann.selector_data.section }}</em>{% endif %}{% else %}{{ ann.block_id }}{% endif %}
+                  &middot; {{ ann.created_at|date:"d M Y, H:i" }}
+                  {% if ann.released_to_author %}&middot; <span style="color:#16a34a;font-weight:600;">Released to author</span>{% else %}&middot; <span style="color:var(--color-muted);">Internal</span>{% endif %}
+                </p>
+                <p style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;margin:0;">{{ ann.comment }}</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          {% endwith %}
+
         </div>
       </details>
-      {% endif %}
-
-      <!-- Action row -->
-      {% if review.status == 'submitted' or review.status == 'moderation_required' %}
-      <div style="padding:var(--spacing-3) var(--spacing-4);border-top:1px solid var(--color-border);background:var(--color-surface);">
-        <a href="{% url 'moderate_review' review.pk %}" class="btn btn--small btn--secondary">Moderate Review</a>
-      </div>
       {% endif %}
 
     </div>

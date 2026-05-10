@@ -8,4 +8,5 @@ urlpatterns = [
     path('submission/<int:pk>/decide/', views.record_decision, name='editorial_decide'),
     path('submission/<int:submission_pk>/assign/', views.assign_editor, name='assign_editor'),
     path('submission/<int:submission_pk>/editors/search/', views.editor_search_json, name='editor_search_json'),
+    path('submission/<int:pk>/reinvite/<int:reviewer_pk>/', views.reinvite_reviewer, name='reinvite_reviewer'),
 ]

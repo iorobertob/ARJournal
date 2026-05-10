@@ -1,28 +1,87 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Review Invitation — {{ journal.name }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
 
 {% block content %}
-<section class="invitation container">
-  <h1>Review Invitation</h1>
-  <p>You have been invited to review the following submission:</p>
-  <div class="invitation__submission">
-    <h2>{{ invitation.submission.title }}</h2>
-    <p><strong>Type:</strong> {{ invitation.submission.get_article_type_display }}</p>
-    <p><strong>Keywords:</strong> {{ invitation.submission.keywords|join:", " }}</p>
-    <p><strong>Abstract:</strong> {{ invitation.submission.abstract|truncatewords:80 }}</p>
-    <p><strong>Review deadline:</strong> {{ invitation.deadline }}</p>
+<div class="container" style="padding-block:var(--spacing-16);">
+<section style="max-width:640px;margin-inline:auto;">
+
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <div style="text-align:center;margin-bottom:var(--spacing-12);">
+    <p style="font-size:var(--size-xs);font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-accent);margin-bottom:var(--spacing-3);">{{ journal.name }}</p>
+    <h1 style="font-family:var(--font-serif);font-size:var(--size-3xl);font-weight:400;color:var(--color-text);margin:0 0 var(--spacing-4);">Peer Review Invitation</h1>
+    <p style="font-size:var(--size-base);color:var(--color-muted);line-height:1.6;margin:0;">
+      We would be honoured to have your expert assessment of the following manuscript.
+    </p>
   </div>
-  <p>Please accept or decline this invitation. If you have a conflict of interest, please decline and explain below.</p>
-  <form method="post" class="form">
-    {% csrf_token %}
-    <div class="form__group">
-      <label class="form__label" for="decline_reason">If declining, please provide a reason (optional):</label>
-      <textarea class="form__textarea" id="decline_reason" name="decline_reason" rows="3"></textarea>
+
+  <!-- ── Submission card ────────────────────────────────────────── -->
+  <div style="background:var(--color-surface-warm);border:1px solid var(--color-border);border-radius:var(--radius);padding:var(--spacing-6);margin-bottom:var(--spacing-8);">
+
+    <!-- Title -->
+    <h2 style="font-family:var(--font-serif);font-size:var(--size-xl);font-weight:400;line-height:1.4;color:var(--color-text);margin:0 0 var(--spacing-6);">{{ invitation.submission.title }}</h2>
+
+    <!-- Metadata row -->
+    <div style="display:flex;flex-wrap:wrap;gap:var(--spacing-4) var(--spacing-8);padding-bottom:var(--spacing-6);margin-bottom:var(--spacing-6);border-bottom:1px solid var(--color-border);">
+      <div>
+        <p style="font-size:var(--size-xs);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-light);margin:0 0 var(--spacing-1);">Article type</p>
+        <p style="font-size:var(--size-sm);color:var(--color-text);margin:0;">{{ invitation.submission.get_article_type_display }}</p>
+      </div>
+      {% if invitation.submission.keywords %}
+      <div>
+        <p style="font-size:var(--size-xs);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-light);margin:0 0 var(--spacing-1);">Keywords</p>
+        <p style="font-size:var(--size-sm);color:var(--color-text);margin:0;">{{ invitation.submission.keywords|join:", " }}</p>
+      </div>
+      {% endif %}
     </div>
-    <div class="form__actions">
-      <button type="submit" name="response" value="accept" class="btn btn--primary">Accept Invitation</button>
-      <button type="submit" name="response" value="decline" class="btn btn--ghost">Decline</button>
+
+    <!-- Abstract -->
+    <div style="margin-bottom:var(--spacing-6);">
+      <p style="font-size:var(--size-xs);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-light);margin:0 0 var(--spacing-2);">Abstract</p>
+      <p style="font-size:var(--size-sm);line-height:1.75;color:var(--color-text);margin:0;">{{ invitation.submission.abstract|truncatewords:80 }}</p>
+    </div>
+
+    <!-- Deadline pill -->
+    <div style="display:inline-flex;align-items:center;gap:var(--spacing-2);background:var(--color-accent-light);border:1px solid rgba(232,107,31,0.25);border-radius:var(--radius);padding:var(--spacing-2) var(--spacing-4);">
+      <span style="font-size:var(--size-xs);font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--color-accent);">Review deadline</span>
+      <span style="font-size:var(--size-sm);font-weight:600;color:var(--color-text);">{{ invitation.deadline|date:"j F Y" }}</span>
+    </div>
+
+  </div>
+
+  <!-- ── Intro copy ──────────────────────────────────────────────── -->
+  <p style="font-size:var(--size-base);color:var(--color-text);line-height:1.7;margin-bottom:var(--spacing-8);">
+    Please read the abstract above and let us know whether you are able to take on this review.
+    If you have a conflict of interest with the authors or the subject matter, please decline and
+    briefly explain — this helps us with future matching.
+  </p>
+
+  <!-- ── Response form ──────────────────────────────────────────── -->
+  <form method="post" style="display:flex;flex-direction:column;gap:var(--spacing-6);">
+    {% csrf_token %}
+
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-2);width:100%;">
+      <label for="decline_reason"
+             style="font-size:var(--size-sm);font-weight:500;color:var(--color-text);">
+        Reason for declining
+        <span style="font-weight:400;color:var(--color-muted);"> — optional</span>
+      </label>
+      <textarea id="decline_reason" name="decline_reason" rows="4"
+                placeholder="e.g. conflict of interest, current workload, outside my expertise…"
+                style="width:100%;box-sizing:border-box;padding:var(--spacing-3);border:1px solid var(--color-border);border-radius:var(--radius);font-family:var(--font-sans);font-size:var(--size-sm);color:var(--color-text);background:var(--color-bg);line-height:1.6;resize:vertical;transition:border-color 0.15s,box-shadow 0.15s;"
+                onfocus="this.style.borderColor='var(--color-accent)';this.style.boxShadow='0 0 0 3px rgba(232,107,31,0.08)';"
+                onblur="this.style.borderColor='var(--color-border)';this.style.boxShadow='none';"></textarea>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--spacing-4);">
+      <button type="submit" name="response" value="accept" class="btn btn--primary"
+              style="flex:1 1 auto;justify-content:center;padding-block:var(--spacing-3);">Accept Invitation</button>
+      <button type="submit" name="response" value="decline" class="btn btn--secondary"
+              style="flex:1 1 auto;justify-content:center;padding-block:var(--spacing-3);">Decline</button>
     </div>
   </form>
+
 </section>
+</div>
 {% endblock %}

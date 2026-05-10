@@ -20,6 +20,12 @@ class Recommendation(models.TextChoices):
 
 class Review(models.Model):
     invitation = models.OneToOneField(ReviewerInvitation, on_delete=models.CASCADE, related_name='review')
+    revision = models.ForeignKey(
+        'submissions.SubmissionRevision',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='reviews',
+    )
     status = models.CharField(max_length=30, choices=ReviewStatus.choices, default=ReviewStatus.DRAFT)
     recommendation = models.CharField(max_length=20, choices=Recommendation.choices, blank=True)
     scores = models.JSONField(default=dict, blank=True)

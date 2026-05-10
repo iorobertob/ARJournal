@@ -29,7 +29,7 @@
         <div class="notif-dropdown__header">
           <span class="notif-dropdown__title">Notifications</span>
           {% if unread_notifications_count %}
-          <button class="notif-dropdown__mark-read" @click="markRead()">Mark all read</button>
+          <button class="notif-dropdown__mark-read" @click="markAllRead()">Mark all read</button>
           {% endif %}
         </div>
 
@@ -38,7 +38,8 @@
           {% for n in recent_notifications %}
           <a href="{{ n.url|default:'#' }}"
              class="notif-item {% if not n.read %}notif-item--unread{% endif %}"
-             @click="markRead()">
+             id="notif-item-{{ n.pk }}"
+             @click.prevent="openNotif($el, {{ n.pk }}, '{{ n.url|default:'' }}')">
             <span class="notif-item__msg">{{ n.message }}</span>
             <span class="notif-item__time">{{ n.created_at|timesince }} ago</span>
           </a>
@@ -85,7 +86,28 @@ function notifPanel() {
   return {
     open: false,
     toggle() { this.open = !this.open; },
-    markRead() {
+
+    // Mark a single notification as read, then navigate to its URL.
+    openNotif(el, pk, url) {
+      if (el.classList.contains('notif-item--unread')) {
+        el.classList.remove('notif-item--unread');
+        fetch(`/notifications/${pk}/read/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': this._csrf() },
+        }).then(() => {
+          const badge = document.getElementById('notif-badge');
+          if (badge) {
+            const count = parseInt(badge.textContent, 10) - 1;
+            if (count <= 0) badge.remove();
+            else badge.textContent = count;
+          }
+        });
+      }
+      if (url) window.location.href = url;
+    },
+
+    // Mark all as read (used by the "Mark all read" button).
+    markAllRead() {
       fetch('{% url "mark_notifications_read" %}', {
         method: 'POST',
         headers: { 'X-CSRFToken': this._csrf() },
@@ -95,6 +117,7 @@ function notifPanel() {
         document.querySelectorAll('.notif-item--unread').forEach(el => el.classList.remove('notif-item--unread'));
       });
     },
+
     _csrf() {
       const c = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
       return c ? c.split('=')[1] : '';

@@ -94,18 +94,24 @@ def send_invitations(request, submission_pk):
         deadline_date = deadline or (timezone.now().date() + timezone.timedelta(days=21))
         sent_count = 0
         for suggestion in approved:
-            inv, created = ReviewerInvitation.objects.get_or_create(
-                submission=submission,
-                reviewer=suggestion.reviewer,
-                defaults={'deadline': deadline_date},
+            inv = (
+                ReviewerInvitation.objects
+                .filter(submission=submission, reviewer=suggestion.reviewer)
+                .order_by('-sent_at')
+                .first()
             )
-            if not created and deadline:
-                # Update deadline on resend
-                inv.deadline = deadline_date
-                inv.save(update_fields=['deadline'])
+            created = inv is None
             if created:
+                inv = ReviewerInvitation.objects.create(
+                    submission=submission,
+                    reviewer=suggestion.reviewer,
+                    deadline=deadline_date,
+                )
                 suggestion.status = SuggestionStatus.INVITED
                 suggestion.save()
+            elif deadline:
+                inv.deadline = deadline_date
+                inv.save(update_fields=['deadline'])
             # Always send/resend the notification email
             from apps.notifications.tasks import notify_reviewer_invited
             notify_reviewer_invited(inv.pk)

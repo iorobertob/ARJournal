@@ -9,7 +9,7 @@ def journal_config(request):
         from apps.notifications.models import Notification
         qs = Notification.objects.filter(user=request.user).order_by('-created_at')
         unread_notifications_count = qs.filter(read=False).count()
-        recent_notifications = list(qs[:6])
+        recent_notifications = list(qs[:5])
     return {
         'journal': JournalConfig.get(),
         'current_issue': current_issue,

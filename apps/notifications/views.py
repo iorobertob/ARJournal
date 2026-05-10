@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.views.decorators.http import require_POST
 from .models import Notification
 
 
@@ -22,6 +23,14 @@ def notification_list(request):
 
 
 @login_required
+@require_POST
 def mark_all_read(request):
     Notification.objects.filter(user=request.user, read=False).update(read=True)
+    return JsonResponse({'status': 'ok'})
+
+
+@login_required
+@require_POST
+def mark_one_read(request, pk):
+    Notification.objects.filter(user=request.user, pk=pk).update(read=True)
     return JsonResponse({'status': 'ok'})

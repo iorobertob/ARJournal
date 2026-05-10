@@ -60,6 +60,9 @@
         <a href="{% url 'editorial_submission' sub.pk %}" class="submission-card__title">{{ sub.title|truncatechars:60 }}</a>
         <p class="submission-card__meta">{{ sub.author.display_name }}</p>
         <span class="status-badge status-badge--{{ sub.status }}">{{ sub.get_status_display }}</span>
+        {% if sub.status == 'revised' %}
+        <span style="display:block;margin-top:var(--spacing-1);font-size:var(--size-xs);color:#2563eb;font-weight:600;">Revision received — assign reviewers</span>
+        {% endif %}
       </div>
       {% empty %}<p class="empty">No submissions under review.</p>{% endfor %}
     </div>

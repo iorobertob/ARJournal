@@ -122,7 +122,6 @@
       <tbody>
         {% for item in active_items %}
         {% with inv=item.invitation rev=item.review %}
-        {% if not rev or rev.status not in 'submitted,moderated,released' %}
         <tr class="list-row"
             data-search="{{ inv.submission.title|lower }} {{ inv.submission.author.display_name|lower }} {{ inv.submission.get_article_type_display|lower }}"
             x-show="show($el)">
@@ -130,6 +129,9 @@
             <a href="{% url 'reviewer_workspace' inv.pk %}" class="list-row__title">
               {{ inv.submission.title|truncatechars:70 }}
             </a>
+            {% if inv.is_multi_round %}
+            <span style="display:inline-block;margin-left:0.4rem;font-size:0.68rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--color-accent);background:var(--color-accent-light);border:1px solid rgba(232,107,31,0.25);border-radius:3px;padding:1px 5px;vertical-align:middle;">Round {{ inv.round_number }}</span>
+            {% endif %}
             <span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ inv.submission.author.display_name }}</span>
           </td>
           <td style="font-size:var(--size-sm);">{{ inv.submission.get_article_type_display }}</td>
@@ -149,7 +151,6 @@
           </td>
           <td><a href="{% url 'reviewer_workspace' inv.pk %}" class="btn btn--small btn--primary">Open workspace</a></td>
         </tr>
-        {% endif %}
         {% endwith %}
         {% endfor %}
       </tbody>
@@ -175,7 +176,8 @@
           <th>Manuscript</th>
           <th>Recommendation</th>
           <th>Submitted</th>
-          <th>Status</th>
+          <th>My Review</th>
+          <th>Submission</th>
           <th></th>
         </tr>
       </thead>
@@ -189,7 +191,13 @@
             <a href="{% url 'reviewer_workspace' inv.pk %}" class="list-row__title">
               {{ inv.submission.title|truncatechars:70 }}
             </a>
+            {% if inv.is_multi_round %}
+            <span style="display:inline-block;margin-left:0.4rem;font-size:0.68rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--color-accent);background:var(--color-accent-light);border:1px solid rgba(232,107,31,0.25);border-radius:3px;padding:1px 5px;vertical-align:middle;">Round {{ inv.round_number }}</span>
+            {% endif %}
             <span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ inv.submission.author.display_name }}</span>
+            {% if inv.submission_id in active_submission_ids %}
+            <span style="display:block;font-size:0.7rem;font-weight:500;color:#2563eb;margin-top:4px;">&#8635; New round in progress</span>
+            {% endif %}
           </td>
           <td>
             {% if rev.recommendation %}
@@ -198,9 +206,14 @@
           </td>
           <td style="font-size:var(--size-sm);">{{ rev.submitted_at|date:"d M Y"|default:"—" }}</td>
           <td><span class="status-badge status-badge--{{ rev.status }}">{{ rev.get_status_display }}</span></td>
-          <td style="display:flex;gap:var(--spacing-2);">
-            <a href="{% url 'reviewer_workspace' inv.pk %}" class="btn btn--small btn--primary">Open workspace</a>
-            <a href="{% url 'review_detail' rev.pk %}" class="btn btn--small btn--ghost">Summary</a>
+          <td>
+            <span class="status-badge status-badge--{{ inv.submission.status }}">{{ inv.submission.get_status_display }}</span>
+          </td>
+          <td>
+            <div style="display:flex;gap:var(--spacing-2);align-items:center;flex-wrap:wrap;">
+              <a href="{% url 'reviewer_workspace' inv.pk %}" class="btn btn--small btn--primary">Open workspace</a>
+              <a href="{% url 'review_detail' rev.pk %}" class="btn btn--small btn--secondary">Summary</a>
+            </div>
           </td>
         </tr>
         {% endwith %}
@@ -304,6 +317,30 @@ function listSearch() {
   color: #fff;
 }
 /* Relative positioning for decline popover anchor */
-.review-list-table td { position: relative; }
+.review-list-table td {
+  position: relative;
+  vertical-align: middle;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.review-list-table thead th {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 2px solid var(--color-border);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-muted);
+  text-align: left;
+}
+.review-list-table tbody tr:nth-child(even) td {
+  background: var(--color-surface);
+}
+.review-list-table tbody tr:hover td {
+  background: var(--color-surface-warm);
+}
+.review-list-table tr:last-child td {
+  border-bottom: none;
+}
 </style>
 {% endblock %}

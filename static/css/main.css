@@ -225,9 +225,9 @@ p:last-child { margin-bottom: 0; }
 }
 
 .site-nav__dropdown {
-  position: fixed;
-  right: 1.25rem;
-  top: 64px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   min-width: 200px;
@@ -291,10 +291,9 @@ p:last-child { margin-bottom: 0; }
 }
 
 .notif-dropdown {
-  /* Fixed so stacking contexts on any ancestor can't affect placement */
-  position: fixed;
-  right: 1.25rem;
-  top: 64px; /* 56px nav + 8px gap */
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
   width: 360px;
   background: var(--color-bg);
   border: 1px solid rgba(0,0,0,0.12);

@@ -7,7 +7,15 @@ from .models import Submission, SubmissionRevision, SubmissionAsset, SubmissionS
 
 @login_required
 def dashboard(request):
-    submissions = Submission.objects.filter(author=request.user).order_by('-created_at')
+    from apps.reviews.models import Review, ReviewStatus
+    submissions = list(Submission.objects.filter(author=request.user).order_by('-created_at'))
+    released_pks = set(
+        Review.objects
+        .filter(invitation__submission__in=submissions, status=ReviewStatus.RELEASED)
+        .values_list('invitation__submission_id', flat=True)
+    )
+    for sub in submissions:
+        sub.has_released_reviews = sub.pk in released_pks
     return render(request, 'author/dashboard.html', {'submissions': submissions})
 
 

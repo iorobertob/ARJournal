@@ -12,6 +12,8 @@ from apps.reviewers.models import ReviewerInvitation
 @login_required
 def reviewer_dashboard(request):
     """Dashboard for reviewers: active reviews, pending invitations, history."""
+    from collections import defaultdict
+
     base_qs = (
         ReviewerInvitation.objects
         .filter(reviewer=request.user)
@@ -19,34 +21,71 @@ def reviewer_dashboard(request):
         .order_by('-sent_at')
     )
 
-    # Build active list with associated Review object
+    # ── Round-number annotation ───────────────────────────────────────────
+    # Group all invitations for this reviewer by submission, sorted by sent_at,
+    # and assign a 1-indexed round_number to each.
+    all_invs = list(base_qs)
+    inv_by_sub = defaultdict(list)
+    for inv in sorted(all_invs, key=lambda x: x.sent_at):
+        inv_by_sub[inv.submission_id].append(inv)
+
+    multi_round_sub_ids = {sub_id for sub_id, invs in inv_by_sub.items() if len(invs) > 1}
+    round_numbers = {}
+    for sub_id, invs in inv_by_sub.items():
+        for i, inv in enumerate(invs, start=1):
+            round_numbers[inv.pk] = i
+
+    for inv in all_invs:
+        inv.round_number = round_numbers.get(inv.pk, 1)
+        inv.is_multi_round = inv.submission_id in multi_round_sub_ids
+
+    # Re-use annotated objects via a lookup so filtered sub-querysets stay consistent
+    inv_lookup = {inv.pk: inv for inv in all_invs}
+
+    # ── Build sections ────────────────────────────────────────────────────
+    _completed = (ReviewStatus.SUBMITTED, ReviewStatus.MODERATED, ReviewStatus.RELEASED)
+
     active_items = []
     for inv in base_qs.filter(status='accepted'):
+        inv = inv_lookup.get(inv.pk, inv)
         review = None
         try:
             review = inv.review
         except Exception:
             pass
-        active_items.append({'invitation': inv, 'review': review})
+        # Only include reviews that still need action (exclude completed rounds)
+        if not review or review.status not in _completed:
+            active_items.append({'invitation': inv, 'review': review})
 
-    pending = list(base_qs.filter(status='pending'))
-    history = list(base_qs.filter(status__in=['declined', 'expired']))
+    pending = [inv_lookup.get(inv.pk, inv) for inv in base_qs.filter(status='pending')]
+    history = [inv_lookup.get(inv.pk, inv) for inv in base_qs.filter(status__in=['declined', 'expired'])]
 
-    # Also include submitted/completed reviews in history
     submitted_items = []
     for inv in base_qs.filter(status='accepted'):
+        inv = inv_lookup.get(inv.pk, inv)
         try:
             r = inv.review
-            if r and r.status in (ReviewStatus.SUBMITTED, ReviewStatus.MODERATED, ReviewStatus.RELEASED):
+            if r and r.status in _completed:
                 submitted_items.append({'invitation': inv, 'review': r})
         except Exception:
             pass
+
+    # Submission IDs that have a currently non-completed active review —
+    # used to show "New round in progress" on completed-review rows.
+    active_submission_ids = {
+        item['invitation'].submission_id
+        for item in active_items
+        if not item['review'] or item['review'].status not in (
+            ReviewStatus.SUBMITTED, ReviewStatus.MODERATED, ReviewStatus.RELEASED
+        )
+    }
 
     return render(request, 'reviewer/dashboard.html', {
         'active_items': active_items,
         'pending_invitations': pending,
         'history_invitations': history,
         'submitted_items': submitted_items,
+        'active_submission_ids': active_submission_ids,
         'today': timezone.now().date(),
     })
 
@@ -59,7 +98,12 @@ def reviewer_workspace(request, invitation_pk):
         return render(request, '403.html', {'message': 'You do not have access to this review workspace.'}, status=403)
     review, _ = Review.objects.get_or_create(invitation=invitation)
     submission = invitation.submission
-    revision = submission.get_current_revision()
+    current_revision = submission.get_current_revision()
+    if current_revision and review.revision_id is None:
+        review.revision = current_revision
+        review.save(update_fields=['revision'])
+    # Always render the version the review was written against, not the latest
+    revision = review.revision or current_revision
 
     # Auto-ingest .tex manuscript if no canonical doc exists yet
     canonical_doc_obj = None
@@ -229,9 +273,9 @@ def moderate_review(request, review_pk):
 
     canonical_doc = None
     try:
-        revision = review.invitation.submission.get_current_revision()
-        if revision:
-            canonical_doc = revision.canonical_document
+        rev = review.revision or review.invitation.submission.get_current_revision()
+        if rev:
+            canonical_doc = rev.canonical_document
     except Exception:
         pass
 
@@ -275,7 +319,7 @@ def review_detail(request, review_pk):
 
     canonical_doc = None
     try:
-        revision = submission.get_current_revision()
+        revision = review.revision or submission.get_current_revision()
         if revision:
             canonical_doc = revision.canonical_document
     except Exception:
@@ -321,7 +365,7 @@ def author_preprint(request, review_pk):
     annotations = review.annotations.filter(released_to_author=True).order_by('created_at')
     annotated_block_ids = list(annotations.values_list('block_id', flat=True))
 
-    revision = submission.get_current_revision()
+    revision = review.revision or submission.get_current_revision()
     article_html = None
     toc = []
     if revision:

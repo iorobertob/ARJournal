@@ -80,21 +80,37 @@
     </div>
 
     {% if assignments %}
-    <table class="jadmin-table" style="margin-bottom:var(--spacing-4);">
-      <thead>
-        <tr><th>Editor</th><th>Role</th><th>Assigned</th><th>Active</th></tr>
-      </thead>
-      <tbody>
-        {% for asgn in assignments %}
-        <tr>
-          <td>{{ asgn.editor.display_name }} <span style="font-size:0.75rem;color:var(--color-muted);">({{ asgn.editor.email }})</span></td>
-          <td style="font-size:var(--size-sm);">{{ asgn.get_role_display }}</td>
-          <td style="font-size:var(--size-sm);">{{ asgn.assigned_at|date:"d M Y" }}</td>
-          <td style="font-size:var(--size-sm);">{% if asgn.is_active %}<span style="color:#16a34a;">Active</span>{% else %}<span style="color:var(--color-muted);">Ended</span>{% endif %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="submissions-table" style="margin-bottom:var(--spacing-4);">
+      <table>
+        <thead>
+          <tr>
+            <th>Editor</th>
+            <th>Role</th>
+            <th>Assigned</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for asgn in assignments %}
+          <tr>
+            <td>
+              <span style="font-weight:600;">{{ asgn.editor.display_name }}</span>
+              <span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ asgn.editor.email }}</span>
+            </td>
+            <td>{{ asgn.get_role_display }}</td>
+            <td>{{ asgn.assigned_at|date:"d M Y" }}</td>
+            <td>
+              {% if asgn.is_active %}
+              <span class="status-badge" style="background:#dcfce7;color:#16a34a;border-color:#86efac;">Active</span>
+              {% else %}
+              <span class="status-badge status-badge--draft">Ended</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
     <p style="color:var(--color-muted);font-size:var(--size-sm);margin-bottom:var(--spacing-4);">No editor assigned yet.</p>
     {% endif %}

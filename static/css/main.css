@@ -114,7 +114,7 @@ p:last-child { margin-bottom: 0; }
 .prose {
   max-width: 70ch;
   line-height: var(--leading-loose);
-  font-size: var(--size-lg);
+  font-size: var(--size-sm);
 }
 
 .prose h2 { margin-top: var(--spacing-12); margin-bottom: var(--spacing-4); }

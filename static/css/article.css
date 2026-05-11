@@ -10,7 +10,7 @@
   grid-template-columns: 240px 1fr;
   gap: var(--spacing-12);
   padding: var(--spacing-10) var(--spacing-6);
-  max-width: 1100px;
+  max-width: 1440px;
 }
 
 /* ── Sidebar ────────────────────────────────────────────────── */
@@ -202,9 +202,9 @@ p.article-meta-sidebar__label {
 /* ── Body Content from Canonical HTML ───────────────────────── */
 .article-body-content {
   font-family: var(--font-serif);
-  font-size: var(--size-lg);
+  font-size: var(--size-base);
   line-height: var(--leading-loose);
-  max-width: 70ch;
+  max-width: 90ch;
 }
 
 .article-body-content .article-authors { display: none; }
@@ -393,7 +393,7 @@ p.article-meta-sidebar__label {
 /* Wide screens: proper margin sidenotes */
 @media (min-width: 1200px) {
   .article-body-content {
-    max-width: 58ch;
+    max-width: 80ch;
     overflow: visible;
   }
 

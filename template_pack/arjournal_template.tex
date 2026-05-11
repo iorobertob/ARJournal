@@ -89,6 +89,47 @@ that drives both the HTML and PDF outputs. You do not need to worry about
 platform-specific formatting: use standard LaTeX commands and the custom
 macros defined in \texttt{arjournal.cls}.
 
+\subsection*{Why are some custom macros required?}
+
+The body of your article uses entirely standard LaTeX: \verb|\section|,
+\verb|\footnote|, \verb|\textbf|, \verb|\citep|, \verb|\begin{itemize}|,
+\verb|\begin{table}|, and so on. These require no changes when porting a
+previously written article.
+
+The handful of custom macros in \texttt{arjournal.cls} fall into two
+categories:
+
+\begin{description}
+  \item[Metadata (\texttt{\textbackslash ARJ*} in the preamble).]
+  Standard LaTeX only has \verb|\title| and \verb|\author|. The platform
+  needs to extract a richer set of fields---ORCID, affiliation, email,
+  article type, keywords, funding statement, license---as structured data
+  for DOI registration, the editorial dashboard, and the HTML article
+  header. These fields cannot be reliably inferred from free-form preamble
+  text, so they are declared with named commands that the parser can read
+  unambiguously. This is the same approach used by Elsevier
+  (\texttt{elsarticle}), Springer (\texttt{svjour3}), and ACM
+  (\texttt{acmart}).
+
+  \item[Media macros (\texttt{\textbackslash ARJfigure},
+  \texttt{\textbackslash ARJvideo}, \texttt{\textbackslash ARJaudio}).]
+  There is no standard LaTeX command for embedding HTML5 video or audio.
+  \verb|\ARJvideo| and \verb|\ARJaudio| produce a placeholder box in your
+  local PDF while carrying the filename, poster image, and transcript path
+  that the platform needs to build the \verb|<video>| and \verb|<audio>|
+  elements in the published HTML article. \verb|\ARJfigure| extends the
+  standard figure environment with a required third argument for alt text,
+  which is mandatory for accessibility compliance and used by screen
+  readers in the HTML version.
+\end{description}
+
+Everything else---section headings, inline formatting, footnotes,
+quotations, lists, tables, and citations---is unmodified standard
+LaTeX. If you are porting an existing article, the only edits required
+are: (1) replace your preamble metadata with the \verb|\ARJ*| commands
+below, and (2) convert image figures to \verb|\ARJfigure| to add alt
+text. All body prose can be copied over as-is.
+
 Artistic research and multimedia scholarship have developed robust
 conventions for integrating practice and writing \citep{smith2024art}.
 Practice-based methods require particular care when moving between media
@@ -187,43 +228,33 @@ of research, prior to all notation and inscription}. The platform converts
 \verb|\enquote{...}| to proper Unicode curly quotation marks (\textquotedblleft\ldots\textquotedblright)
 in both HTML and PDF.
 
-You may also write inline quotes using the \verb|\ARJquote{...}| alias,
-which behaves identically:
-
-\begin{verbatim}
-\ARJquote{practice precedes its own theorisation}
-\end{verbatim}
-
-Output: \ARJquote{practice precedes its own theorisation}.
-
 \subsection{Long Quotations (40 words or more / 4 or more lines)}
 
 Extended quotations are set as freestanding blocks, indented on both
-sides, without quotation marks. Use the \texttt{ARJblockquote} environment
-(or the standard LaTeX \texttt{quote} environment—both are handled
-identically by the parser):
+sides, without quotation marks. Use the standard LaTeX \texttt{quote}
+environment:
 
 \begin{verbatim}
-\begin{ARJblockquote}
+\begin{quote}
 Artistic research differs from the artistic practice on which it is
 based in that it aims at producing communicable insights. The specific
 contribution of artistic research is a form of knowledge that is
 inseparable from the practices through which it is produced—knowledge
 that resists full translation into propositional language and must
 be encountered in its material, temporal, or performative form.
-\end{ARJblockquote}
+\end{quote}
 \end{verbatim}
 
 The result:
 
-\begin{ARJblockquote}
+\begin{quote}
 Artistic research differs from the artistic practice on which it is
 based in that it aims at producing communicable insights. The specific
 contribution of artistic research is a form of knowledge that is
 inseparable from the practices through which it is produced—knowledge
 that resists full translation into propositional language and must
 be encountered in its material, temporal, or performative form.
-\end{ARJblockquote}
+\end{quote}
 
 The passage above is adapted from \citet[p.~44]{borgdorff2012conflict}.
 When quoting a source at this length, include the page number in your

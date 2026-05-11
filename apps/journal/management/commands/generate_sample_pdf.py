@@ -222,9 +222,10 @@ def _parse_bib(bib_path) -> dict:
     import re
     result = {}
     text = bib_path.read_text(encoding='utf-8')
-    for entry_m in re.finditer(r'@\w+\{(\w+),(.*?)(?=\n@|\Z)', text, re.DOTALL):
-        key = entry_m.group(1).strip()
-        body = entry_m.group(2)
+    for entry_m in re.finditer(r'@(\w+)\{(\w+),(.*?)(?=\n@|\Z)', text, re.DOTALL):
+        entry_type = entry_m.group(1).lower()
+        key = entry_m.group(2).strip()
+        body = entry_m.group(3)
 
         def field(name, _body=body):
             m = re.search(
@@ -249,10 +250,24 @@ def _parse_bib(bib_path) -> dict:
                 authors.append(a)
 
         result[key] = {
+            'type': entry_type,
             'title': field('title'),
-            'year': field('year'),
             'authors': authors,
+            'year': field('year'),
+            'journal': field('journal'),
+            'volume': field('volume'),
+            'number': field('number'),
+            'pages': field('pages'),
+            'publisher': field('publisher'),
+            'booktitle': field('booktitle'),
+            'editor': field('editor'),
+            'school': field('school'),
+            'institution': field('institution'),
+            'address': field('address'),
+            'howpublished': field('howpublished'),
+            'note': field('note'),
             'doi': field('doi'),
+            'url': field('url'),
         }
     return result
 

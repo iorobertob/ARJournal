@@ -186,6 +186,88 @@ def _render_table_from_latex(raw_latex: str, caption: str, bid: str) -> str:
     )
 
 
+def _format_bib_item(item: dict) -> str:
+    """Format one bibliography entry in apalike style."""
+    type_ = item.get('type', 'unknown')
+    authors = item.get('authors', [])
+    year = item.get('year', '')
+    title = item.get('title', '') or item.get('citeKey', '')
+    journal = item.get('journal', '')
+    volume = item.get('volume', '')
+    number = item.get('number', '')
+    pages = item.get('pages', '').replace('--', '–')
+    publisher = item.get('publisher', '')
+    booktitle = item.get('booktitle', '')
+    editor = item.get('editor', '')
+    school = item.get('school', '')
+    institution = item.get('institution', '')
+    howpublished = item.get('howpublished', '')
+    note = item.get('note', '')
+    doi = item.get('doi', '')
+    url = item.get('url', '')
+
+    if len(authors) == 1:
+        authors_str = escape(authors[0])
+    elif len(authors) == 2:
+        authors_str = f'{escape(authors[0])} and {escape(authors[1])}'
+    elif authors:
+        authors_str = ', '.join(escape(a) for a in authors[:-1]) + f', and {escape(authors[-1])}'
+    else:
+        authors_str = ''
+
+    year_part = f' ({escape(year)}).' if year else '.'
+
+    if type_ == 'article':
+        detail = f'{escape(title)}. <em>{escape(journal)}</em>'
+        if volume:
+            detail += f', <em>{escape(volume)}</em>'
+            if number:
+                detail += f'({escape(number)})'
+        if pages:
+            detail += f', {pages}'
+    elif type_ == 'book':
+        detail = f'<em>{escape(title)}</em>'
+        loc_pub = ', '.join(filter(None, [escape(item.get('address', '')), escape(publisher)]))
+        if loc_pub:
+            detail += f'. {loc_pub}'
+    elif type_ in ('incollection', 'inproceedings'):
+        in_clause = 'In'
+        if editor:
+            in_clause += f' {escape(editor)} (Ed.),'
+        detail = f'{escape(title)}. {in_clause} <em>{escape(booktitle)}</em>'
+        if pages:
+            detail += f' (pp.&nbsp;{pages})'
+        if publisher:
+            detail += f'. {escape(publisher)}'
+    elif type_ == 'phdthesis':
+        detail = f'<em>{escape(title)}</em> [Doctoral dissertation'
+        if school:
+            detail += f', {escape(school)}'
+        detail += ']'
+    elif type_ == 'techreport':
+        detail = f'<em>{escape(title)}</em>'
+        num = item.get('number', '')
+        if num:
+            detail += f' (Report No.&nbsp;{escape(num)})'
+        if institution:
+            detail += f'. {escape(institution)}'
+    else:
+        detail = f'<em>{escape(title)}</em>'
+        if howpublished:
+            detail += f'. {escape(howpublished)}'
+        if note:
+            detail += f'. {escape(note)}'
+
+    suffix = ''
+    if doi:
+        suffix = f'. <a href="https://doi.org/{escape(doi)}" class="article-cite__doi">https://doi.org/{escape(doi)}</a>'
+    elif url:
+        suffix = f'. <a href="{escape(url)}">{escape(url)}</a>'
+
+    lead = authors_str + year_part if authors_str else year_part.lstrip()
+    return f'{lead} {detail}{suffix}.'
+
+
 def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> str:
     btype = block.get('type', 'paragraph')
     bid = escape(block.get('id', ''))
@@ -370,25 +452,12 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
                 f'</p>'
                 f'</section>'
             )
-        ref_items = ''
-        for item in items:
-            ck = escape(item.get('citeKey', ''))
-            title = escape(item.get('title', '') or ck)
-            authors_list = item.get('authors', [])
-            authors_str = escape(', '.join(authors_list)) if authors_list else ''
-            year = escape(str(item.get('year', '')))
-            doi = item.get('doi', '')
-            doi_html = (
-                f' <a href="https://doi.org/{escape(doi)}" class="article-cite__doi">'
-                f'doi:{escape(doi)}</a>'
-            ) if doi else ''
-            ref_items += (
-                f'<li id="ref-{ck}" class="bibliography-item">'
-                f'{authors_str}{(" (" + year + "). ") if year else " "}'
-                f'<span class="bib-title">{title}</span>'
-                f'{doi_html}'
-                f'</li>'
-            )
+        ref_items = ''.join(
+            f'<li id="ref-{escape(item.get("citeKey", ""))}" class="bibliography-item">'
+            f'{_format_bib_item(item)}'
+            f'</li>'
+            for item in items
+        )
         return (
             f'<section id="{bid}" class="article-bibliography" data-block-id="{bid}">'
             f'<h2>References</h2>'

@@ -33,7 +33,7 @@
 % Use \citet{key} for narrative: Smith (2024)
 % Use \cite{key} as an alias for \citep{key}
 \RequirePackage[round,authoryear,sort&compress]{natbib}
-\bibliographystyle{apalike}    % default style; override in your .tex if needed
+% \bibliographystyle must be set in the document, not the class (see arjournal_template.tex).
 
 % ── Hyperlinks ────────────────────────────────────────────────────────────────
 \RequirePackage{hyperref}
@@ -132,17 +132,6 @@
   \vspace{1em}
 }
 
-% ── Blockquote environment (long quotations, 40+ words / 4+ lines) ─────────────
-% Use this for extended quotations. The text is indented 0.5 in on both sides,
-% set in slightly smaller type, and presented without quotation marks.
-% The platform parser maps this to a <blockquote> element in HTML and applies
-% 0.5 inch indentation in the PDF.
-\newenvironment{ARJblockquote}{%
-  \begin{quote}%
-}{%
-  \end{quote}%
-}
-
 % ── Media macros ─────────────────────────────────────────────────────────────
 % These macros create placeholders in the compiled PDF and reference
 % the uploaded asset files. The platform uses the arguments to build
@@ -171,11 +160,10 @@
     \fbox{\parbox{0.9\linewidth}{%
       \textbf{[Video: #2]}\par
       \smallskip
-      \noindent Asset: \texttt{#1} \quad Poster: \texttt{#3}\par
-      \noindent Transcript: \texttt{#4}%
+      \noindent Asset: {\ttfamily\detokenize{#1}} \quad Poster: {\ttfamily\detokenize{#3}}\par
+      \noindent Transcript: {\ttfamily\detokenize{#4}}%
     }}
     \caption{#2}
-    \label{vid:#1}
   \end{figure}%
 }
 
@@ -186,10 +174,9 @@
     \fbox{\parbox{0.9\linewidth}{%
       \textbf{[Audio: #2]}\par
       \smallskip
-      \noindent Asset: \texttt{#1} \quad Transcript: \texttt{#3}%
+      \noindent Asset: {\ttfamily\detokenize{#1}} \quad Transcript: {\ttfamily\detokenize{#3}}%
     }}
     \caption{#2}
-    \label{aud:#1}
   \end{figure}%
 }
 

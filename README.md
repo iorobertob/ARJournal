@@ -434,6 +434,42 @@ The `django-storages` library is already installed and configured — switching 
 
 ---
 
+## Troubleshooting
+
+### PostgreSQL "remaining connection slots are reserved for superuser"
+
+**Symptom**: `OperationalError: connection to server at "localhost" … FATAL: remaining connection slots are reserved for roles with the SUPERUSER attribute`
+
+**Cause**: PostgreSQL's default `max_connections` is 100. In development, idle connections from Django accumulate over time — the threaded dev server opens one connection per concurrent request, and autoreloader restarts leave orphaned connections that the OS may not close for hours.
+
+**Immediate fix** — kill all idle connections:
+
+```bash
+psql postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND pid <> pg_backend_pid();"
+```
+
+Or restart PostgreSQL entirely:
+
+```bash
+brew services restart postgresql@16   # adjust version as needed
+```
+
+**Permanent fix** — raise the connection limit. Find `postgresql.conf`:
+
+```bash
+psql postgres -c "SHOW config_file;"
+```
+
+Edit the file and increase:
+
+```
+max_connections = 200
+```
+
+Then restart PostgreSQL. This is safe on a dev machine. In production, use PgBouncer as a connection pooler instead of raising this limit.
+
+---
+
 ## Testing
 
 ```bash

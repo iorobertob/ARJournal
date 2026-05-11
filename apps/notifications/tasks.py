@@ -170,12 +170,45 @@ def _send(
     plain: str,
     html_body: str,
 ) -> None:
-    """Send a multipart email and raise on failure (caller handles logging)."""
+    """Send a multipart email and raise on failure (caller handles logging).
+
+    Backend and credentials are read from JournalConfig so they can be
+    changed in the admin dashboard without a server restart.
+    """
+    from apps.journal.models import JournalConfig
+    from django.core.mail import get_connection
+    journal = JournalConfig.get()
+
+    if journal.email_from_name and journal.email_from_address:
+        from_email = f'{journal.email_from_name} <{journal.email_from_address}>'
+    elif journal.email_from_address:
+        from_email = journal.email_from_address
+    else:
+        from_email = settings.DEFAULT_FROM_EMAIL
+
+    connection = None
+    if journal.email_backend_type == 'smtp' and journal.smtp_host:
+        connection = get_connection(
+            backend='django.core.mail.backends.smtp.EmailBackend',
+            host=journal.smtp_host,
+            port=journal.smtp_port,
+            username=journal.smtp_username,
+            password=journal.smtp_password,
+            use_tls=journal.smtp_use_tls,
+            fail_silently=False,
+        )
+    elif journal.email_backend_type == 'mailersend' and journal.mailersend_api_token:
+        connection = get_connection(
+            backend='anymail.backends.mailersend.EmailBackend',
+            api_token=journal.mailersend_api_token,
+        )
+
     msg = EmailMultiAlternatives(
         subject=subject,
         body=plain,
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        from_email=from_email,
         to=[to],
+        connection=connection,
     )
     msg.attach_alternative(_html_wrapper(html_body), 'text/html')
     msg.send()
@@ -576,6 +609,89 @@ def notify_revision_submitted(revision_pk):
             notification_type='revision_submitted',
             message=f'Your revision of \u201c{submission.title[:50]}\u201d has been submitted.',
             url=f'/author/submission/{submission.pk}/',
+        )
+    except Exception:
+        pass
+
+
+@shared_task
+def notify_screening_resubmission(revision_pk):
+    """Email the author (confirmation) and editorial team when a corrected manuscript is resubmitted."""
+    from apps.submissions.models import SubmissionRevision
+    revision = SubmissionRevision.objects.select_related('submission__author').get(pk=revision_pk)
+    submission = revision.submission
+    dashboard_url = f'{_site_url()}/author/submission/{submission.pk}/'
+    editorial_url = f'{_site_url()}/editorial/submission/{submission.pk}/'
+
+    # ── Confirmation email to author ──────────────────────────────────────────
+    author_subject = f'Corrected manuscript received — {submission.title[:70]}'
+    author_html = (
+        _greeting(submission.author.display_name)
+        + _p('Thank you. We have received your corrected manuscript for:')
+        + _detail_box('Submission title', submission.title)
+        + _p('Our editorial team will carry out a fresh technical check and notify you of '
+             'the outcome. You can monitor the status of your submission from your author dashboard.')
+        + _btn(dashboard_url, 'View your submission')
+        + _signature()
+    )
+    author_plain = (
+        f'Dear {submission.author.display_name},\n\n'
+        f'Thank you. We have received your corrected manuscript for:\n\n'
+        f'Submission: {submission.title}\n\n'
+        f'Our editorial team will carry out a fresh technical check and notify you of the outcome.\n\n'
+        f'Track your submission status at any time:\n{dashboard_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial Office'
+    )
+    try:
+        _send(submission.author.email, author_subject, author_plain, author_html)
+        _log_email(submission.author.email, author_subject, 'sent')
+    except Exception as exc:
+        _log_email(submission.author.email, author_subject, 'failed', str(exc))
+
+    # ── In-app badge for the author ───────────────────────────────────────────
+    try:
+        from .models import Notification
+        Notification.objects.create(
+            user=submission.author,
+            notification_type='revision_submitted',
+            message=f'Your corrected manuscript for “{submission.title[:50]}” has been received.',
+            url=dashboard_url,
+        )
+    except Exception:
+        pass
+
+    # ── Email to editorial team ───────────────────────────────────────────────
+    editorial_subject = f'Corrected manuscript resubmitted — {submission.title[:65]}'
+    editorial_html = (
+        _p(f'A corrected manuscript (version {revision.version}) has been resubmitted '
+           f'after technical screening for:')
+        + _detail_box('Submission', submission.title)
+        + _detail_box('Author', submission.author.display_name)
+        + _btn(editorial_url, 'Review resubmission')
+        + _signature()
+    )
+    editorial_plain = (
+        f'A corrected manuscript (version {revision.version}) has been resubmitted '
+        f'after technical screening.\n\n'
+        f'Submission: {submission.title}\n'
+        f'Author: {submission.author.display_name}\n\n'
+        f'Review it here:\n{editorial_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial System'
+    )
+    editorial_email = getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)
+    try:
+        _send(editorial_email, editorial_subject, editorial_plain, editorial_html)
+        _log_email(editorial_email, editorial_subject, 'sent')
+    except Exception as exc:
+        _log_email(editorial_email, editorial_subject, 'failed', str(exc))
+
+    # ── In-app badge for all editors ──────────────────────────────────────────
+    try:
+        _notify_editors_inapp(
+            _editorial_users(),
+            'revision_submitted',
+            f'Corrected manuscript resubmitted: “{submission.title[:50]}”.',
+            f'/editorial/submission/{submission.pk}/',
         )
     except Exception:
         pass

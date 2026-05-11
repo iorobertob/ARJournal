@@ -16,6 +16,11 @@ def profile_view(request):
 
 
 @login_required
+def account_settings(request):
+    return render(request, 'author/account_settings.html')
+
+
+@login_required
 def profile_edit(request):
     from apps.reviewers.models import ReviewerProfile
     profile, _ = UserProfile.objects.get_or_create(user=request.user)

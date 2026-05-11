@@ -4,19 +4,10 @@
 
 
 ## TODO
-- Editorial access required error on production/admin/preview/2/ , page without format/styling
-- when uploading files it says 0KB for all files, are they really being updated?
-- When removing or accepting reviewers, the page should not reload and the page cards should be updated. no ajax used. 
-- When refreshing suggestions for reviewers, the already approved reviewers should not be refreshed, they should remain in the cards. no ajax
-- Replace Reviewer modal is shown on the corner of the page, it should be styled properly. 
-- url of the invitation email is hardcoded, this should be corrected.	
-- invitation takes to an url that is shown to user before they log in. they should be prompted to login if they are not, or if the invitation belongs to another account then be informed of such and invite to log out. 
-- several useers seem to be able to be logged in from the saem computer, this is wrong. explain why is this a security concern or not?
-- aedia files are not rendereed in the review workspace, nor are they in the html. something is wrong. 	
+- Editorial access required error on production/admin/preview/2/ , page without format/styling	
+- media files are not rendereed in the review workspace, nor are they in the html. something is wrong. 	
 - Journal should have a publish button. 
-- time of the system is wrong, is GMT, we are GMT + 2 + 1 summer time now
-- section tree in html view shoul be collapsable.
-- Available Articles (Accepted / In Production) section is not showing all published or accepted articles. 
+- time of the system is wrong, is GMT, we are GMT + 2 + 1 summer time KNOWN
 - There should be a button in the Editorial view to mark an article again as not published. 
 - when articles are added from Available Articles to Articles in This Issued, the card that appears on ARticles in This Issue shoul immediatly have already the dropdown menu to select the section it will be in. 
 - The abstract that is written at the upload time is not used for nothign? where is it shown?
@@ -27,13 +18,21 @@
 - Journal admin access required. page needs styling. 
 - increase width of articles html page, so text takes more space, content tree is pushed to the left and footnotes to the right
 - in the .tex template and cls file it is not contemplated how the authors will reference the images, tables, videos and audio in their manuscript, can you add that to the template, and the explanation. Also, what will happen when authors include \pagebreak or \newpage on their manuscript to control how everything is nicely arranged throught the pages, since the rendered PDF from the journal site will be different?  
-- Review notification badges behaviour, if they are mark as read, or one by one or in bulk, etc. 
 - Add Contact, Partners and Editorial Board pages.
 - Or simply remove the Contact menu, as there is an email at the footer. change this email. 
+- user profiles accessibles by other users. linked from their articles. 
+- change html render to be more like the workspace, with smaller font, different background color for the main text and same size of the main text and the side columns for content tree and annotations. the column of anotations should be used for footnotes on the rendered html .
+
+
+
+## UNIT TESTS TO DO:
+- Check the flow when more than one reviewers submit reviews
+- review is Reject Review works well. 
 
 ## BUGS
-- When Returning the article to author from the Desk check, the author should be notified and the submission in his submissions list should allow him to to to a resubmit flow/interface
-
+- after resubmittint an article, when an author visits the page for their submission and clicks on "Read Full revieww & annotations", they are taken to a read only workspace-like page, but ifr the annotations were made for a previous version of the article, it should show that previous version of the article. Right now it shows the annotations as if made on the newly submitted article paragraphs. The same problem applies for the reviewers side.  
+- how are footnotes rendered in the review workspace?
+- there is no clear button to open workspace of a review from the editorial view. and there is an inconsistency, for the author, clicking on the paragraph symbol takes the editor to a version of the html render, but the author to a read-only version of the workspace. Both should be taken to the workspace, and there should be a button to open the review space for both. 
 
 
 - Reconsider name

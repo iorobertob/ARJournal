@@ -3,39 +3,7 @@
 <div class="reviewer-suggestions">
   {% for sug in suggestions %}
   {% if sug.status != 'rejected' %}
-  <div class="suggestion-card {% if not sug.is_primary %}suggestion-card--alternate{% endif %}">
-    <div class="suggestion-card__header">
-      <div>
-        <strong>{{ sug.reviewer.display_name }}</strong>
-        <span style="font-size:0.75rem;color:var(--color-muted);margin-left:0.5rem;">{{ sug.reviewer.email }}</span>
-        {% if not sug.is_primary %}<span class="badge badge--alt" style="font-size:0.65rem;margin-left:0.5rem;">Manual / Alt</span>{% endif %}
-      </div>
-      <span class="suggestion-score">{% if sug.score > 0 %}{{ sug.score|floatformat:2 }}{% else %}—{% endif %}</span>
-    </div>
-    {% with profile=sug.reviewer.reviewer_profile %}
-    {% if profile and profile.expertise_keywords %}
-    <p style="font-size:0.78rem;color:var(--color-muted);margin:var(--spacing-1) 0;">
-      {{ profile.expertise_keywords|join:", "|truncatechars:100 }}
-    </p>
-    {% endif %}
-    {% endwith %}
-    {% if sug.rationale and sug.rationale != 'Manually added by editor.' %}
-    <p class="suggestion-card__rationale">{{ sug.rationale }}</p>
-    {% endif %}
-    <div style="display:flex;gap:var(--spacing-2);align-items:center;margin-top:var(--spacing-3);flex-wrap:wrap;">
-      <span class="status-badge status-badge--{{ sug.status }}">{{ sug.get_status_display }}</span>
-      {% if sug.status == 'suggested' %}
-      <a href="{% url 'approve_reviewer' sug.pk %}" class="btn btn--small btn--primary">Approve</a>
-      {% endif %}
-      <button type="button" class="btn btn--small" style="background:none;border:1px solid var(--color-border);color:var(--color-muted);"
-              @click="openAddModal({{ sug.pk }})">Replace</button>
-      <form method="post" action="{% url 'remove_suggestion' sug.pk %}" style="display:inline;"
-            data-confirm="Remove {{ sug.reviewer.display_name }} from suggestions?">
-        {% csrf_token %}
-        <button type="submit" class="btn btn--small" style="background:none;border:1px solid #fca5a5;color:#dc2626;">Remove</button>
-      </form>
-    </div>
-  </div>
+  {% include 'editorial/_suggestion_card.html' with sug=sug submission=submission %}
   {% endif %}
   {% endfor %}
 </div>

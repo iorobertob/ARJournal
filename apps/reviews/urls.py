@@ -10,4 +10,5 @@ urlpatterns = [
     path('<int:review_pk>/moderate/', views.moderate_review, name='moderate_review'),
     path('<int:review_pk>/detail/', views.review_detail, name='review_detail'),
     path('<int:review_pk>/preprint/', views.author_preprint, name='review_author_preprint'),
+    path('<int:review_pk>/editor-preview/', views.editor_review_preview, name='editor_review_preview'),
 ]

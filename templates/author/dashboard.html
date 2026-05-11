@@ -34,11 +34,17 @@
           </td>
           <td>{{ sub.submission_date|date:"d M Y"|default:"—" }}</td>
           <td>
+            {% if sub.status == 'draft' %}
+            {% with rev=sub.get_current_revision %}
+            <a href="{% if rev %}{% url 'submission_step4' sub.pk rev.pk %}{% else %}{% url 'submission_step2' sub.pk %}{% endif %}" style="color:var(--color-accent);font-weight:600;">Continue →</a>
+            {% endwith %}
+            {% else %}
             <a href="{% url 'submission_detail' sub.pk %}">View →</a>
             {% if sub.status == 'revision_requested' %}
             &nbsp;<a href="{% url 'resubmit_step1' sub.pk %}" style="color:var(--color-accent);font-weight:600;">Revise →</a>
             {% elif sub.is_returned_to_author %}
             &nbsp;<a href="{% url 'resubmit_after_screening' sub.pk %}" style="color:var(--color-accent);font-weight:600;">Correct &amp; Resubmit →</a>
+            {% endif %}
             {% endif %}
           </td>
         </tr>

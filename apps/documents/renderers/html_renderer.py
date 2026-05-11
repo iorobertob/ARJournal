@@ -49,31 +49,38 @@ def _cite_label(item: dict) -> str:
     return f'{name_part} {year}' if year else name_part
 
 
-def render_html(canonical_data: dict, submission=None) -> str:
+def render_html(canonical_data: dict, submission=None, revision=None) -> str:
     """Render the full article HTML from canonical JSON."""
     meta = canonical_data.get('metadata', {})
     contributors = canonical_data.get('contributors', [])
     content = canonical_data.get('content', [])
     assets = {a['assetId']: a for a in canonical_data.get('assets', [])}
 
-    # Resolve asset filenames → media URLs from the submission's uploaded files.
-    if submission is not None:
+    # Resolve asset filenames → media URLs from the correct revision's files.
+    # Priority: explicit revision arg → submission's current revision → skip.
+    # Callers reviewing historical content must pass revision explicitly so that
+    # asset URLs come from the version the reviewer annotated, not the latest.
+    _revision = revision
+    if _revision is None and submission is not None:
         try:
-            revision = submission.get_current_revision()
-            if revision is not None:
-                url_map = {
-                    sa.original_filename: sa.file.url
-                    for sa in revision.assets.all()
-                    if sa.file
-                }
-                for asset in assets.values():
-                    fname = asset.get('originalFilename', '')
-                    if fname in url_map:
-                        asset['resolvedUrl'] = url_map[fname]
-                    # Resolve poster image for video assets
-                    poster_fname = asset.get('posterImageRef', '')
-                    if poster_fname and poster_fname in url_map:
-                        asset['resolvedPosterUrl'] = url_map[poster_fname]
+            _revision = submission.get_current_revision()
+        except Exception:
+            pass
+    if _revision is not None:
+        try:
+            url_map = {
+                sa.original_filename: sa.file.url
+                for sa in _revision.assets.all()
+                if sa.file
+            }
+            for asset in assets.values():
+                fname = asset.get('originalFilename', '')
+                if fname in url_map:
+                    asset['resolvedUrl'] = url_map[fname]
+                # Resolve poster image for video assets
+                poster_fname = asset.get('posterImageRef', '')
+                if poster_fname and poster_fname in url_map:
+                    asset['resolvedPosterUrl'] = url_map[poster_fname]
         except Exception:
             pass  # Never crash the render because of a missing asset
 

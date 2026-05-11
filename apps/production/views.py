@@ -98,16 +98,32 @@ def unpublish_article(request, document_pk):
 
 @editorial_required
 def admin_preview(request, document_pk):
-    """Admin HTML preview — works for any build, published or not."""
+    """Admin HTML preview — works for any build, published or not.
+    Falls back to rendering from canonical JSON when no HTMLBuild exists yet
+    (e.g. annotations on a revision that was never put into production)."""
     doc = get_object_or_404(CanonicalDocument, pk=document_pk)
-    build = get_object_or_404(HTMLBuild, document=doc)
+    build = HTMLBuild.objects.filter(document=doc).first()
     submission = doc.revision.submission
-    toc = build.table_of_contents or []
+
+    toc = []
+    article_html = None
+    if build:
+        toc = build.table_of_contents or []
+        article_html = build.html_content
+    else:
+        from apps.documents.renderers.html_renderer import render_html, build_toc
+        try:
+            article_html = render_html(doc.data, revision=doc.revision)
+            toc = build_toc(doc.data)
+        except Exception:
+            pass
+
     return render(request, 'public/article.html', {
         'build': build,
         'submission': submission,
         'toc': toc,
         'admin_preview': True,
+        'article_html': article_html,
     })
 
 

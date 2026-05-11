@@ -89,13 +89,16 @@
     </div>
     {% endif %}
 
-    <!-- Comments to author: author and reviewer see the moderated version if available -->
+    <!-- Comments to author: always show the moderated version; only fall back to the
+         original if no moderation record exists at all (unmoderated review path). -->
     {% if is_author %}
-      {% if moderation and moderation.moderated_comments_to_author %}
-      <div>
-        <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Comments to Author</p>
-        <p style="line-height:var(--leading-loose);white-space:pre-wrap;">{{ moderation.moderated_comments_to_author }}</p>
-      </div>
+      {% if moderation %}
+        {% if moderation.moderated_comments_to_author %}
+        <div>
+          <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Comments to Author</p>
+          <p style="line-height:var(--leading-loose);white-space:pre-wrap;">{{ moderation.moderated_comments_to_author }}</p>
+        </div>
+        {% endif %}
       {% elif review.comments_to_author %}
       <div>
         <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Comments to Author</p>
@@ -131,11 +134,6 @@
     <p style="font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-3);">
       The reviewer left the following notes on specific paragraphs of your manuscript.
     </p>
-    {% if not html_build %}
-    <p style="margin-bottom:var(--spacing-4);">
-      <a href="{% url 'review_author_preprint' review.pk %}" class="btn btn--small btn--secondary">View annotations in manuscript &rarr;</a>
-    </p>
-    {% endif %}
     {% endif %}
     <div style="display:flex;flex-direction:column;gap:var(--spacing-3);">
       {% for ann in annotations %}
@@ -143,8 +141,8 @@
         <div style="flex:1;">
           <p style="font-size:var(--size-xs);font-family:var(--font-sans);color:var(--color-muted);margin-bottom:var(--spacing-1);">
             {% if ann.selector_data.para %}
-              {% if is_editor and canonical_doc %}
-                <a href="{% url 'admin_preview' canonical_doc.pk %}#{{ ann.block_id }}" target="_blank" style="color:var(--color-accent);text-decoration:none;font-weight:600;">¶{{ ann.selector_data.para }}</a>
+              {% if is_editor %}
+                <a href="{% url 'editor_review_preview' review.pk %}#{{ ann.block_id }}" style="color:var(--color-accent);text-decoration:none;font-weight:600;">¶{{ ann.selector_data.para }}</a>
               {% elif html_build %}
                 <a href="{% url 'article_detail' html_build.slug %}#{{ ann.block_id }}" target="_blank" style="color:var(--color-accent);text-decoration:none;font-weight:600;">¶{{ ann.selector_data.para }}</a>
               {% elif is_author %}
@@ -154,8 +152,10 @@
               {% endif %}
               {% if ann.selector_data.section %}&nbsp;&middot; <em>{{ ann.selector_data.section }}</em>{% endif %}
             {% elif ann.block_id %}
-              {% if is_editor and canonical_doc %}
-                <a href="{% url 'admin_preview' canonical_doc.pk %}#{{ ann.block_id }}" target="_blank" style="color:var(--color-accent);text-decoration:none;">{{ ann.block_id }}</a>
+              {% if is_editor %}
+                <a href="{% url 'editor_review_preview' review.pk %}#{{ ann.block_id }}" style="color:var(--color-accent);text-decoration:none;">{{ ann.block_id }}</a>
+              {% elif is_author %}
+                <a href="{% url 'review_author_preprint' review.pk %}#{{ ann.block_id }}" style="color:var(--color-accent);text-decoration:none;">{{ ann.block_id }}</a>
               {% else %}
                 {{ ann.block_id }}
               {% endif %}
@@ -173,11 +173,14 @@
   <p style="color:var(--color-muted);font-size:var(--size-sm);">No paragraph annotations on this review.</p>
   {% endif %}
 
-  {% if is_editor %}
-  <div style="margin-top:var(--spacing-8);padding-top:var(--spacing-4);border-top:1px solid var(--color-border);">
-    <a href="{% url 'moderate_review' review.pk %}" class="btn btn--secondary">Go to Moderation</a>
+  <div style="margin-top:var(--spacing-8);padding-top:var(--spacing-4);border-top:1px solid var(--color-border);display:flex;gap:var(--spacing-3);flex-wrap:wrap;">
+    {% if is_editor %}
+    <a href="{% url 'editor_review_preview' review.pk %}" class="btn btn--primary">Open in workspace &rarr;</a>
+    <a href="{% url 'moderate_review' review.pk %}" class="btn btn--secondary">Go to moderation</a>
+    {% elif is_author %}
+    <a href="{% url 'review_author_preprint' review.pk %}" class="btn btn--primary">Open in workspace &rarr;</a>
+    {% endif %}
   </div>
-  {% endif %}
 
 </div>
 {% endblock %}

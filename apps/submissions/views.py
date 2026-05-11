@@ -141,7 +141,9 @@ def new_submission_step4(request, pk, rev):
 
 @login_required
 def submission_detail(request, pk):
-    sub = get_object_or_404(Submission, pk=pk, author=request.user)
+    sub = get_object_or_404(Submission, pk=pk)
+    if sub.author != request.user and not request.user.has_editorial_access():
+        return render(request, '403.html', {'message': 'You do not have access to this submission.'}, status=403)
     revisions = sub.revisions.all()
     decisions = sub.editorial_decisions.order_by('round')
     from apps.reviews.models import Review, ReviewStatus
@@ -316,9 +318,10 @@ def resubmit_after_screening(request, pk):
                 except Exception:
                     pass
         sub.status = SubmissionStatus.SUBMITTED
+        sub.submission_date = timezone.now()
         sub.save()
-        from apps.notifications.tasks import notify_revision_submitted
-        notify_revision_submitted(rev.pk)
+        from apps.notifications.tasks import notify_screening_resubmission
+        notify_screening_resubmission(rev.pk)
         messages.success(request, 'Corrected manuscript submitted. The editorial team will be in touch.')
         return redirect('author_dashboard')
 

@@ -37,7 +37,28 @@ class JournalConfig(models.Model):
     # ── Email ──────────────────────────────────────────────────
     email_from_name = models.CharField(max_length=255, blank=True, default='')
     email_from_address = models.EmailField(blank=True, default='')
+
+    EMAIL_BACKEND_MAILERSEND = 'mailersend'
+    EMAIL_BACKEND_SMTP = 'smtp'
+    EMAIL_BACKEND_CHOICES = [
+        (EMAIL_BACKEND_MAILERSEND, 'MailerSend (API)'),
+        (EMAIL_BACKEND_SMTP, 'SMTP'),
+    ]
+    email_backend_type = models.CharField(
+        max_length=20,
+        choices=EMAIL_BACKEND_CHOICES,
+        default=EMAIL_BACKEND_MAILERSEND,
+    )
+
+    # MailerSend
     mailersend_api_token = models.CharField(max_length=500, blank=True, default='')
+
+    # SMTP
+    smtp_host = models.CharField(max_length=255, blank=True, default='')
+    smtp_port = models.PositiveSmallIntegerField(default=587)
+    smtp_username = models.CharField(max_length=255, blank=True, default='')
+    smtp_password = models.CharField(max_length=500, blank=True, default='')
+    smtp_use_tls = models.BooleanField(default=True)
 
     # ── ORCID OAuth ────────────────────────────────────────────
     orcid_enabled = models.BooleanField(default=False)

@@ -763,6 +763,7 @@ p:last-child { margin-bottom: 0; }
   background: var(--color-text);
   color: rgba(255,255,255,0.6);
   padding: var(--spacing-20) 0 var(--spacing-8);
+  margin-top: var(--spacing-20);
 }
 
 .site-footer__grid {

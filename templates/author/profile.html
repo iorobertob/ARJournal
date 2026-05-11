@@ -36,7 +36,10 @@
       {% endif %}
     </div>
 
-    <a href="{% url 'profile_edit' %}" class="btn btn--secondary btn--small" style="flex-shrink:0;">Edit Profile</a>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-2);flex-shrink:0;">
+      <a href="{% url 'profile_edit' %}" class="btn btn--secondary btn--small">Edit Profile</a>
+      <a href="{% url 'account_change_password' %}" class="btn btn--secondary btn--small">Change Password</a>
+    </div>
   </div>
 
   <!-- ── Bio & details ───────────────────────────────────────────────── -->

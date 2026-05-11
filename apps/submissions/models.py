@@ -77,11 +77,19 @@ class Submission(models.Model):
         """True when returned from technical screening and no rejection has followed."""
         if self.status != SubmissionStatus.SUBMITTED:
             return False
-        if not self.screening_checks.filter(result='return_to_author').exists():
+        check = self.screening_checks.filter(result='return_to_author').order_by('-checked_at').first()
+        if check is None:
             return False
         from apps.editorial.models import DecisionType
         _rejections = {DecisionType.REJECT, DecisionType.DESK_REJECT}
-        return not self.editorial_decisions.filter(decision_type__in=_rejections).exists()
+        if self.editorial_decisions.filter(decision_type__in=_rejections).exists():
+            return False
+        # If the author has submitted a newer revision after the screening return,
+        # they have already responded — no longer awaiting correction.
+        latest_rev = self.revisions.order_by('-version').first()
+        if latest_rev and latest_rev.submitted_at and latest_rev.submitted_at > check.checked_at:
+            return False
+        return True
 
 
 class RevisionStatus(models.TextChoices):

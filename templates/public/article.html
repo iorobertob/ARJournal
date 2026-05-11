@@ -53,9 +53,11 @@
       <a href="https://doi.org/{{ doi }}" target="_blank" rel="noopener" style="font-size:var(--size-xs);word-break:break-all;">{{ doi }}</a>
       {% endif %}
 
+      {% if build %}
       <p class="article-meta-sidebar__label">Download</p>
       <a href="{% url 'request_pdf' build.document.pk %}?mode=flat">PDF</a>
       <a href="{% url 'request_pdf' build.document.pk %}?mode=interactive" style="margin-top:var(--spacing-1);">Interactive PDF</a>
+      {% endif %}
 
       <p class="article-meta-sidebar__label">Cite</p>
       <button class="article-meta-sidebar__cite-btn" onclick="openCiteModal()">Cite this article</button>
@@ -74,20 +76,22 @@
     {% if submission.subtitle %}<p class="article-subtitle">{{ submission.subtitle }}</p>{% endif %}
     <p class="article-byline">{{ submission.author.display_name }}</p>
 
-    {% if build.document.revision.submission.issue.cover_image %}
+    {% if build and build.document.revision.submission.issue.cover_image %}
     <figure class="article-hero-image">
       <img src="{{ build.document.revision.submission.issue.cover_image.url }}" alt="{{ submission.title }}">
     </figure>
     {% endif %}
 
     <div class="article-body-content">
-      {{ build.html_content|safe }}
+      {% if article_html %}{{ article_html|safe }}{% elif build %}{{ build.html_content|safe }}{% endif %}
     </div>
 
+    {% if build %}
     <div class="article-downloads">
       <a href="{% url 'request_pdf' build.document.pk %}?mode=flat" class="btn btn--secondary">Download PDF</a>
       <a href="{% url 'request_pdf' build.document.pk %}?mode=interactive" class="btn btn--secondary">Interactive PDF</a>
     </div>
+    {% endif %}
   </main>
 
 </div><!-- /.article-layout -->

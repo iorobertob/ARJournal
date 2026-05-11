@@ -70,9 +70,10 @@
 </div>
 
 <!-- ── Email ──────────────────────────────────────────────── -->
-<div class="jadmin-card">
-  <div class="jadmin-card__title">Email — Mailersend</div>
+<div class="jadmin-card" x-data="{ backend: '{{ journal.email_backend_type }}' }">
+  <div class="jadmin-card__title">Email</div>
 
+  <!-- From identity (shared) -->
   <div class="form-row">
     <div class="form-group">
       <label for="id_email_from_name">From name</label>
@@ -84,13 +85,69 @@
     </div>
   </div>
 
-  <div class="form-group" style="margin-bottom:0;">
-    <label for="id_mailersend_api_token">Mailersend API token</label>
-    <input type="password" name="mailersend_api_token" id="id_mailersend_api_token"
-           value="{{ journal.mailersend_api_token }}" class="form-control"
-           autocomplete="new-password" placeholder="mlsn.xxxxxxxxxxxxxxxxxxxxxxxx">
-    <small style="color:var(--color-muted);font-size:var(--size-xs);">Get your token from <strong>app.mailersend.com → API Tokens</strong></small>
+  <!-- Backend selector -->
+  <div style="display:flex;gap:var(--spacing-2);margin-bottom:var(--spacing-5);">
+    <label style="display:flex;align-items:center;gap:var(--spacing-2);padding:var(--spacing-2) var(--spacing-4);border:1.5px solid var(--color-border);border-radius:var(--radius-sm);cursor:pointer;flex:1;transition:border-color .15s;"
+           :style="backend === 'mailersend' ? 'border-color:var(--color-accent);background:var(--color-accent-light,#fff7f2);' : ''">
+      <input type="radio" name="email_backend_type" value="mailersend" x-model="backend"
+             style="accent-color:var(--color-accent);width:15px;height:15px;">
+      <div>
+        <p style="margin:0;font-weight:600;font-size:var(--size-sm);">MailerSend <span style="font-size:0.72rem;font-weight:400;color:var(--color-muted);">API</span></p>
+        <p style="margin:0;font-size:var(--size-xs);color:var(--color-muted);">Transactional email via MailerSend REST API</p>
+      </div>
+    </label>
+    <label style="display:flex;align-items:center;gap:var(--spacing-2);padding:var(--spacing-2) var(--spacing-4);border:1.5px solid var(--color-border);border-radius:var(--radius-sm);cursor:pointer;flex:1;transition:border-color .15s;"
+           :style="backend === 'smtp' ? 'border-color:var(--color-accent);background:var(--color-accent-light,#fff7f2);' : ''">
+      <input type="radio" name="email_backend_type" value="smtp" x-model="backend"
+             style="accent-color:var(--color-accent);width:15px;height:15px;">
+      <div>
+        <p style="margin:0;font-weight:600;font-size:var(--size-sm);">SMTP</p>
+        <p style="margin:0;font-size:var(--size-xs);color:var(--color-muted);">Any SMTP relay (Gmail, Postfix, etc.)</p>
+      </div>
+    </label>
   </div>
+
+  <!-- MailerSend panel -->
+  <div x-show="backend === 'mailersend'" style="border-top:1px solid var(--color-border);padding-top:var(--spacing-4);">
+    <div class="form-group" style="margin-bottom:0;">
+      <label for="id_mailersend_api_token">API token</label>
+      <input type="password" name="mailersend_api_token" id="id_mailersend_api_token"
+             value="{{ journal.mailersend_api_token }}" class="form-control"
+             autocomplete="new-password" placeholder="mlsn.xxxxxxxxxxxxxxxxxxxxxxxx">
+      <small style="color:var(--color-muted);font-size:var(--size-xs);">Get your token at <strong>app.mailersend.com → API Tokens</strong></small>
+    </div>
+  </div>
+
+  <!-- SMTP panel -->
+  <div x-show="backend === 'smtp'" style="border-top:1px solid var(--color-border);padding-top:var(--spacing-4);">
+    <div class="form-row">
+      <div class="form-group" style="flex:2;">
+        <label for="id_smtp_host">SMTP host</label>
+        <input type="text" name="smtp_host" id="id_smtp_host" value="{{ journal.smtp_host }}" class="form-control" placeholder="smtp.example.com">
+      </div>
+      <div class="form-group" style="flex:0;min-width:100px;">
+        <label for="id_smtp_port">Port</label>
+        <input type="number" name="smtp_port" id="id_smtp_port" value="{{ journal.smtp_port }}" class="form-control" min="1" max="65535">
+      </div>
+      <div class="form-group" style="flex:0;min-width:auto;align-self:flex-end;">
+        <label style="display:flex;align-items:center;gap:var(--spacing-2);white-space:nowrap;margin-bottom:var(--spacing-3);cursor:pointer;">
+          <input type="checkbox" name="smtp_use_tls" id="id_smtp_use_tls" {% if journal.smtp_use_tls %}checked{% endif %} style="width:14px;height:14px;accent-color:var(--color-accent);">
+          Use TLS
+        </label>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:0;">
+      <div class="form-group">
+        <label for="id_smtp_username">Username</label>
+        <input type="text" name="smtp_username" id="id_smtp_username" value="{{ journal.smtp_username }}" class="form-control" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="id_smtp_password">Password</label>
+        <input type="password" name="smtp_password" id="id_smtp_password" class="form-control" autocomplete="new-password" placeholder="Leave blank to keep current">
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ── ORCID ───────────────────────────────────────────────── -->

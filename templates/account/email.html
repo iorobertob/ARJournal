@@ -3,20 +3,77 @@
 
 {% block title %}Email addresses — {{ journal.name }}{% endblock %}
 
-{% block auth_content %}
+{% block extra_css %}
+{{ block.super }}
+<style>
+  .email-card .auth-card { max-width: 560px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page email-card">
+  <div class="auth-card">
+    {% block auth_content %}
+
 <div class="auth-card__header">
   <h1 class="auth-card__title">Email addresses</h1>
+  <p class="auth-card__subtitle">Your primary email is used to sign in and receive notifications.</p>
 </div>
+
+{% if messages %}
+{% for msg in messages %}
+<div class="alert alert--{% if msg.tags == 'error' %}error{% elif msg.tags == 'success' %}success{% else %}info{% endif %}" style="margin-bottom:var(--spacing-4);">
+  {{ msg }}
+</div>
+{% endfor %}
+{% endif %}
 
 {% if emailaddresses %}
 <div style="margin-bottom:var(--spacing-6);">
   {% for ea in emailaddresses %}
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--spacing-3) var(--spacing-4);border:1px solid var(--color-border);border-radius:var(--radius-sm);margin-bottom:var(--spacing-2);font-size:var(--size-sm);">
-    <div>
-      <span style="font-weight:500;">{{ ea.email }}</span>
-      {% if ea.primary %}<span style="margin-left:0.5rem;padding:0.1em 0.5em;background:var(--color-accent-light);color:var(--color-accent);border-radius:20px;font-size:0.72rem;font-weight:600;">Primary</span>{% endif %}
-      {% if ea.verified %}<span style="margin-left:0.35rem;padding:0.1em 0.5em;background:#dcfce7;color:#16a34a;border-radius:20px;font-size:0.72rem;font-weight:600;">Verified</span>
-      {% else %}<span style="margin-left:0.35rem;padding:0.1em 0.5em;background:#fef9c3;color:#a16207;border-radius:20px;font-size:0.72rem;font-weight:600;">Unverified</span>{% endif %}
+  <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);margin-bottom:var(--spacing-3);overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--spacing-3) var(--spacing-4);background:var(--color-surface);">
+      <div style="display:flex;align-items:center;gap:var(--spacing-2);flex-wrap:wrap;">
+        <span style="font-size:0.9rem;font-weight:500;">{{ ea.email }}</span>
+        {% if ea.primary %}<span style="padding:0.15em 0.55em;background:var(--color-accent);color:#fff;border-radius:20px;font-size:0.7rem;font-weight:600;">Primary</span>{% endif %}
+        {% if ea.verified %}
+        <span style="padding:0.15em 0.55em;background:#dcfce7;color:#16a34a;border-radius:20px;font-size:0.7rem;font-weight:600;">Verified</span>
+        {% else %}
+        <span style="padding:0.15em 0.55em;background:#fef9c3;color:#a16207;border-radius:20px;font-size:0.7rem;font-weight:600;">Unverified</span>
+        {% endif %}
+      </div>
+    </div>
+    <div style="display:flex;gap:var(--spacing-2);padding:var(--spacing-2) var(--spacing-4);border-top:1px solid var(--color-border);flex-wrap:wrap;">
+      {% if not ea.primary %}
+      {% if ea.verified %}
+      <form method="post" action="{% url 'account_email' %}" style="display:inline;">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ ea.email }}">
+        <button type="submit" name="action_make_primary"
+                class="btn btn--small btn--primary"
+                style="font-size:0.78rem;">Make primary</button>
+      </form>
+      {% endif %}
+      {% if not ea.verified %}
+      <form method="post" action="{% url 'account_email' %}" style="display:inline;">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ ea.email }}">
+        <button type="submit" name="action_send"
+                class="btn btn--small"
+                style="font-size:0.78rem;">Re-send verification</button>
+      </form>
+      {% endif %}
+      <form method="post" action="{% url 'account_email' %}" style="display:inline;"
+            data-confirm="Remove {{ ea.email }} from your account?">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ ea.email }}">
+        <button type="submit" name="action_remove"
+                class="btn btn--small"
+                style="font-size:0.78rem;border-color:#fca5a5;color:#dc2626;">Remove</button>
+      </form>
+      {% else %}
+      <span style="font-size:0.78rem;color:var(--color-muted);padding:var(--spacing-1) 0;">Primary address — add a new one to change it</span>
+      {% endif %}
     </div>
   </div>
   {% endfor %}
@@ -25,23 +82,29 @@
 <div class="alert alert--info">No email addresses on file.</div>
 {% endif %}
 
-<form method="post" action="{% url 'account_email' %}">
-  {% csrf_token %}
-  {% if can_add_email %}
-  <div class="auth-form">
+{% if can_add_email %}
+<div style="border-top:1px solid var(--color-border);padding-top:var(--spacing-5);margin-top:var(--spacing-2);">
+  <p style="font-size:0.85rem;font-weight:600;margin-bottom:var(--spacing-3);color:var(--color-text);">Add email address</p>
+  <p style="font-size:0.8rem;color:var(--color-muted);margin-bottom:var(--spacing-4);">A verification link will be sent to the new address. Once verified you can make it your primary.</p>
+  <form method="post" action="{% url 'account_email' %}" class="auth-form">
+    {% csrf_token %}
     <div class="form-group" style="margin-bottom:var(--spacing-3);">
-      <label for="{{ form.email.id_for_label }}">Add email address</label>
+      <label for="{{ form.email.id_for_label }}">New email address</label>
       {{ form.email }}
       {% if form.email.errors %}
       <ul class="errorlist">{% for e in form.email.errors %}<li>{{ e }}</li>{% endfor %}</ul>
       {% endif %}
     </div>
-    <button type="submit" name="action_add" class="auth-submit">Add email</button>
-  </div>
-  {% endif %}
-</form>
+    <button type="submit" name="action_add" class="auth-submit">Add &amp; send verification</button>
+  </form>
+</div>
+{% endif %}
 
 <div class="auth-links">
-  <a href="{% url 'profile' %}">← Back to profile</a>
+  <a href="{% url 'account_settings' %}">← Back to settings</a>
+</div>
+
+    {% endblock %}
+  </div>
 </div>
 {% endblock %}

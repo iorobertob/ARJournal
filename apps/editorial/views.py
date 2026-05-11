@@ -64,7 +64,19 @@ def submission_detail(request, pk):
     submission = get_object_or_404(Submission, pk=pk)
     revision = submission.get_current_revision()
     assignments = submission.assignments.filter(is_active=True)
-    screening = submission.screening_checks.last()
+    screenings = submission.screening_checks.order_by('checked_at')
+    latest_screening = screenings.last()
+    # Show the screening form when there is no check yet, or when the author
+    # has resubmitted a correction after the most recent check (the revision's
+    # submitted_at is newer than the last screening check's checked_at).
+    needs_screening = submission.status == SubmissionStatus.SUBMITTED and (
+        latest_screening is None
+        or (
+            revision
+            and revision.submitted_at
+            and revision.submitted_at > latest_screening.checked_at
+        )
+    )
     decisions = submission.editorial_decisions.all()
     from apps.reviewers.models import ReviewerSuggestion, ReviewerInvitation
     suggestions = ReviewerSuggestion.objects.filter(submission=submission)
@@ -93,7 +105,8 @@ def submission_detail(request, pk):
         'submission': submission,
         'revision': revision,
         'assignments': assignments,
-        'screening': screening,
+        'screenings': screenings,
+        'needs_screening': needs_screening,
         'decisions': decisions,
         'suggestions': suggestions,
         'invitations': invitations,

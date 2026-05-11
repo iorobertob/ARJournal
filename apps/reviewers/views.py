@@ -22,19 +22,24 @@ def editorial_required(view_func):
 def generate_suggestions(request, submission_pk):
     submission = get_object_or_404(Submission, pk=submission_pk)
 
-    # Remember manually-removed reviewers so they don't come back
+    # Exclude rejected reviewers (stay gone) AND approved/invited (stay put)
     excluded_pks = set(
         ReviewerSuggestion.objects.filter(
             submission=submission,
-            status=SuggestionStatus.REJECTED,
+            status__in=[
+                SuggestionStatus.REJECTED,
+                SuggestionStatus.APPROVED,
+                SuggestionStatus.INVITED,
+            ],
         ).values_list('reviewer_id', flat=True)
     )
 
     from .scorer import suggest_reviewers
     result = suggest_reviewers(submission, excluded_pks=excluded_pks)
-    # Persist suggestions (keep REJECTED entries; only replace non-rejected)
-    ReviewerSuggestion.objects.filter(submission=submission).exclude(
-        status=SuggestionStatus.REJECTED
+    # Only replace unacted-on suggestions; approved/invited/rejected are preserved
+    ReviewerSuggestion.objects.filter(
+        submission=submission,
+        status=SuggestionStatus.SUGGESTED,
     ).delete()
     for item in result['primary']:
         ReviewerSuggestion.objects.create(
@@ -72,11 +77,20 @@ def generate_suggestions(request, submission_pk):
 
 
 @editorial_required
+@require_POST
 def approve_reviewer(request, suggestion_pk):
     suggestion = get_object_or_404(ReviewerSuggestion, pk=suggestion_pk)
     suggestion.status = SuggestionStatus.APPROVED
     suggestion.suggested_by_editor = request.user
     suggestion.save()
+    if request.headers.get('HX-Request'):
+        from django.template.loader import render_to_string
+        from django.http import HttpResponse
+        html = render_to_string('editorial/_suggestion_card.html', {
+            'sug': suggestion,
+            'submission': suggestion.submission,
+        }, request=request)
+        return HttpResponse(html)
     messages.success(request, f'{suggestion.reviewer.display_name} approved.')
     return redirect('editorial_submission', pk=suggestion.submission.pk)
 
@@ -192,6 +206,11 @@ def remove_suggestion(request, suggestion_pk):
     )
     suggestion.status = SuggestionStatus.REJECTED
     suggestion.save()
+    if request.headers.get('HX-Request'):
+        from django.http import HttpResponse
+        response = HttpResponse('')
+        response['HX-Reswap'] = 'delete'
+        return response
     messages.success(request, f'{suggestion.reviewer.display_name} removed from suggestions.')
     return redirect('editorial_submission', pk=submission.pk)
 

@@ -1,5 +1,6 @@
 import json
 from django.contrib.auth.decorators import login_required
+from django.db.models import Min
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.http import JsonResponse
@@ -7,6 +8,37 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from .models import Review, ReviewAnnotation, ReviewModeration, ReviewStatus, ModerationStatus
 from apps.reviewers.models import ReviewerInvitation
+
+
+def _resolve_review_revision(review):
+    """Return the SubmissionRevision this review was written against.
+
+    Priority: stored FK → earliest annotation timestamp → review submitted_at
+    → earliest revision (v1 safety net). Never falls back to the submission's
+    current revision, which would show the wrong manuscript after resubmission.
+    """
+    if review.revision_id is not None:
+        return review.revision
+
+    submission = review.invitation.submission
+    revisions = submission.revisions.order_by('version')  # ascending so .first() = v1
+
+    earliest = review.annotations.aggregate(earliest=Min('created_at'))['earliest']
+    if earliest is not None:
+        candidate = revisions.filter(created_at__lte=earliest).order_by('-version').first()
+        if candidate is None:
+            candidate = revisions.filter(submitted_at__lte=earliest).order_by('-version').first()
+        if candidate is not None:
+            return candidate
+
+    if review.submitted_at is not None:
+        candidate = revisions.filter(created_at__lte=review.submitted_at).order_by('-version').first()
+        if candidate is None:
+            candidate = revisions.filter(submitted_at__lte=review.submitted_at).order_by('-version').first()
+        if candidate is not None:
+            return candidate
+
+    return revisions.first()
 
 
 @login_required
@@ -99,11 +131,18 @@ def reviewer_workspace(request, invitation_pk):
     review, _ = Review.objects.get_or_create(invitation=invitation)
     submission = invitation.submission
     current_revision = submission.get_current_revision()
-    if current_revision and review.revision_id is None:
+    # Only auto-assign revision on a brand-new, untouched review. Once the
+    # reviewer has added annotations or submitted, revision must not be
+    # overwritten — after author resubmission, current_revision is v2.
+    if (
+        current_revision
+        and review.revision_id is None
+        and review.status == ReviewStatus.DRAFT
+        and not review.annotations.exists()
+    ):
         review.revision = current_revision
         review.save(update_fields=['revision'])
-    # Always render the version the review was written against, not the latest
-    revision = review.revision or current_revision
+    revision = _resolve_review_revision(review)
 
     # Auto-ingest .tex manuscript if no canonical doc exists yet
     canonical_doc_obj = None
@@ -131,7 +170,7 @@ def reviewer_workspace(request, invitation_pk):
 
     from apps.documents.renderers.html_renderer import render_html, build_toc
     if canonical_doc:
-        article_html = render_html(canonical_doc, submission)
+        article_html = render_html(canonical_doc, revision=revision)
         toc = build_toc(canonical_doc)
     else:
         article_html = None  # template will show fallback
@@ -208,6 +247,13 @@ def add_annotation(request, review_pk):
         comment=data.get('comment', ''),
         selector_data=data.get('selector_data', {}),
     )
+    # Belt-and-suspenders: lock review.revision at first-annotation time so
+    # that if the author later resubmits, the FK is already set correctly.
+    if review.revision_id is None:
+        current = review.invitation.submission.get_current_revision()
+        if current is not None:
+            review.revision = current
+            review.save(update_fields=['revision'])
     return JsonResponse({'id': ann.pk, 'block_id': ann.block_id, 'comment': ann.comment})
 
 
@@ -319,7 +365,7 @@ def review_detail(request, review_pk):
 
     canonical_doc = None
     try:
-        revision = review.revision or submission.get_current_revision()
+        revision = _resolve_review_revision(review)
         if revision:
             canonical_doc = revision.canonical_document
     except Exception:
@@ -347,6 +393,45 @@ def review_detail(request, review_pk):
 
 
 @login_required
+def editor_review_preview(request, review_pk):
+    """
+    Read-only workspace for editors: shows the manuscript the review was written
+    against with ALL annotations (released and unreleased) highlighted.
+    """
+    review = get_object_or_404(Review, pk=review_pk)
+
+    if not request.user.has_editorial_access():
+        return render(request, '403.html', {'message': 'Access denied.'}, status=403)
+
+    if review.status == ReviewStatus.DRAFT:
+        return render(request, '403.html', {'message': 'This review has not been submitted yet.'}, status=403)
+
+    annotations = review.annotations.all().order_by('created_at')
+    annotated_block_ids = list(annotations.values_list('block_id', flat=True))
+
+    revision = _resolve_review_revision(review)
+    article_html = None
+    toc = []
+    if revision:
+        try:
+            doc = revision.canonical_document
+            from apps.documents.renderers.html_renderer import render_html, build_toc
+            article_html = render_html(doc.data, revision=revision)
+            toc = build_toc(doc.data)
+        except Exception:
+            pass
+
+    return render(request, 'reviews/editor_review_preview.html', {
+        'review': review,
+        'submission': review.invitation.submission,
+        'annotations': annotations,
+        'annotated_block_ids': json.dumps(annotated_block_ids),
+        'article_html': article_html,
+        'toc': toc,
+    })
+
+
+@login_required
 def author_preprint(request, review_pk):
     """
     Read-only preprint view for the author.
@@ -365,14 +450,14 @@ def author_preprint(request, review_pk):
     annotations = review.annotations.filter(released_to_author=True).order_by('created_at')
     annotated_block_ids = list(annotations.values_list('block_id', flat=True))
 
-    revision = review.revision or submission.get_current_revision()
+    revision = _resolve_review_revision(review)
     article_html = None
     toc = []
     if revision:
         try:
             doc = revision.canonical_document
             from apps.documents.renderers.html_renderer import render_html, build_toc
-            article_html = render_html(doc.data, submission)
+            article_html = render_html(doc.data, revision=revision)
             toc = build_toc(doc.data)
         except Exception:
             pass

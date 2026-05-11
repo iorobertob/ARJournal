@@ -92,7 +92,8 @@
         {% if review.summary %}
         <p style="font-size:var(--size-sm);line-height:var(--leading-loose);margin-bottom:var(--spacing-3);">{{ review.summary|truncatewords:60 }}</p>
         {% endif %}
-        <a href="{% url 'review_detail' review.pk %}" class="btn btn--small btn--secondary">Read full review &amp; annotations &rarr;</a>
+        <a href="{% url 'review_author_preprint' review.pk %}" class="btn btn--small btn--primary">Open in workspace &rarr;</a>
+        <a href="{% url 'review_detail' review.pk %}" class="btn btn--small btn--secondary" style="margin-top:var(--spacing-2);">Review details</a>
       </div>
     </div>
     {% endfor %}

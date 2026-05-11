@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Account Settings — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:640px;padding-top:var(--spacing-10);padding-bottom:var(--spacing-16);">
+
+  <h1 style="font-family:var(--font-serif);font-size:1.65rem;margin:0 0 var(--spacing-2);">Account Settings</h1>
+  <p style="color:var(--color-muted);font-size:var(--size-sm);margin:0 0 var(--spacing-8);">Manage your login credentials and email addresses.</p>
+
+  <!-- Email -->
+  <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-5) var(--spacing-6);margin-bottom:var(--spacing-4);display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-4);flex-wrap:wrap;">
+    <div>
+      <p style="font-weight:600;margin:0 0 var(--spacing-1);">Email addresses</p>
+      <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0;">{{ request.user.email }}</p>
+    </div>
+    <a href="{% url 'account_email' %}" class="btn btn--secondary btn--small">Manage →</a>
+  </div>
+
+  <!-- Password -->
+  <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-5) var(--spacing-6);margin-bottom:var(--spacing-4);display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-4);flex-wrap:wrap;">
+    <div>
+      <p style="font-weight:600;margin:0 0 var(--spacing-1);">Password</p>
+      <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0;">Change your account password.</p>
+    </div>
+    <a href="{% url 'account_change_password' %}" class="btn btn--secondary btn--small">Change →</a>
+  </div>
+
+  <div style="margin-top:var(--spacing-6);">
+    <a href="{% url 'profile' %}" style="font-size:var(--size-sm);color:var(--color-muted);">← Back to profile</a>
+  </div>
+
+</div>
+{% endblock %}

@@ -33,12 +33,16 @@
   <!-- Screening -->
   <section class="editorial-section">
     <h2>Technical Screening</h2>
-    {% if screening %}
-    <div class="decision-record">
-      <p>Result: <strong>{{ screening.get_result_display }}</strong> &middot; {{ screening.checked_at|date:"d M Y" }}</p>
-      {% if screening.notes %}<p style="color:var(--color-muted);font-size:var(--size-sm);margin-top:var(--spacing-2);">{{ screening.notes }}</p>{% endif %}
+    {% for sc in screenings %}
+    <div class="decision-record" style="margin-bottom:{% if not forloop.last or needs_screening %}var(--spacing-4){% else %}0{% endif %};">
+      {% if needs_screening or not forloop.last %}
+      <p style="font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-1);">Round {{ forloop.counter }}</p>
+      {% endif %}
+      <p>Result: <strong>{{ sc.get_result_display }}</strong> &middot; {{ sc.checked_at|date:"d M Y" }}{% if sc.checker %} &middot; {{ sc.checker.display_name }}{% endif %}</p>
+      {% if sc.notes %}<p style="color:var(--color-muted);font-size:var(--size-sm);margin-top:var(--spacing-2);">{{ sc.notes }}</p>{% endif %}
     </div>
-    {% else %}
+    {% endfor %}
+    {% if needs_screening %}
     <form method="post" action="{% url 'editorial_screen' submission.pk %}" class="form" style="max-width:600px;">
       {% csrf_token %}
       <div class="form__checkboxes">
@@ -390,7 +394,10 @@
             {% endwith %}
           </div>
           {% if review.status != 'draft' %}
-          <a href="{% url 'moderate_review' review.pk %}" class="btn btn--small btn--secondary" style="flex-shrink:0;">Open review ↗</a>
+          <div style="display:flex;flex-direction:column;gap:var(--spacing-2);flex-shrink:0;">
+            <a href="{% url 'editor_review_preview' review.pk %}" class="btn btn--small btn--primary">Open in workspace &rarr;</a>
+            <a href="{% url 'moderate_review' review.pk %}" class="btn btn--small btn--secondary">Moderation ↗</a>
+          </div>
           {% endif %}
         </div>
       </div>
@@ -648,6 +655,7 @@ function refreshSuggestions(btn, url) {
   .then(function(data) {
     var body = document.getElementById('suggestions-body');
     body.innerHTML = data.html;
+    htmx.process(body);
     // Flash to confirm the update ran
     body.style.transition = 'opacity 0.15s';
     body.style.opacity = '0.3';

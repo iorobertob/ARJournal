@@ -120,7 +120,17 @@ def journal_settings(request):
         # Email
         journal.email_from_name = request.POST.get('email_from_name', journal.email_from_name)
         journal.email_from_address = request.POST.get('email_from_address', journal.email_from_address)
+        backend = request.POST.get('email_backend_type', journal.email_backend_type)
+        if backend in ('mailersend', 'smtp'):
+            journal.email_backend_type = backend
         journal.mailersend_api_token = request.POST.get('mailersend_api_token', journal.mailersend_api_token)
+        journal.smtp_host = request.POST.get('smtp_host', journal.smtp_host)
+        journal.smtp_port = int(request.POST.get('smtp_port') or journal.smtp_port)
+        journal.smtp_username = request.POST.get('smtp_username', journal.smtp_username)
+        smtp_pw = request.POST.get('smtp_password', '')
+        if smtp_pw:
+            journal.smtp_password = smtp_pw
+        journal.smtp_use_tls = bool(request.POST.get('smtp_use_tls'))
         # ORCID
         journal.orcid_enabled = bool(request.POST.get('orcid_enabled'))
         journal.orcid_client_id = request.POST.get('orcid_client_id', journal.orcid_client_id)

@@ -8,9 +8,6 @@ CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_BROKER_URL = 'memory://'
 CELERY_RESULT_BACKEND = 'cache+memory://'
 
-# django-celery-results for DB-backed results if a worker is ever run
-INSTALLED_APPS += ['django_celery_results']
-
 try:
     import debug_toolbar
     INSTALLED_APPS += ['debug_toolbar']

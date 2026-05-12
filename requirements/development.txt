@@ -5,4 +5,3 @@ pytest-cov==6.0.0
 factory-boy==3.3.3
 django-debug-toolbar==4.4.6
 ipython==8.31.0
-django-celery-results==2.6.0

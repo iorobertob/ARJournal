@@ -44,6 +44,7 @@ THIRD_PARTY_APPS = [
     'allauth.socialaccount.providers.orcid',
     'django_htmx',
     'storages',
+    'django_celery_results',
 ]
 
 LOCAL_APPS = [

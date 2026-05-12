@@ -26,6 +26,13 @@ _script_name = env('SCRIPT_NAME', default='/ARJournal')
 STATIC_URL = f'{_script_name}/static/'
 MEDIA_URL = f'{_script_name}/media/'
 
+# Django's reverse() never includes SCRIPT_NAME, so redirects lose the subpath
+# prefix. Override the three URL settings that allauth and Django auth use for
+# redirects so the full path is in the Location header.
+LOGIN_URL = f'{_script_name}/accounts/login/'
+LOGIN_REDIRECT_URL = f'{_script_name}/author/dashboard/'
+LOGOUT_REDIRECT_URL = f'{_script_name}/'
+
 # ── Proxy / SSL ───────────────────────────────────────────────────────────────
 # SSL is terminated at Nginx — the app receives plain HTTP from Gunicorn.
 SECURE_SSL_REDIRECT = False

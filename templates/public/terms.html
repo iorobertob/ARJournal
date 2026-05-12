@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% block title %}Terms &amp; Conditions — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<section class="about container">
+  <h1 class="page-title">Terms &amp; Conditions</h1>
+
+  <div class="prose" style="max-width:72ch;">
+
+    <p>These Terms and Conditions govern your use of <strong>{{ journal.name }}</strong> and all services operated under it, including article submission, peer review, account management, and access to published content. By using this platform you agree to these terms. The effective date of this version is 2025.</p>
+
+    <p>Questions or requests relating to these terms should be directed to <a href="mailto:{{ journal.editorial_email }}">{{ journal.editorial_email }}</a>.</p>
+
+    <!-- 1. Data We Collect -->
+    <h2>1. Data We Collect</h2>
+
+    <p>We collect only the data necessary to operate the journal. The categories are:</p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:var(--size-sm);margin-bottom:var(--spacing-6);">
+      <thead>
+        <tr style="border-bottom:2px solid var(--color-border);text-align:left;">
+          <th style="padding:var(--spacing-2) var(--spacing-3);">Category</th>
+          <th style="padding:var(--spacing-2) var(--spacing-3);">Examples</th>
+          <th style="padding:var(--spacing-2) var(--spacing-3);">Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Account data</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Name, email, institution, biography, ORCID iD, profile photo</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Identity, author attribution, correspondence</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Submission data</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Manuscript files, metadata, revision history, correspondence with editors</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Peer review, editorial decision, publication</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Review data</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Reviewer identity (where open review), review text, recommendations</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Editorial quality assurance, scholarly record</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Published article metadata</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Author name, title, abstract, keywords, DOI, publication date</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Permanent scholarly record, citation indexing</td>
+        </tr>
+        <tr>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Usage data</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Server logs (IP address, browser type, pages visited)</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Security, platform diagnostics</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>We do not sell personal data to third parties.</p>
+
+    <!-- 2. Lawful Basis & Retention -->
+    <h2>2. Lawful Basis &amp; Retention</h2>
+
+    <table style="width:100%;border-collapse:collapse;font-size:var(--size-sm);margin-bottom:var(--spacing-6);">
+      <thead>
+        <tr style="border-bottom:2px solid var(--color-border);text-align:left;">
+          <th style="padding:var(--spacing-2) var(--spacing-3);">Data</th>
+          <th style="padding:var(--spacing-2) var(--spacing-3);">Lawful basis (GDPR Art. 6)</th>
+          <th style="padding:var(--spacing-2) var(--spacing-3);">Retention</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Account data</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Contract (submission agreement); consent (registration)</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Until account deletion request; indefinitely where publication record requires it (see §7)</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Submission &amp; review data</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Contract; legitimate interest (scholarly integrity)</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">7 years after final editorial decision</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Published article metadata</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Legitimate interest; public interest archiving (Art. 17(3)(d))</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Permanently — forms part of the scholarly record</td>
+        </tr>
+        <tr>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Server logs</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Legitimate interest (security)</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">90 days</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 3. Your Rights (GDPR) -->
+    <h2>3. Your Rights Under GDPR</h2>
+
+    <p>If you are in the European Economic Area, you have the following rights under the General Data Protection Regulation (EU) 2016/679:</p>
+
+    <ul>
+      <li><strong>Right of access (Art. 15)</strong> — request a copy of the personal data we hold about you.</li>
+      <li><strong>Right to rectification (Art. 16)</strong> — request correction of inaccurate data, including a name change on published articles (see §7).</li>
+      <li><strong>Right to erasure (Art. 17)</strong> — request deletion of your personal data. Note: where you have published articles, the public interest exception (Art. 17(3)(d)) applies to the publication record; see §7 for what this means in practice.</li>
+      <li><strong>Right to data portability (Art. 20)</strong> — request your data in a structured, machine-readable format.</li>
+      <li><strong>Right to restriction (Art. 18)</strong> — request that we limit processing of your data in certain circumstances.</li>
+      <li><strong>Right to object (Art. 21)</strong> — object to processing based on legitimate interest.</li>
+    </ul>
+
+    <p>To exercise any of these rights, email <a href="mailto:{{ journal.editorial_email }}">{{ journal.editorial_email }}</a>. We will respond within 30 days. You also have the right to lodge a complaint with the supervisory authority in your country of residence.</p>
+
+    <!-- 4. Article Submission & Copyright -->
+    <h2>4. Article Submission &amp; Copyright</h2>
+
+    <p>By submitting a manuscript to {{ journal.name }} you confirm that:</p>
+    <ul>
+      <li>The work is original, has not been published elsewhere, and is not currently under review at another venue.</li>
+      <li>All co-authors have approved the submission.</li>
+      <li>You hold the rights to all content submitted, including images and third-party materials.</li>
+      <li>You grant {{ journal.name }} a non-exclusive licence to publish, reproduce, and distribute the article in print and digital form for as long as the journal is in operation.</li>
+      <li>Copyright in the article remains with the author(s). Published articles are made available under the terms indicated on each article page (by default, a Creative Commons Attribution licence is applied unless otherwise agreed).</li>
+    </ul>
+
+    <!-- 5. Article Lifecycle -->
+    <h2>5. Article Lifecycle — Corrections, Errata &amp; Retractions</h2>
+
+    <p>{{ journal.name }} follows standard scholarly publishing practice for maintaining the integrity of the published record.</p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:var(--size-sm);margin-bottom:var(--spacing-6);">
+      <thead>
+        <tr style="border-bottom:2px solid var(--color-border);text-align:left;">
+          <th style="padding:var(--spacing-2) var(--spacing-3);">Event</th>
+          <th style="padding:var(--spacing-2) var(--spacing-3);">Mechanism</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Minor typographical or factual error</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Erratum published as a separate notice linked to the original article; original is preserved unchanged.</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Significant error, main findings unaffected</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Correction notice published; article may be updated with a dated change log appended to the end.</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Fundamental flaw undermining findings</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Retraction notice published; article preserved with a RETRACTED watermark and cross-link to the notice.</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Legal or serious ethical violation</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Decided by the editorial team; body text may be removed in exceptional cases with a permanent public notice replacing it.</td>
+        </tr>
+        <tr>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Author requests post-publication change</td>
+          <td style="padding:var(--spacing-2) var(--spacing-3);">Reviewed by the editors; only substantive corrections accepted. Contact <a href="mailto:{{ journal.editorial_email }}">{{ journal.editorial_email }}</a>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p><strong>Authors cannot unilaterally delete or modify published articles.</strong> Before acceptance, authors may withdraw a submission through the editorial workflow. After publication, changes must go through the above process. This is necessary because published articles enter the scholarly citation record; DOI registration makes them permanently resolvable, and silent deletion would break citation chains.</p>
+
+    <!-- 6. Withdrawal before publication -->
+    <h2>6. Withdrawal Before Publication</h2>
+
+    <p>Authors may request withdrawal of a submitted manuscript at any stage prior to acceptance. After acceptance but before formal publication, withdrawal requires editorial approval and may not be possible if the article is already in production. Requests should be made promptly by email to <a href="mailto:{{ journal.editorial_email }}">{{ journal.editorial_email }}</a>.</p>
+
+    <!-- 7. Account & Profile Deletion -->
+    <h2>7. Account &amp; Profile Deletion</h2>
+
+    <p>Your right to erasure (GDPR Art. 17) applies, subject to the following distinctions:</p>
+
+    <p><strong>Authors without published articles</strong> may request full account deletion. All personal data (email, name, biography, photo, institution, ORCID) is permanently removed from the platform.</p>
+
+    <p><strong>Authors with published articles</strong> — the scholarly publication record cannot be erased, because the public interest in maintaining an accurate citation record constitutes a lawful exception under GDPR Art. 17(3)(d). What we will do upon a deletion request:</p>
+
+    <ul>
+      <li>Remove all contact data (email, biography, photo, ORCID) from the live platform.</li>
+      <li>Deactivate the account (login is no longer possible).</li>
+      <li>Retain the authorship name on published article pages only, as originally submitted and as part of the scholarly record.</li>
+      <li>The author profile page will no longer be accessible.</li>
+    </ul>
+
+    <p><strong>Name correction</strong> — if your legal name has changed, you may request that the displayed name on your published articles be updated to reflect this. Requests are reviewed by the editorial team. Contact <a href="mailto:{{ journal.editorial_email }}">{{ journal.editorial_email }}</a>.</p>
+
+    <!-- 8. Third-Party Services -->
+    <h2>8. Third-Party Services</h2>
+
+    <p>{{ journal.name }} uses the following third-party services (sub-processors) that may process personal data on our behalf:</p>
+
+    <ul>
+      <li><strong>Hosting provider</strong> — server infrastructure and file storage.</li>
+      <li><strong>Email delivery</strong> — transactional email (submission notifications, editorial correspondence).</li>
+      {% if journal.orcid_enabled %}<li><strong>ORCID</strong> — optional researcher identifier. Linked only with your consent via OAuth. ORCID's privacy policy applies to data held on their platform.</li>{% endif %}
+      {% if journal.doi_enabled %}<li><strong>Crossref</strong> — DOI registration and metadata indexing. Article metadata (title, author name, abstract, publication date) is deposited with Crossref to generate a permanent DOI and enable citation indexing.</li>{% endif %}
+      {% if journal.turnitin_enabled %}<li><strong>Turnitin</strong> — manuscript similarity checking. Uploaded manuscripts are transmitted to Turnitin's servers for analysis. Turnitin's own terms and privacy policy apply.</li>{% endif %}
+    </ul>
+
+    <p>We select sub-processors that provide adequate data protection guarantees. Data is not transferred outside the EEA without appropriate safeguards (Standard Contractual Clauses or equivalent).</p>
+
+    <!-- 9. Cookies -->
+    <h2>9. Cookies</h2>
+
+    <p>This platform uses session cookies strictly necessary for login and CSRF protection. No tracking cookies or third-party advertising cookies are used. No consent banner is shown because no non-essential cookies are set.</p>
+
+    <!-- 10. Changes to These Terms -->
+    <h2>10. Changes to These Terms</h2>
+
+    <p>We may update these Terms and Conditions when there are changes to applicable law, platform features, or data practices. Material changes will be notified by email to registered users and announced on the platform. Continued use of the platform after notification constitutes acceptance of the updated terms.</p>
+
+    <!-- 11. Contact -->
+    <h2>11. Contact</h2>
+
+    <p>For all data protection enquiries, rights requests, or questions about these terms:</p>
+
+    <p>
+      <strong>{{ journal.name }}</strong><br>
+      {% if journal.institution %}{{ journal.institution }}<br>{% endif %}
+      {% if journal.country %}{{ journal.country }}<br>{% endif %}
+      <a href="mailto:{{ journal.editorial_email }}">{{ journal.editorial_email }}</a>
+    </p>
+
+    {% if journal.legal_notice %}
+    <h2>Additional Legal Notice</h2>
+    {{ journal.legal_notice|linebreaks }}
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}

@@ -28,6 +28,13 @@
     <a href="{% url 'account_change_password' %}" class="btn btn--secondary btn--small">Change →</a>
   </div>
 
+  <!-- Danger Zone -->
+  <div style="border:1px solid #e53e3e;border-radius:var(--radius-sm);padding:var(--spacing-5) var(--spacing-6);margin-top:var(--spacing-8);">
+    <p style="font-weight:600;margin:0 0 var(--spacing-1);color:#c53030;">Delete Account</p>
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0 0 var(--spacing-4);">Permanently remove your account and personal data. This cannot be undone.</p>
+    <a href="{% url 'delete_account' %}" class="btn btn--danger btn--small">Delete account →</a>
+  </div>
+
   <div style="margin-top:var(--spacing-6);">
     <a href="{% url 'profile' %}" style="font-size:var(--size-sm);color:var(--color-muted);">← Back to profile</a>
   </div>

@@ -15,7 +15,7 @@
     {% if submissions %}
     <table>
       <thead>
-        <tr><th>Title</th><th>Type</th><th>Status</th><th>Submitted</th><th></th></tr>
+        <tr><th>Title</th><th>Type</th><th>Status</th><th>Submitted</th><th colspan="2"></th></tr>
       </thead>
       <tbody>
         {% for sub in submissions %}
@@ -45,6 +45,14 @@
             {% elif sub.is_returned_to_author %}
             &nbsp;<a href="{% url 'resubmit_after_screening' sub.pk %}" style="color:var(--color-accent);font-weight:600;">Correct &amp; Resubmit →</a>
             {% endif %}
+            {% endif %}
+          </td>
+          <td>
+            {% if sub.status != 'published' and sub.status != 'in_production' %}
+            <a href="{% url 'delete_submission' sub.pk %}"
+               style="font-size:var(--size-sm);color:#dc2626;text-decoration:none;white-space:nowrap;">
+              {% if sub.status == 'draft' %}Delete{% else %}Withdraw{% endif %}
+            </a>
             {% endif %}
           </td>
         </tr>

@@ -170,7 +170,7 @@ def reviewer_workspace(request, invitation_pk):
 
     from apps.documents.renderers.html_renderer import render_html, build_toc
     if canonical_doc:
-        article_html = render_html(canonical_doc, revision=revision)
+        article_html = render_html(canonical_doc, revision=revision, reviewer_mode=True)
         toc = build_toc(canonical_doc)
     else:
         article_html = None  # template will show fallback

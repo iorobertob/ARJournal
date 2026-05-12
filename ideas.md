@@ -1,5 +1,4 @@
 - business model. reader has 1 free article a month. others are paid. money goes to authors.  like medium, but peer review. 
-- lmta vsi can establish a uab?
 - if article is marked as published then it is not shown on options for journal assembly. 
 
 
@@ -22,6 +21,7 @@
 - Or simply remove the Contact menu, as there is an email at the footer. change this email. 
 - user profiles accessibles by other users. linked from their articles. 
 - change html render to be more like the workspace, with smaller font, different background color for the main text and same size of the main text and the side columns for content tree and annotations. the column of anotations should be used for footnotes on the rendered html .
+- fix font size accross the site and unify it. 
 
 
 
@@ -30,14 +30,8 @@
 - review is Reject Review works well. 
 
 ## BUGS
-- after resubmittint an article, when an author visits the page for their submission and clicks on "Read Full revieww & annotations", they are taken to a read only workspace-like page, but ifr the annotations were made for a previous version of the article, it should show that previous version of the article. Right now it shows the annotations as if made on the newly submitted article paragraphs. The same problem applies for the reviewers side.  
-- how are footnotes rendered in the review workspace?
-- there is no clear button to open workspace of a review from the editorial view. and there is an inconsistency, for the author, clicking on the paragraph symbol takes the editor to a version of the html render, but the author to a read-only version of the workspace. Both should be taken to the workspace, and there should be a button to open the review space for both. 
-
-
-- Reconsider name
-- celebration at IB 
-- 
+- when first suggetsing reviewers and substituting the first one, the substitution does not happena and it only deletes the first reviewer
+- references to tables is wrong.
 
 
 

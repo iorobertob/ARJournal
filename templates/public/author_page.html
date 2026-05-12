@@ -11,19 +11,46 @@
       {% if author.profile.bio %}<p class="author-page__bio">{{ author.profile.bio }}</p>{% endif %}
     </div>
   </div>
-  <h2>Contributions</h2>
-  <ul class="contributions-list">
+
+  <h2 style="font-family:var(--font-serif);font-weight:400;font-size:var(--size-xl);margin-bottom:0;">
+    Published Articles
+    {% if articles %}<span class="badge" style="margin-left:var(--spacing-2);">{{ articles|length }}</span>{% endif %}
+  </h2>
+
+  {% if articles %}
+  <div style="border-top:1px solid var(--color-border);margin-top:var(--spacing-4);">
     {% for build in articles %}
-    {% with submission=build.document.revision.submission %}
-    <li>
-      <a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a>
-      <span class="contributions-list__type">{{ submission.get_article_type_display }}</span>
-      {% if submission.issue %}<span>Issue #{{ submission.issue.number }}</span>{% endif %}
-    </li>
+    {% with sub=build.document.revision.submission %}
+    <article class="issue-article-row">
+      <div class="issue-article-row__meta">
+        <span class="issue-article-row__type">{{ sub.get_article_type_display }}</span>
+        {% if sub.issue %}
+        <span style="display:block;font-size:0.68rem;color:var(--color-muted);margin-top:var(--spacing-1);">Issue #{{ sub.issue.number }}</span>
+        {% endif %}
+        {% if build.published_at %}
+        <span style="display:block;font-size:0.68rem;color:var(--color-muted);margin-top:2px;">{{ build.published_at|date:"M Y" }}</span>
+        {% endif %}
+      </div>
+      <div class="issue-article-row__body">
+        <h2 class="issue-article-row__title">
+          <a href="{% url 'article_detail' build.slug %}">{{ sub.title }}</a>
+        </h2>
+        {% if sub.subtitle %}<p class="issue-article-row__subtitle">{{ sub.subtitle }}</p>{% endif %}
+        {% if sub.keywords %}
+        <p style="margin-top:var(--spacing-2);">
+          {% for kw in sub.keywords %}
+          <span style="display:inline-block;font-size:var(--size-xs);color:var(--color-muted);background:var(--color-surface);border:1px solid var(--color-border);border-radius:100px;padding:1px var(--spacing-3);margin:1px;">{{ kw }}</span>
+          {% endfor %}
+        </p>
+        {% endif %}
+      </div>
+      <a href="{% url 'article_detail' build.slug %}" class="issue-article-row__arrow">↗</a>
+    </article>
     {% endwith %}
-    {% empty %}
-    <li>No published articles yet.</li>
     {% endfor %}
-  </ul>
+  </div>
+  {% else %}
+  <p style="color:var(--color-muted);font-size:var(--size-sm);margin-top:var(--spacing-6);">No published articles yet.</p>
+  {% endif %}
 </section>
 {% endblock %}

@@ -14,7 +14,7 @@
       <h1 class="hero__title">{{ current_issue.title|default:journal.name }}</h1>
       {% if featured_articles %}
       <p class="hero__bylines">
-        Featuring {% for a in featured_articles|slice:":4" %}{{ a.document.revision.submission.author.display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if featured_articles|length > 4 %} and others{% endif %}
+        Featuring {% for a in featured_articles|slice:":4" %}<a href="{% url 'author_page' a.document.revision.submission.author.pk %}" style="color:inherit;">{{ a.document.revision.submission.author.display_name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}{% if featured_articles|length > 4 %} and others{% endif %}
       </p>
       {% endif %}
     </div>
@@ -42,7 +42,7 @@
       <p class="issue-article-item__title">
         <a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a>
       </p>
-      <p class="issue-article-item__author">{{ submission.author.display_name }}</p>
+      <p class="issue-article-item__author"><a href="{% url 'author_page' submission.author.pk %}" style="color:inherit;text-decoration:none;">{{ submission.author.display_name }}</a></p>
     </article>
     {% endwith %}
     {% endfor %}

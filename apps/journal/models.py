@@ -82,6 +82,12 @@ class JournalConfig(models.Model):
     ai_features_enabled = models.BooleanField(default=False)
     openai_api_key = models.CharField(max_length=255, blank=True, default='')
 
+    # ── Legal ──────────────────────────────────────────────────
+    legal_notice = models.TextField(
+        blank=True, default='',
+        help_text='Optional jurisdiction-specific text appended to the Terms & Conditions page (DPO contact, supervisory authority, etc.)',
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

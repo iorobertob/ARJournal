@@ -85,6 +85,7 @@ _INLINE_CMDS = frozenset({
     'texttt', 'textrm', 'textsc', 'textup', 'underline',
     'url', 'href',
     'verb',
+    'ref',
 })
 
 # Commands whose output is stripped but don't raise an error
@@ -127,6 +128,12 @@ def _parse_inline_content(
         if ch == '%':
             while i < n and text[i] != '\n':
                 i += 1
+            continue
+
+        # Tilde = non-breaking space in LaTeX
+        if ch == '~':
+            buf.append(' ')
+            i += 1
             continue
 
         # Possible backslash command
@@ -246,6 +253,9 @@ def _parse_inline_content(
                 elif cmd == 'url':
                     url = arg.strip()
                     nodes.append({'type': 'link', 'href': url, 'text': url})
+                elif cmd == 'ref':
+                    # \ref{fig:label} or \ref{tab:label} — cross-reference
+                    nodes.append({'type': 'ref', 'target': arg.strip()})
 
                 i = end
             else:
@@ -301,28 +311,60 @@ def _parse_section_content(
         for m in pat.finditer(content):
             segments.append((m.start(), m.end(), 'blockquote', m.group(1)))
 
-    # ── \ARJfigure{file}{caption}{alt} ───────────────────────────────────────
-    for m in re.finditer(r'\\ARJfigure\{([^}]*)\}\{([^}]*)\}\{([^}]*)\}', content):
-        segments.append((m.start(), m.end(), 'figure', (m.group(1), m.group(2), m.group(3))))
+    # ── \ARJfigure[label]{file}{caption}{alt} ────────────────────────────────
+    # Args may span multiple lines; \s* between groups handles indented formatting.
+    # Caption and alt text are optional — authors may omit them.
+    for m in re.finditer(
+        r'\\ARJfigure(?:\[([^\]]*)\])?\s*\{([^}]*)\}\s*(?:\{([^}]*)\})?\s*(?:\{([^}]*)\})?',
+        content,
+    ):
+        label = (m.group(1) or '').strip()
+        fname = m.group(2)
+        segments.append((m.start(), m.end(), 'figure',
+                         (fname, m.group(3) or '', m.group(4) or '', label)))
 
-    # ── \ARJvideo{file}{caption}{poster}{transcript} ──────────────────────────
-    for m in re.finditer(r'\\ARJvideo\{([^}]*)\}\{([^}]*)\}\{([^}]*)\}\{([^}]*)\}', content):
+    # ── \ARJvideo[label]{file}{caption}{poster}{transcript} ───────────────────
+    # Caption, poster, and transcript are optional; args may span lines.
+    for m in re.finditer(
+        r'\\ARJvideo(?:\[([^\]]*)\])?\s*\{([^}]*)\}\s*(?:\{([^}]*)\})?\s*(?:\{([^}]*)\})?\s*(?:\{([^}]*)\})?',
+        content,
+    ):
+        label = (m.group(1) or '').strip()
         segments.append((m.start(), m.end(), 'video',
-                         (m.group(1), m.group(2), m.group(3), m.group(4))))
+                         (m.group(2), m.group(3) or '', m.group(4) or '', m.group(5) or '', label)))
 
-    # ── \ARJaudio{file}{caption}{transcript} ─────────────────────────────────
-    for m in re.finditer(r'\\ARJaudio\{([^}]*)\}\{([^}]*)\}\{([^}]*)\}', content):
+    # ── \ARJaudio[label]{file}{caption}{transcript} ───────────────────────────
+    # Caption and transcript are optional; args may span lines.
+    for m in re.finditer(
+        r'\\ARJaudio(?:\[([^\]]*)\])?\s*\{([^}]*)\}\s*(?:\{([^}]*)\})?\s*(?:\{([^}]*)\})?',
+        content,
+    ):
+        label = (m.group(1) or '').strip()
         segments.append((m.start(), m.end(), 'audio',
-                         (m.group(1), m.group(2), m.group(3))))
+                         (m.group(2), m.group(3) or '', m.group(4) or '', label)))
 
     # ── table environments ────────────────────────────────────────────────────
+    # Supports tabular, tabularx, tabular*; \caption is optional.
     tbl_pat = re.compile(
-        r'\\begin\{table\}(?:\[[^\]]*\])?.*?\\caption\{([^}]*)\}.*?'
-        r'\\begin\{tabular\}\{[^}]*\}(.*?)\\end\{tabular\}.*?\\end\{table\}',
+        r'\\begin\{table\}(?:\[[^\]]*\])?'
+        r'(?P<preamble>.*?)'
+        r'\\begin\{(?P<env>tabular[Xx*]?)\}'
+        r'(?:\{[^}]*\})?'               # optional width arg (tabularx)
+        r'\{[^}]*\}'                    # column spec
+        r'.*?'
+        r'\\end\{(?P=env)\}'
+        r'.*?\\end\{table\}',
         re.DOTALL,
     )
     for m in tbl_pat.finditer(content):
-        segments.append((m.start(), m.end(), 'table', (m.group(1).strip(), m.group(0))))
+        full_tbl = m.group(0)
+        # \caption may be before or after \begin{tabularx}
+        cap_m = re.search(r'\\caption\{([^}]*)\}', full_tbl)
+        caption = cap_m.group(1).strip() if cap_m else ''
+        # \label{tab:...} may be anywhere inside the table environment
+        lbl_m = re.search(r'\\label\{([^}]*)\}', full_tbl)
+        tbl_label = lbl_m.group(1).strip() if lbl_m else ''
+        segments.append((m.start(), m.end(), 'table', (caption, full_tbl, tbl_label)))
 
     # Sort by start; drop overlapping segments (invalid LaTeX, shouldn't happen)
     segments.sort(key=lambda s: s[0])
@@ -407,7 +449,7 @@ def _parse_section_content(
             })
 
         elif kind == 'figure':
-            fname, caption, alt = data
+            fname, caption, alt, label = data
             asset_id = _uid('asset_img', counters)
             fig_id = _uid('blk_fig', counters)
             assets.append({
@@ -416,17 +458,25 @@ def _parse_section_content(
                 'originalFilename': fname.strip(),
                 'rights': {'publicAccess': True, 'reviewAccess': True, 'downloadAllowed': True},
             })
-            blocks.append({
+            # Strip "Alt text: " / "alt: " template prefix authors sometimes include
+            alt_clean = re.sub(r'^(?:alt\s+text|alt)\s*:\s*', '', alt.strip(), flags=re.IGNORECASE)
+            fig_block: dict = {
                 'id': fig_id,
                 'type': 'figure',
                 'assetRef': asset_id,
                 'caption': caption.strip(),
-                'altText': alt.strip(),
+                'altText': alt_clean,
                 'sectionId': sec_id,
-            })
+            }
+            if label:
+                fig_block['label'] = label
+            elif fname.strip():
+                # Auto-label from filename for \ref compatibility
+                fig_block['label'] = fname.strip()
+            blocks.append(fig_block)
 
         elif kind == 'video':
-            fname, caption, poster, transcript = data
+            fname, caption, poster, transcript, label = data
             asset_id = _uid('asset_vid', counters)
             med_id = _uid('blk_med', counters)
             assets.append({
@@ -438,7 +488,7 @@ def _parse_section_content(
                 'rights': {'publicAccess': True, 'reviewAccess': True, 'downloadAllowed': False},
                 'streamingPolicy': 'authenticated_stream_only',
             })
-            blocks.append({
+            med_block: dict = {
                 'id': med_id,
                 'type': 'media',
                 'mediaType': 'video',
@@ -446,10 +496,13 @@ def _parse_section_content(
                 'caption': caption.strip(),
                 'timecodeAnchors': True,
                 'sectionId': sec_id,
-            })
+            }
+            if label:
+                med_block['label'] = label
+            blocks.append(med_block)
 
         elif kind == 'audio':
-            fname, caption, transcript = data
+            fname, caption, transcript, label = data
             asset_id = _uid('asset_aud', counters)
             med_id = _uid('blk_med', counters)
             assets.append({
@@ -459,20 +512,23 @@ def _parse_section_content(
                 'transcriptRef': transcript.strip(),
                 'rights': {'publicAccess': True, 'reviewAccess': True, 'downloadAllowed': False},
             })
-            blocks.append({
+            aud_block: dict = {
                 'id': med_id,
                 'type': 'media',
                 'mediaType': 'audio',
                 'assetRef': asset_id,
                 'caption': caption.strip(),
                 'sectionId': sec_id,
-            })
+            }
+            if label:
+                aud_block['label'] = label
+            blocks.append(aud_block)
 
         elif kind == 'table':
-            caption, raw_latex = data
+            caption, raw_latex, tbl_label = data
             tbl_id = _uid('blk_tbl', counters)
             columns, rows = _parse_tabular(raw_latex)
-            blocks.append({
+            tbl_block: dict = {
                 'id': tbl_id,
                 'type': 'table',
                 'caption': caption,
@@ -480,7 +536,10 @@ def _parse_section_content(
                 'rows': rows,
                 'rawLatex': raw_latex,
                 'sectionId': sec_id,
-            })
+            }
+            if tbl_label:
+                tbl_block['label'] = tbl_label
+            blocks.append(tbl_block)
 
         cursor = end
         counters[f'_p_{sec_id}'] = para_num
@@ -530,19 +589,53 @@ def _add_paragraphs(
 
 # ── Table parser ─────────────────────────────────────────────────────────────
 
+# No-arg LaTeX special-character commands that consume trailing whitespace/braces.
+# Order matters: longer commands before shorter prefixes (e.g. \AA before \A).
+_LATEX_CHAR_CMDS: list[tuple[str, str]] = [
+    ('AA', 'Å'), ('aa', 'å'),
+    ('AE', 'Æ'), ('ae', 'æ'),
+    ('OE', 'Œ'), ('oe', 'œ'),
+    ('ss', 'ß'),
+    ('O',  'Ø'), ('o',  'ø'),
+]
+
+
+def _clean_cell(text: str) -> str:
+    """Strip common LaTeX formatting from a table cell, returning plain text."""
+    # Flatten \makecell{A \\ B} → 'A B' (handle one level of nested braces)
+    text = re.sub(
+        r'\\makecell\{((?:[^{}]|\{[^{}]*\})*)\}',
+        lambda m: ' '.join(p.strip() for p in m.group(1).split(r'\\')),
+        text,
+    )
+    # Strip text formatting commands
+    for cmd in ('textbf', 'textit', 'textrm', 'textsc', 'textsf', 'texttt',
+                'emph', 'small', 'large', 'Large', 'normalsize'):
+        text = re.sub(r'\\' + cmd + r'\{([^}]*)\}', r'\1', text)
+    # Strip remaining single-level braces
+    text = re.sub(r'\{([^{}]*)\}', r'\1', text)
+    # Replace special character commands (consume optional trailing space/braces)
+    for cmd, uni in _LATEX_CHAR_CMDS:
+        text = re.sub(r'\\' + re.escape(cmd) + r'(?:\{\}|\s*)', uni, text)
+    # Replace LaTeX dashes and escaped punctuation
+    text = text.replace('---', '—').replace('--', '–')
+    text = text.replace(r'\%', '%').replace(r'\&', '&').replace(r'\$', '$').replace(r'\#', '#')
+    # Collapse whitespace
+    return ' '.join(text.split())
+
+
 def _parse_tabular(raw_latex: str) -> tuple[list[dict], list[list[dict]]]:
     """
-    Parse a \\begin{tabular}…\\end{tabular} block into (columns, rows).
+    Parse a tabular / tabularx / tabular* block into (columns, rows).
 
     Returns:
         columns — list of {'label': str} dicts derived from the first data row.
         rows    — list of rows; each row is a list of {'value': str} dicts.
 
     The first row is treated as a header row (column labels).
-    \\hline and leading/trailing whitespace are stripped.
     """
     body_m = re.search(
-        r'\\begin\{tabular\}\{[^}]*\}(.*?)\\end\{tabular\}',
+        r'\\begin\{tabular[Xx*]?\}(?:\{[^}]*\})?\{[^}]*\}(.*?)\\end\{tabular[Xx*]?\}',
         raw_latex, re.DOTALL,
     )
     if not body_m:
@@ -551,8 +644,14 @@ def _parse_tabular(raw_latex: str) -> tuple[list[dict], list[list[dict]]]:
     body = body_m.group(1)
     # Remove booktabs / horizontal rule commands
     body = re.sub(r'\\(?:toprule|midrule|bottomrule|hline|cline\{[^}]*\})\s*', '', body)
-    # Convert escaped percent \% back to a plain % for display
-    body = body.replace(r'\%', '%')
+
+    # Flatten \makecell BEFORE splitting on \\ so inner line-breaks don't
+    # get mistaken for row separators.
+    body = re.sub(
+        r'\\makecell\{((?:[^{}]|\{[^{}]*\})*)\}',
+        lambda m: ' '.join(p.strip() for p in m.group(1).split(r'\\')),
+        body,
+    )
 
     # Split on \\ (row separator); ignore empty fragments
     row_strings = [r.strip() for r in re.split(r'\\\\', body) if r.strip()]
@@ -561,11 +660,9 @@ def _parse_tabular(raw_latex: str) -> tuple[list[dict], list[list[dict]]]:
     rows: list[list[dict]] = []
 
     for i, row_str in enumerate(row_strings):
-        # Strip inline LaTeX formatting (bold/italic) from cell text for readability
-        cell_str = re.sub(r'\\textbf\{([^}]*)\}', r'\1', row_str)
-        cell_str = re.sub(r'\\textit\{([^}]*)\}', r'\1', cell_str)
-        cell_str = re.sub(r'\\emph\{([^}]*)\}',   r'\1', cell_str)
-        cells = [c.strip() for c in cell_str.split('&')]
+        cells = [_clean_cell(c) for c in row_str.split('&')]
+        if not any(cells):
+            continue
         if i == 0:
             columns = [{'label': c} for c in cells]
         else:

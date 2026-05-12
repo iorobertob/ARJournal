@@ -160,5 +160,33 @@
     </div>
 
   </form>
+
+  <!-- ── Account ──────────────────────────────────────────────────────── -->
+  <div style="margin-top:var(--spacing-10);">
+    <h2 style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);margin:0 0 var(--spacing-4);">Account</h2>
+
+    <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-3);display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-4);flex-wrap:wrap;">
+      <div>
+        <p style="font-weight:600;margin:0 0 var(--spacing-1);">Email address</p>
+        <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0;">{{ request.user.email }}</p>
+      </div>
+      <a href="{% url 'account_email' %}" class="btn btn--secondary btn--small">Manage →</a>
+    </div>
+
+    <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-3);display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-4);flex-wrap:wrap;">
+      <div>
+        <p style="font-weight:600;margin:0 0 var(--spacing-1);">Password</p>
+        <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0;">Change your account password.</p>
+      </div>
+      <a href="{% url 'account_change_password' %}" class="btn btn--secondary btn--small">Change →</a>
+    </div>
+
+    <div style="border:1px solid #e53e3e;border-radius:var(--radius-sm);padding:var(--spacing-4) var(--spacing-6);margin-top:var(--spacing-6);">
+      <p style="font-weight:600;margin:0 0 var(--spacing-1);color:#c53030;">Delete Account</p>
+      <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0 0 var(--spacing-4);">Permanently remove your account and personal data. This cannot be undone.</p>
+      <a href="{% url 'delete_account' %}" class="btn btn--danger btn--small">Delete account →</a>
+    </div>
+  </div>
+
 </div>
 {% endblock %}

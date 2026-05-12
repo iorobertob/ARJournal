@@ -149,6 +149,8 @@ def journal_settings(request):
         # AI
         journal.ai_features_enabled = bool(request.POST.get('ai_features_enabled'))
         journal.openai_api_key = request.POST.get('openai_api_key', journal.openai_api_key)
+        # Legal
+        journal.legal_notice = request.POST.get('legal_notice', '')
         journal.save()
         messages.success(request, 'Journal settings saved.')
         return redirect('journal_admin_settings')

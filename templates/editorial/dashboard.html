@@ -98,84 +98,91 @@
   </div>
 
   <!-- ── My Supervised Submissions ─────────────────────────────────── -->
-  <div class="dashboard-assignments" x-data="{ q: '', show(el){ return !this.q || (el.dataset.search||'').toLowerCase().includes(this.q.toLowerCase()); } }">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-4);margin-bottom:var(--spacing-4);flex-wrap:wrap;">
-      <h2 style="margin:0;">
+  <div style="margin-top:var(--spacing-10);padding-top:var(--spacing-10);border-top:1px solid var(--color-border);"
+       x-data="{ q: '', show(el){ return !this.q || (el.dataset.search||'').toLowerCase().includes(this.q.toLowerCase()); } }">
+    <div class="dashboard-header" style="margin-bottom:var(--spacing-6);padding-bottom:var(--spacing-4);">
+      <h2 style="margin:0;font-family:var(--font-serif);font-size:var(--size-xl);font-weight:400;letter-spacing:-0.01em;">
         My Supervised Submissions
-        {% if my_assignments.count %}<span class="badge">{{ my_assignments.count }}</span>{% endif %}
+        {% if my_assignments.count %}<span class="badge" style="vertical-align:middle;margin-left:var(--spacing-2);">{{ my_assignments.count }}</span>{% endif %}
       </h2>
       <input type="search" x-model="q"
              placeholder="Search by title or author…"
-             style="padding:0.4rem 0.75rem;border:1px solid var(--color-border);border-radius:6px;font-size:var(--size-sm);width:260px;max-width:100%;"
+             style="padding:var(--spacing-2) var(--spacing-4);border:1px solid var(--color-border);border-radius:6px;font-size:var(--size-sm);width:260px;max-width:100%;"
              aria-label="Filter my assignments">
     </div>
 
     {% if my_assignments %}
-    <table class="jadmin-table">
-      <thead>
-        <tr>
-          <th>Manuscript</th>
-          <th>Author</th>
-          <th>Status</th>
-          <th>Role</th>
-          <th>Assigned</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for asgn in my_assignments %}
-        <tr data-search="{{ asgn.submission.title|lower }} {{ asgn.submission.author.display_name|lower }}"
-            x-show="show($el)">
-          <td>
-            <a href="{% url 'editorial_submission' asgn.submission.pk %}"
-               style="font-weight:500;color:var(--color-accent);text-decoration:none;">
-              {{ asgn.submission.title|truncatechars:65 }}
-            </a>
-          </td>
-          <td style="font-size:var(--size-sm);color:var(--color-muted);">{{ asgn.submission.author.display_name }}</td>
-          <td>
-            {% if asgn.submission.is_returned_to_author %}
-            <span class="status-badge status-badge--returned_to_author">Returned for Correction</span>
-            {% else %}
-            <span class="status-badge status-badge--{{ asgn.submission.status }}">{{ asgn.submission.get_status_display }}</span>
-            {% endif %}
-          </td>
-          <td style="font-size:var(--size-sm);">{{ asgn.get_role_display }}</td>
-          <td style="font-size:var(--size-sm);">{{ asgn.assigned_at|date:"d M Y" }}</td>
-          <td><a href="{% url 'editorial_submission' asgn.submission.pk %}" class="btn btn--small btn--secondary">View</a></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {% if my_assignment_history.count > my_assignments.count %}
-    <details style="margin-top:var(--spacing-5);">
-      <summary style="cursor:pointer;font-size:var(--size-sm);color:var(--color-muted);">
-        Show full assignment history ({{ my_assignment_history.count }} total)
-      </summary>
-      <table class="jadmin-table" style="margin-top:var(--spacing-3);">
+    <div class="submissions-table">
+      <table>
         <thead>
-          <tr><th>Manuscript</th><th>Status</th><th>Role</th><th>Assigned</th><th>Active</th></tr>
+          <tr>
+            <th>Manuscript</th>
+            <th>Author</th>
+            <th>Status</th>
+            <th>Role</th>
+            <th>Assigned</th>
+            <th></th>
+          </tr>
         </thead>
         <tbody>
-          {% for asgn in my_assignment_history %}
-          <tr>
-            <td><a href="{% url 'editorial_submission' asgn.submission.pk %}" style="color:var(--color-accent);text-decoration:none;">{{ asgn.submission.title|truncatechars:65 }}</a></td>
-            <td><span class="status-badge status-badge--{{ asgn.submission.status }}">{{ asgn.submission.get_status_display }}</span></td>
-            <td style="font-size:var(--size-sm);">{{ asgn.get_role_display }}</td>
-            <td style="font-size:var(--size-sm);">{{ asgn.assigned_at|date:"d M Y" }}</td>
-            <td style="font-size:var(--size-sm);">{% if asgn.is_active %}Yes{% else %}<span style="color:var(--color-muted);">No</span>{% endif %}</td>
+          {% for asgn in my_assignments %}
+          <tr data-search="{{ asgn.submission.title|lower }} {{ asgn.submission.author.display_name|lower }}"
+              x-show="show($el)">
+            <td>
+              <a href="{% url 'editorial_submission' asgn.submission.pk %}"
+                 style="font-weight:500;color:var(--color-accent);">
+                {{ asgn.submission.title|truncatechars:65 }}
+              </a>
+            </td>
+            <td style="color:var(--color-muted);">{{ asgn.submission.author.display_name }}</td>
+            <td>
+              {% if asgn.submission.is_returned_to_author %}
+              <span class="status-badge status-badge--returned_to_author">Returned for Correction</span>
+              {% else %}
+              <span class="status-badge status-badge--{{ asgn.submission.status }}">{{ asgn.submission.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td>{{ asgn.get_role_display }}</td>
+            <td>{{ asgn.assigned_at|date:"d M Y" }}</td>
+            <td><a href="{% url 'editorial_submission' asgn.submission.pk %}" class="btn btn--small btn--secondary">View</a></td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+    </div>
+
+    {% if my_assignment_history.count > my_assignments.count %}
+    <details style="margin-top:var(--spacing-6);">
+      <summary style="cursor:pointer;font-size:var(--size-sm);color:var(--color-muted);">
+        Show full assignment history ({{ my_assignment_history.count }} total)
+      </summary>
+      <div class="submissions-table" style="margin-top:var(--spacing-4);">
+        <table>
+          <thead>
+            <tr><th>Manuscript</th><th>Status</th><th>Role</th><th>Assigned</th><th>Active</th></tr>
+          </thead>
+          <tbody>
+            {% for asgn in my_assignment_history %}
+            <tr>
+              <td><a href="{% url 'editorial_submission' asgn.submission.pk %}" style="color:var(--color-accent);">{{ asgn.submission.title|truncatechars:65 }}</a></td>
+              <td><span class="status-badge status-badge--{{ asgn.submission.status }}">{{ asgn.submission.get_status_display }}</span></td>
+              <td>{{ asgn.get_role_display }}</td>
+              <td>{{ asgn.assigned_at|date:"d M Y" }}</td>
+              <td>{% if asgn.is_active %}Yes{% else %}<span style="color:var(--color-muted);">No</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </details>
     {% endif %}
 
     {% else %}
-    <p style="color:var(--color-muted);font-size:var(--size-sm);">
-      No active assignments yet. Use the submission detail page to assign yourself or another editor to supervise a review.
-    </p>
+    <div class="submissions-table">
+      <div class="empty-state" style="padding:var(--spacing-12) var(--spacing-6);">
+        <p>No active assignments yet. Use the submission detail page to assign yourself or another editor to supervise a review.</p>
+      </div>
+    </div>
     {% endif %}
   </div>
 

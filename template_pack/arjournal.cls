@@ -137,46 +137,65 @@
 % the uploaded asset files. The platform uses the arguments to build
 % HTML5 video/audio elements and manage asset rights.
 
-% \ARJfigure{filename}{caption}{alt text for accessibility}
+% \ARJfigure[label]{filename}{caption}{alt text for accessibility}
+%
+% Optional first argument [label]: a short key for cross-referencing.
+%   Omit the "fig:" prefix — it is added automatically.
+%   Reference in text as:  Figure~\ref{fig:label}
+%   If omitted, an automatic label is derived from the filename.
+%
 % filename: the image file you upload to the platform (e.g. figure1.jpg)
 % caption:  displayed below the image
 % alt text: machine-readable description for accessibility and parsing
-\newcommand{\ARJfigure}[3]{%
+%
+% Examples:
+%   \ARJfigure[boundary]{figure1.jpg}{Caption.}{Alt text.}
+%   → reference as Figure~\ref{fig:boundary}
+%
+%   \ARJfigure{figure1.jpg}{Caption.}{Alt text.}
+%   → auto-label; reference as Figure~\ref{fig:figure1.jpg}
+\newcommand{\ARJfigure}[4][]{%
   \begin{figure}[ht]
     \centering
-    \includegraphics[width=\linewidth]{#1}
-    \caption{#2}
-    \label{fig:#1}
+    \includegraphics[width=\linewidth]{#2}
+    \caption{#3}
+    \ifthenelse{\equal{#1}{}}{\label{fig:#2}}{\label{fig:#1}}
   \end{figure}%
-  % Parser reads alt text from arg #3
+  % Parser reads alt text from arg #4 and optional label from arg #1
 }
 
-% \ARJvideo{filename}{caption}{poster image}{transcript file}
+% \ARJvideo[label]{filename}{caption}{poster image}{transcript file}
+%
+% Optional first argument [label]: reference as Figure~\ref{fig:label}
 % poster image: a still frame displayed before playback (upload separately)
 % transcript:   VTT or plain-text transcript asset key (upload separately)
-\newcommand{\ARJvideo}[4]{%
+\newcommand{\ARJvideo}[5][]{%
   \begin{figure}[ht]
     \centering
     \fbox{\parbox{0.9\linewidth}{%
-      \textbf{[Video: #2]}\par
+      \textbf{[Video: #3]}\par
       \smallskip
-      \noindent Asset: {\ttfamily\detokenize{#1}} \quad Poster: {\ttfamily\detokenize{#3}}\par
-      \noindent Transcript: {\ttfamily\detokenize{#4}}%
+      \noindent Asset: {\ttfamily\detokenize{#2}} \quad Poster: {\ttfamily\detokenize{#4}}\par
+      \noindent Transcript: {\ttfamily\detokenize{#5}}%
     }}
-    \caption{#2}
+    \caption{#3}
+    \ifthenelse{\equal{#1}{}}{}{\label{fig:#1}}
   \end{figure}%
 }
 
-% \ARJaudio{filename}{caption}{transcript file}
-\newcommand{\ARJaudio}[3]{%
+% \ARJaudio[label]{filename}{caption}{transcript file}
+%
+% Optional first argument [label]: reference as Figure~\ref{fig:label}
+\newcommand{\ARJaudio}[4][]{%
   \begin{figure}[ht]
     \centering
     \fbox{\parbox{0.9\linewidth}{%
-      \textbf{[Audio: #2]}\par
+      \textbf{[Audio: #3]}\par
       \smallskip
-      \noindent Asset: {\ttfamily\detokenize{#1}} \quad Transcript: {\ttfamily\detokenize{#3}}%
+      \noindent Asset: {\ttfamily\detokenize{#2}} \quad Transcript: {\ttfamily\detokenize{#4}}%
     }}
-    \caption{#2}
+    \caption{#3}
+    \ifthenelse{\equal{#1}{}}{}{\label{fig:#1}}
   \end{figure}%
 }
 

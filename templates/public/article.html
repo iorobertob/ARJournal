@@ -55,8 +55,13 @@
 
       {% if build %}
       <p class="article-meta-sidebar__label">Download</p>
+      {% if admin_preview %}
+      <a href="{% url 'admin_request_pdf' build.document.pk %}?mode=flat">PDF</a>
+      <a href="{% url 'admin_request_pdf' build.document.pk %}?mode=interactive" style="margin-top:var(--spacing-1);">Interactive PDF</a>
+      {% else %}
       <a href="{% url 'request_pdf' build.document.pk %}?mode=flat">PDF</a>
       <a href="{% url 'request_pdf' build.document.pk %}?mode=interactive" style="margin-top:var(--spacing-1);">Interactive PDF</a>
+      {% endif %}
       {% endif %}
 
       <p class="article-meta-sidebar__label">Cite</p>
@@ -74,7 +79,7 @@
 
     <h1 class="article-title">{{ submission.title }}</h1>
     {% if submission.subtitle %}<p class="article-subtitle">{{ submission.subtitle }}</p>{% endif %}
-    <p class="article-byline">{{ submission.author.display_name }}</p>
+    <p class="article-byline"><a href="{% url 'author_page' submission.author.pk %}" style="color:inherit;text-decoration:none;">{{ submission.author.display_name }}</a></p>
 
     {% if build and build.document.revision.submission.issue.cover_image %}
     <figure class="article-hero-image">
@@ -88,8 +93,13 @@
 
     {% if build %}
     <div class="article-downloads">
+      {% if admin_preview %}
+      <a href="{% url 'admin_request_pdf' build.document.pk %}?mode=flat" class="btn btn--secondary">Download PDF</a>
+      <a href="{% url 'admin_request_pdf' build.document.pk %}?mode=interactive" class="btn btn--secondary">Interactive PDF</a>
+      {% else %}
       <a href="{% url 'request_pdf' build.document.pk %}?mode=flat" class="btn btn--secondary">Download PDF</a>
       <a href="{% url 'request_pdf' build.document.pk %}?mode=interactive" class="btn btn--secondary">Interactive PDF</a>
+      {% endif %}
     </div>
     {% endif %}
   </main>

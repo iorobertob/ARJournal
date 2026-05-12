@@ -163,8 +163,34 @@ def article_detail(request, slug):
 
 
 def archive(request):
-    issues = Issue.objects.filter(is_published=True)
-    return render(request, 'public/archive.html', {'issues': issues})
+    from django.db.models import Q
+    from apps.production.models import HTMLBuild
+
+    q = request.GET.get('q', '').strip()
+    issues = Issue.objects.filter(is_published=True).order_by('-year', '-number')
+    results = None
+    if q:
+        results = (
+            HTMLBuild.objects
+            .filter(is_published=True)
+            .filter(
+                Q(document__revision__submission__title__icontains=q) |
+                Q(document__revision__submission__subtitle__icontains=q) |
+                Q(document__revision__submission__author__first_name__icontains=q) |
+                Q(document__revision__submission__author__last_name__icontains=q) |
+                Q(document__revision__submission__keywords__icontains=q)
+            )
+            .select_related(
+                'document__revision__submission__author',
+                'document__revision__submission__issue',
+            )
+            .order_by('-published_at')
+        )
+    return render(request, 'public/archive.html', {
+        'issues': issues,
+        'results': results,
+        'q': q,
+    })
 
 
 def about(request):
@@ -178,7 +204,7 @@ def submit_info(request):
 
 def author_page(request, pk):
     from apps.accounts.models import User, UserProfile
-    author = get_object_or_404(User, pk=pk)
+    author = get_object_or_404(User, pk=pk, is_active=True)
     from apps.production.models import HTMLBuild
     articles = (
         HTMLBuild.objects
@@ -186,6 +212,10 @@ def author_page(request, pk):
         .select_related('document__revision__submission')
     )
     return render(request, 'public/author_page.html', {'author': author, 'articles': articles})
+
+
+def terms(request):
+    return render(request, 'public/terms.html', {})
 
 
 def download_template(request):

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{% if is_draft %}Delete Draft{% else %}Withdraw Submission{% endif %} — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:580px;padding-top:var(--spacing-10);padding-bottom:var(--spacing-16);">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--spacing-6);">
+    <h1 style="font-family:var(--font-serif);font-size:1.5rem;margin:0;">
+      {% if is_draft %}Delete Draft{% else %}Withdraw Submission{% endif %}
+    </h1>
+    <a href="{% url 'author_dashboard' %}" style="font-size:var(--size-sm);color:var(--color-muted);text-decoration:none;">&larr; My Submissions</a>
+  </div>
+
+  <!-- Submission summary -->
+  <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-4);">
+    <p style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);margin:0 0 var(--spacing-2);">Submission</p>
+    <p style="font-family:var(--font-serif);font-size:1.1rem;margin:0 0 var(--spacing-2);">{{ submission.title }}</p>
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0;">Status: {{ submission.get_status_display }}</p>
+  </div>
+
+  <!-- Warning card -->
+  <div style="border:1px solid #e53e3e;border-radius:var(--radius-sm);padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-6);">
+    {% if is_draft %}
+    <p style="font-weight:600;color:#c53030;margin:0 0 var(--spacing-3);">This draft will be permanently deleted.</p>
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0;">The draft and all uploaded files will be removed immediately. This cannot be undone.</p>
+    {% else %}
+    <p style="font-weight:600;color:#c53030;margin:0 0 var(--spacing-3);">This submission will be withdrawn and permanently deleted.</p>
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0 0 var(--spacing-3);">All uploaded files, reviewer assignments, and editorial records associated with this submission will be removed. This cannot be undone.</p>
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0;">If you wish to submit this work in the future, you will need to start a new submission.</p>
+    {% endif %}
+  </div>
+
+  <!-- Confirmation form -->
+  <form method="post" x-data="{ val: '' }">
+    {% csrf_token %}
+
+    <div class="form__group" style="margin-bottom:var(--spacing-4);">
+      <label class="form__label" for="confirm">
+        Type <strong>DELETE</strong> to confirm
+      </label>
+      <input class="form__input" type="text" id="confirm" name="confirm"
+             x-model="val" autocomplete="off" placeholder="DELETE">
+    </div>
+
+    <div style="display:flex;gap:var(--spacing-3);justify-content:flex-end;">
+      <a href="{% url 'author_dashboard' %}" class="btn btn--secondary">Cancel</a>
+      <button type="submit" class="btn btn--danger"
+              :disabled="val !== 'DELETE'"
+              style="opacity:1;"
+              x-bind:style="val !== 'DELETE' ? 'opacity:0.45;cursor:not-allowed;' : ''">
+        {% if is_draft %}Delete Draft{% else %}Withdraw Submission{% endif %}
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

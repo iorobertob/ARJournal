@@ -77,16 +77,15 @@
         <thead><tr><th>Filename</th><th>Type</th><th>Size</th><th></th></tr></thead>
         <tbody>
           {% for asset in assets %}
-          <tr>
+          <tr id="asset-row-{{ asset.pk }}">
             <td><code style="font-size:var(--size-sm);">{{ asset.original_filename }}</code></td>
             <td>{{ asset.get_kind_display }}</td>
             <td>{{ asset.size_bytes|filesizeformat }}</td>
             <td>
-              <form method="post" action="{% url 'delete_revision_asset' submission.pk revision.pk asset.pk %}?next={% url 'submission_step3' submission.pk revision.pk %}" style="display:inline;"
-                    data-confirm="Remove {{ asset.original_filename }}?">
-                {% csrf_token %}
-                <button type="submit" class="btn btn--small btn--danger">Remove</button>
-              </form>
+              <button type="button" class="btn btn--small btn--danger"
+                      data-delete-url="{% url 'delete_revision_asset' submission.pk revision.pk asset.pk %}"
+                      data-name="{{ asset.original_filename }}"
+                      onclick="removeAsset(this)">Remove</button>
             </td>
           </tr>
           {% endfor %}
@@ -105,6 +104,24 @@
 
 {% block extra_js %}
 <script>
+function removeAsset(btn) {
+  const name = btn.dataset.name;
+  if (!confirm('Remove ' + name + '?')) return;
+  const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  btn.disabled = true;
+  fetch(btn.dataset.deleteUrl, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': csrf },
+  }).then(resp => {
+    if (resp.ok) {
+      const row = btn.closest('tr');
+      if (row) row.remove();
+    } else {
+      btn.disabled = false;
+    }
+  }).catch(() => { btn.disabled = false; });
+}
+
 (function () {
   const input  = document.getElementById('assets');
   const btn    = document.getElementById('choose-files-btn');

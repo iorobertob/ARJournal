@@ -358,24 +358,76 @@ Use \verb|\ARJfigure| for all images. Upload the image file to the
 platform asset manager using exactly the filename you reference here.
 
 \begin{verbatim}
+\ARJfigure[label]{figure1.jpg}
+          {Caption text displayed below the image.}
+          {Alt text: a detailed verbal description for accessibility.}
+\end{verbatim}
+
+The optional first argument \texttt{[label]} is a short key used for
+cross-referencing (see the \emph{Cross-referencing figures} subsection
+below). If you do not need to refer to the figure from the text, you
+may omit it:
+
+\begin{verbatim}
 \ARJfigure{figure1.jpg}
           {Caption text displayed below the image.}
           {Alt text: a detailed verbal description for accessibility.}
 \end{verbatim}
 
-\ARJfigure{example-image-a}{%
-  Example figure. Captions should briefly describe the image and its
-  relevance to the argument. Include credit or rights information here
-  if required by the rights holder.%
+\ARJfigure[example-figure]{example-image-a}{%
+  Example figure (Figure~\ref{fig:example-figure}).
+  Captions should briefly describe the image and its relevance to
+  the argument. Include credit or rights information here if required
+  by the rights holder.%
 }{%
   A grey placeholder rectangle representing an image asset. In the
   published article this will be replaced by the uploaded photograph.%
 }
 
+The figure above is referenced in the caption itself and can be
+referenced from anywhere in the article: as shown in
+Figure~\ref{fig:example-figure}, placeholder images are displayed in
+the local PDF and replaced by the uploaded asset in the published
+HTML version.
+
 The third argument (alt text) is \emph{required}. It is used by screen
 readers and by the platform's accessibility checker. Describe the
 image's content and, where relevant, its significance for readers who
 cannot see it \citep{sar2021guidelines}.
+
+\subsection{Cross-referencing figures}
+
+To refer to a figure from anywhere in the text, provide a short label
+as the optional \emph{first} argument of \verb|\ARJfigure|:
+
+\begin{verbatim}
+\ARJfigure[boundary]{figure1.jpg}
+          {A performer at the boundary of the stage.}
+          {A person standing at the edge of a brightly lit stage.}
+\end{verbatim}
+
+Do \textbf{not} include the \texttt{fig:} prefix in the label argument
+--- it is added automatically. To refer to the figure from the text,
+use \verb|\ref{fig:label}| preceded by the word \emph{Figure} and a
+non-breaking tie (\verb|~|):
+
+\begin{verbatim}
+As shown in Figure~\ref{fig:boundary}, the performer occupies ...
+\end{verbatim}
+
+In the \textbf{compiled PDF}, \verb|\ref{fig:boundary}| produces the
+figure number automatically. In the \textbf{published HTML article},
+the reference is rendered as a hyperlink that scrolls to the figure.
+
+The same optional label syntax works for \verb|\ARJvideo| and
+\verb|\ARJaudio|:
+
+\begin{verbatim}
+\ARJvideo[gesture]{gesture.mp4}{Gesture sequence, 4:32.}
+         {poster.jpg}{gesture_transcript.vtt}
+
+... as demonstrated in Figure~\ref{fig:gesture} ...
+\end{verbatim}
 
 \subsection{Accepted image formats}
 
@@ -467,7 +519,7 @@ hosted streaming. Resolution should be at least 720p (1280$\times$720);
 \subsection{Macro syntax}
 
 \begin{verbatim}
-\ARJvideo{filename.mp4}
+\ARJvideo[optional-label]{filename.mp4}
          {Caption displayed beneath the video player.}
          {poster.jpg}
          {transcript.vtt}
@@ -531,7 +583,7 @@ studio material.
 \subsection{Macro syntax}
 
 \begin{verbatim}
-\ARJaudio{filename.mp3}
+\ARJaudio[optional-label]{filename.mp3}
          {Caption displayed beneath the audio player.}
          {transcript.txt}
 \end{verbatim}

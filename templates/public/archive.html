@@ -4,6 +4,58 @@
 {% block content %}
 <section class="archive container">
   <h1 class="page-title">Archive</h1>
+
+  <!-- Search -->
+  <form method="get" action="" class="archive-search">
+    <div class="archive-search__field">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="Search by title, author, or keyword…"
+             class="archive-search__input"
+             autofocus>
+      <button type="submit" class="btn btn--primary">Search</button>
+      {% if q %}<a href="{% url 'archive' %}" class="btn btn--secondary">Clear</a>{% endif %}
+    </div>
+  </form>
+
+  {% if results is not None %}
+  <!-- Search results -->
+  <div class="archive-results">
+    {% if results %}
+    <p class="archive-results__count">
+      {{ results|length }} article{{ results|length|pluralize }} matching &ldquo;{{ q }}&rdquo;
+    </p>
+    <div class="archive-results__list">
+      {% for build in results %}
+      {% with sub=build.document.revision.submission %}
+      <article class="issue-article-row">
+        <div class="issue-article-row__meta">
+          <span class="issue-article-row__type">{{ sub.get_article_type_display }}</span>
+        </div>
+        <div class="issue-article-row__body">
+          <h2 class="issue-article-row__title">
+            <a href="{% url 'article_detail' build.slug %}">{{ sub.title }}</a>
+          </h2>
+          {% if sub.subtitle %}<p class="issue-article-row__subtitle">{{ sub.subtitle }}</p>{% endif %}
+          <p class="issue-article-row__author">
+            <a href="{% url 'author_page' sub.author.pk %}">{{ sub.author.display_name }}</a>
+            {% if sub.issue %}&nbsp;&middot;&nbsp;Issue #{{ sub.issue.number }}{% endif %}
+          </p>
+        </div>
+        <a href="{% url 'article_detail' build.slug %}" class="issue-article-row__arrow">↗</a>
+      </article>
+      {% endwith %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="archive-results__empty">No articles found for &ldquo;{{ q }}&rdquo;.</p>
+    {% endif %}
+  </div>
+
+  <hr class="archive-divider">
+  <h2 class="archive-section-heading">All Issues</h2>
+  {% endif %}
+
+  <!-- Issues grid -->
   <div class="archive-grid">
     {% for issue in issues %}
     <a href="{% url 'issue_detail' issue.number %}" class="issue-card">

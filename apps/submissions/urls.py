@@ -16,4 +16,6 @@ urlpatterns = [
     path('submit/<int:pk>/revise/<int:rev>/step3/', views.resubmit_step3, name='resubmit_step3'),
     # Asset management (draft revisions only)
     path('submit/<int:pk>/revision/<int:rev>/asset/<int:asset_pk>/delete/', views.delete_revision_asset, name='delete_revision_asset'),
+    # Author self-service delete / withdrawal
+    path('submission/<int:pk>/delete/', views.delete_submission, name='delete_submission'),
 ]

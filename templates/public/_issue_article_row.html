@@ -12,7 +12,7 @@
       {% endif %}
     </h2>
     {% if submission.subtitle %}<p class="issue-article-row__subtitle">{{ submission.subtitle }}</p>{% endif %}
-    <p class="issue-article-row__author">{{ submission.author.display_name }}</p>
+    <p class="issue-article-row__author"><a href="{% url 'author_page' submission.author.pk %}">{{ submission.author.display_name }}</a></p>
   </div>
   {% if build %}
   <a href="{% url 'article_detail' build.slug %}" class="issue-article-row__arrow">↗</a>

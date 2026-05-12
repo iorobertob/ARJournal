@@ -44,11 +44,14 @@ def new_submission_step2(request, pk):
     """Step 2: Upload manuscript file."""
     sub = get_object_or_404(Submission, pk=pk, author=request.user)
     if request.method == 'POST' and request.FILES.get('manuscript'):
-        rev = SubmissionRevision.objects.create(
+        rev, created = SubmissionRevision.objects.get_or_create(
             submission=sub,
             version=1,
-            manuscript_file=request.FILES['manuscript'],
+            defaults={'manuscript_file': request.FILES['manuscript']},
         )
+        if not created:
+            rev.manuscript_file = request.FILES['manuscript']
+            rev.save(update_fields=['manuscript_file'])
         return redirect('submission_step3', pk=sub.pk, rev=rev.pk)
     return render(request, 'author/submit_step2.html', {'submission': sub})
 
@@ -328,6 +331,36 @@ def resubmit_after_screening(request, pk):
     return render(request, 'author/resubmit_screening.html', {
         'submission': sub,
         'screening': screening,
+    })
+
+
+_NOT_DELETABLE = {SubmissionStatus.PUBLISHED, SubmissionStatus.IN_PRODUCTION}
+
+
+@login_required
+def delete_submission(request, pk):
+    """Author self-service delete/withdraw for draft and unpublished submissions."""
+    sub = get_object_or_404(Submission, pk=pk, author=request.user)
+    if sub.status in _NOT_DELETABLE:
+        messages.error(request, 'Published submissions cannot be deleted.')
+        return redirect('submission_detail', pk=pk)
+
+    is_draft = sub.status == SubmissionStatus.DRAFT
+
+    if request.method == 'POST':
+        if request.POST.get('confirm') != 'DELETE':
+            messages.error(request, 'Type DELETE exactly to confirm.')
+            return redirect('delete_submission', pk=pk)
+        sub.delete()
+        if is_draft:
+            messages.success(request, 'Draft deleted.')
+        else:
+            messages.success(request, 'Submission withdrawn and deleted.')
+        return redirect('author_dashboard')
+
+    return render(request, 'author/delete_submission.html', {
+        'submission': sub,
+        'is_draft': is_draft,
     })
 
 

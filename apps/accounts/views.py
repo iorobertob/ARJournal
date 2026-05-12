@@ -21,6 +21,53 @@ def account_settings(request):
 
 
 @login_required
+def delete_account(request):
+    from apps.production.models import HTMLBuild
+    user = request.user
+    has_published = HTMLBuild.objects.filter(
+        is_published=True,
+        document__revision__submission__author=user,
+    ).exists()
+
+    if request.method == 'POST':
+        confirm = request.POST.get('confirm', '').strip()
+        if confirm != 'DELETE':
+            messages.error(request, 'Type DELETE exactly to confirm.')
+            return redirect('delete_account')
+
+        if has_published:
+            from allauth.account.models import EmailAddress
+            from django.contrib.auth import logout as auth_logout
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            user.is_active = False
+            user.email = f'deleted-{user.pk}@deleted.invalid'
+            user.orcid_id = ''
+            user.save()
+            profile.bio = ''
+            profile.institution = ''
+            profile.department = ''
+            profile.country = ''
+            profile.website = ''
+            if profile.photo:
+                profile.photo.delete(save=False)
+                profile.photo = None
+            profile.public_profile = False
+            profile.save()
+            EmailAddress.objects.filter(user=user).delete()
+            auth_logout(request)
+            return redirect('home')
+        else:
+            from django.contrib.auth import logout as auth_logout
+            auth_logout(request)
+            user.delete()
+            return redirect('home')
+
+    return render(request, 'author/delete_account.html', {
+        'has_published': has_published,
+    })
+
+
+@login_required
 def profile_edit(request):
     from apps.reviewers.models import ReviewerProfile
     profile, _ = UserProfile.objects.get_or_create(user=request.user)

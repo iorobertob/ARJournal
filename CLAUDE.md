@@ -87,6 +87,12 @@ Two PDF modes: **flat** (plain print layout) and **interactive** (adds PDF bookm
 - Article reading CSS: `static/css/article.css`
 - Dashboard CSS: `static/css/dashboard.css`
 
+### Spacing tokens — valid values only
+The scale is **1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24** — there is no `--spacing-5`, `--spacing-7`, `--spacing-9`, etc. Using an undefined token resolves to nothing and collapses the dimension to zero. Always use a token from this list.
+
+### UI element formatting rule
+Every new UI element — cards, info boxes, warning panels, form groups, confirmation dialogs — **must have sufficient internal padding so that no text or content touches its border**. Use at minimum `padding: var(--spacing-4) var(--spacing-6)` for bordered containers. Never use `padding: 0` on a bordered element. Apply this rule to every template you create or modify.
+
 ## Template Structure
 ```
 templates/

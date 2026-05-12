@@ -8,7 +8,7 @@ Block types supported:
   table, equation, footnotes_section, bibliography
 
 Inline types supported:
-  text, bold, italic, link, cite, footnote_ref
+  text, bold, italic, link, cite, footnote_ref, ref
 
 Footnote display strategy:
   • Wide screens (CSS ≥ 1200 px): inline sidenotes float to the right margin
@@ -49,7 +49,7 @@ def _cite_label(item: dict) -> str:
     return f'{name_part} {year}' if year else name_part
 
 
-def render_html(canonical_data: dict, submission=None, revision=None) -> str:
+def render_html(canonical_data: dict, submission=None, revision=None, reviewer_mode: bool = False) -> str:
     """Render the full article HTML from canonical JSON."""
     meta = canonical_data.get('metadata', {})
     contributors = canonical_data.get('contributors', [])
@@ -67,22 +67,27 @@ def render_html(canonical_data: dict, submission=None, revision=None) -> str:
         except Exception:
             pass
     if _revision is not None:
-        try:
-            url_map = {
-                sa.original_filename: sa.file.url
-                for sa in _revision.assets.all()
-                if sa.file
-            }
-            for asset in assets.values():
-                fname = asset.get('originalFilename', '')
-                if fname in url_map:
-                    asset['resolvedUrl'] = url_map[fname]
-                # Resolve poster image for video assets
-                poster_fname = asset.get('posterImageRef', '')
-                if poster_fname and poster_fname in url_map:
+        url_map: dict[str, str] = {}
+        for sa in _revision.assets.all():
+            if not sa.file:
+                continue
+            try:
+                url_map[sa.original_filename] = sa.file.url
+            except Exception:
+                pass  # skip this one broken asset; others still resolve
+        url_map_lower: dict[str, str] = {k.lower(): v for k, v in url_map.items()}
+        for asset in assets.values():
+            fname = asset.get('originalFilename', '')
+            if fname in url_map:
+                asset['resolvedUrl'] = url_map[fname]
+            elif fname.lower() in url_map_lower:
+                asset['resolvedUrl'] = url_map_lower[fname.lower()]
+            poster_fname = asset.get('posterImageRef', '')
+            if poster_fname:
+                if poster_fname in url_map:
                     asset['resolvedPosterUrl'] = url_map[poster_fname]
-        except Exception:
-            pass  # Never crash the render because of a missing asset
+                elif poster_fname.lower() in url_map_lower:
+                    asset['resolvedPosterUrl'] = url_map_lower[poster_fname.lower()]
 
     parts = ['<article class="article-body" data-doc-id="{}">'.format(
         escape(canonical_data.get('documentId', ''))
@@ -119,14 +124,41 @@ def render_html(canonical_data: dict, submission=None, revision=None) -> str:
         if ck:
             cite_map[ck] = _cite_label(item)
 
+    # Build label_map: 'fig:label' → figure number (sequential across all figures/media).
+    label_map = _build_label_map(content)
+
     # Content blocks
     for block in content:
-        html = _render_block(block, assets, cite_map)
+        html = _render_block(block, assets, cite_map, label_map, reviewer_mode=reviewer_mode)
         if html:
             parts.append(html)
 
     parts.append('</article>')
     return '\n'.join(parts)
+
+
+def _build_label_map(blocks: list) -> dict:
+    """Map label keys → sequential numbers for cross-references.
+
+    Figures/media use 'fig:<label>' → int.
+    Tables use the full label as stored (e.g. 'tab:daw_ambisonics') → int.
+    """
+    fig_num = 0
+    tbl_num = 0
+    label_map: dict[str, int] = {}
+    for block in blocks:
+        btype = block.get('type', '')
+        if btype in ('figure', 'media'):
+            label = block.get('label', '')
+            if label:
+                fig_num += 1
+                label_map[f'fig:{label}'] = fig_num
+        elif btype == 'table':
+            label = block.get('label', '')
+            if label:
+                tbl_num += 1
+                label_map[label] = tbl_num
+    return label_map
 
 
 def _render_table_from_latex(raw_latex: str, caption: str, bid: str) -> str:
@@ -268,10 +300,17 @@ def _format_bib_item(item: dict) -> str:
     return f'{lead} {detail}{suffix}.'
 
 
-def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> str:
+def _render_block(
+    block: dict,
+    assets: dict,
+    cite_map: dict | None = None,
+    label_map: dict | None = None,
+    reviewer_mode: bool = False,
+) -> str:
     btype = block.get('type', 'paragraph')
     bid = escape(block.get('id', ''))
     cm = cite_map or {}
+    lm = label_map or {}
 
     # ── Heading ───────────────────────────────────────────────────────────────
     if btype == 'heading':
@@ -282,7 +321,7 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
     # ── Paragraph ─────────────────────────────────────────────────────────────
     if btype == 'paragraph':
         content = block.get('content', [])
-        inner = ''.join(_render_inline(c, cm) for c in content)
+        inner = ''.join(_render_inline(c, cm, lm) for c in content)
         anchor = block.get('anchor', {})
         para_num = anchor.get('paragraphNumber', '')
         return (
@@ -295,7 +334,7 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
     # ── Blockquote (long quotation, 40+ words / 4+ lines) ────────────────────
     if btype == 'blockquote':
         content = block.get('content', [])
-        inner = ''.join(_render_inline(c, cm) for c in content)
+        inner = ''.join(_render_inline(c, cm, lm) for c in content)
         return (
             f'<blockquote id="{bid}" class="article-blockquote" data-block-id="{bid}">'
             f'<p>{inner}</p>'
@@ -310,13 +349,27 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
         alt = escape(block.get('altText', ''))
         credit = escape(block.get('credit', ''))
         src = _asset_url(asset)
+        fig_label = block.get('label', '')
+        anchor_id = f'fig:{fig_label}' if fig_label else bid
+        fig_num = lm.get(f'fig:{fig_label}', 0) if fig_label else 0
+        caption_prefix = f'Figure {fig_num}. ' if fig_num else ''
         credit_html = (
             f'<figcaption class="figure-credit">{credit}</figcaption>' if credit else ''
         )
+        if src:
+            media_html = f'<img src="{src}" alt="{alt}" loading="lazy">'
+        else:
+            fname = escape(asset.get('originalFilename', 'image'))
+            media_html = (
+                f'<div class="media-placeholder media-placeholder--image">'
+                f'<span class="media-placeholder__type">Image</span>'
+                f'<span class="media-placeholder__filename">{fname}</span>'
+                f'</div>'
+            )
         return (
-            f'<figure id="{bid}" class="article-figure" data-block-id="{bid}">'
-            f'<img src="{src}" alt="{alt}" loading="lazy">'
-            f'<figcaption class="figure-caption">{caption}</figcaption>'
+            f'<figure id="{escape(anchor_id)}" class="article-figure" data-block-id="{bid}">'
+            f'{media_html}'
+            f'<figcaption class="figure-caption">{caption_prefix}{caption}</figcaption>'
             f'{credit_html}'
             f'</figure>'
         )
@@ -328,11 +381,28 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
         asset = assets.get(asset_ref, {})
         caption = escape(block.get('caption', ''))
         src = _asset_url(asset)
+        med_label = block.get('label', '')
+        anchor_id = f'fig:{med_label}' if med_label else bid
+        fname = escape(asset.get('originalFilename', ''))
+        css_class = 'article-video' if media_type == 'video' else 'article-audio'
+
+        if reviewer_mode:
+            label = 'Video' if media_type == 'video' else 'Audio'
+            ph_class = f'media-placeholder--{media_type}'
+            return (
+                f'<figure id="{escape(anchor_id)}" class="article-media {css_class}" data-block-id="{bid}">'
+                f'<div class="media-placeholder {ph_class}">'
+                f'<span class="media-placeholder__type">{label}</span>'
+                f'<span class="media-placeholder__filename">{fname}</span>'
+                f'</div>'
+                f'<figcaption>{caption}</figcaption>'
+                f'</figure>'
+            )
 
         if media_type == 'video':
             poster = escape(asset.get('resolvedPosterUrl', ''))
             return (
-                f'<figure id="{bid}" class="article-media article-video" data-block-id="{bid}">'
+                f'<figure id="{escape(anchor_id)}" class="article-media article-video" data-block-id="{bid}">'
                 f'<video controls preload="metadata" poster="{poster}">'
                 f'<source src="{src}">'
                 f'Your browser does not support video.'
@@ -342,7 +412,7 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
             )
         if media_type == 'audio':
             return (
-                f'<figure id="{bid}" class="article-media article-audio" data-block-id="{bid}">'
+                f'<figure id="{escape(anchor_id)}" class="article-media article-audio" data-block-id="{bid}">'
                 f'<audio controls preload="metadata">'
                 f'<source src="{src}">'
                 f'Your browser does not support audio.'
@@ -356,6 +426,10 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
         caption = escape(block.get('caption', ''))
         columns = block.get('columns', [])
         rows = block.get('rows', [])
+        tbl_label = block.get('label', '')
+        anchor_id = escape(tbl_label) if tbl_label else bid
+        tbl_num = lm.get(tbl_label, 0) if tbl_label else 0
+        caption_prefix = f'Table {tbl_num}. ' if tbl_num else ''
         if columns and rows:
             headers = ''.join(f'<th>{escape(c["label"])}</th>' for c in columns)
             body_rows = ''.join(
@@ -363,8 +437,8 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
                 for row in rows
             )
             return (
-                f'<figure id="{bid}" class="article-table" data-block-id="{bid}">'
-                f'<table><caption>{caption}</caption>'
+                f'<figure id="{anchor_id}" class="article-table" data-block-id="{bid}">'
+                f'<table><caption>{caption_prefix}{caption}</caption>'
                 f'<thead><tr>{headers}</tr></thead><tbody>{body_rows}</tbody>'
                 f'</table></figure>'
             )
@@ -394,7 +468,7 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
         items = block.get('items', [])
         rows = ''.join(
             f'<dt>{escape(item.get("term", ""))}</dt>'
-            f'<dd>{"".join(_render_inline(n, cm) for n in item.get("body", []))}</dd>'
+            f'<dd>{"".join(_render_inline(n, cm, lm) for n in item.get("body", []))}</dd>'
             for item in items
         )
         return f'<dl id="{bid}" class="article-dl" data-block-id="{bid}">{rows}</dl>'
@@ -403,7 +477,7 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
     if btype == 'list':
         tag = 'ol' if block.get('ordered') else 'ul'
         items_html = ''.join(
-            '<li>' + ''.join(_render_inline(n, cm) for n in nodes) + '</li>'
+            '<li>' + ''.join(_render_inline(n, cm, lm) for n in nodes) + '</li>'
             for nodes in block.get('items', [])
         )
         return (
@@ -469,9 +543,14 @@ def _render_block(block: dict, assets: dict, cite_map: dict | None = None) -> st
     return f'<div id="{bid}" class="article-block" data-block-id="{bid}"></div>'
 
 
-def _render_inline(node: dict, cite_map: dict | None = None) -> str:
+def _render_inline(
+    node: dict,
+    cite_map: dict | None = None,
+    label_map: dict | None = None,
+) -> str:
     ntype = node.get('type', 'text')
     text = escape(node.get('text', ''))
+    lm = label_map or {}
 
     if ntype == 'code':
         return f'<code>{escape(node.get("text", ""))}</code>'
@@ -499,6 +578,18 @@ def _render_inline(node: dict, cite_map: dict | None = None) -> str:
             f'({label})'
             f'</a>'
         )
+
+    if ntype == 'ref':
+        # \ref{fig:label} or \ref{tab:label} cross-reference
+        raw_target = node.get('target', '')
+        target = escape(raw_target)
+        num = lm.get(raw_target, 0)
+        if num:
+            prefix = 'Table' if raw_target.startswith('tab:') else 'Figure'
+            link_text = f'{prefix} {num}'
+        else:
+            link_text = target
+        return f'<a href="#{target}" class="article-figref">{link_text}</a>'
 
     if ntype == 'footnote_ref':
         fn_num = node.get('number', '')

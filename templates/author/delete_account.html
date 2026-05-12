@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Delete Account — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:560px;padding-top:var(--spacing-10);padding-bottom:var(--spacing-16);">
+
+  <h1 style="font-family:var(--font-serif);font-size:1.65rem;margin:0 0 var(--spacing-2);color:#c53030;">Delete Account</h1>
+
+  {% if messages %}
+  {% for msg in messages %}
+  <div style="background:#fff5f5;border:1px solid #fed7d7;border-radius:var(--radius-sm);padding:var(--spacing-3) var(--spacing-4);margin-bottom:var(--spacing-4);font-size:var(--size-sm);color:#c53030;">
+    {{ msg }}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if has_published %}
+  <!-- Path B: anonymisation -->
+  <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-6);">
+    <p style="font-weight:600;margin:0 0 var(--spacing-2);">You have published articles</p>
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0 0 var(--spacing-3);">
+      Because your name is part of the scholarly citation record, your account cannot be fully erased (GDPR Art. 17(3)(d) — archiving in the public interest). Instead, the following will happen:
+    </p>
+    <ul style="font-size:var(--size-sm);color:var(--color-muted);padding-left:var(--spacing-4);margin:0;">
+      <li>Your email, biography, photo, institution, and ORCID are permanently deleted.</li>
+      <li>Your name remains on your published articles as part of the scholarly record.</li>
+      <li>Your author profile page is removed from the public site.</li>
+      <li>Your account is deactivated — login is no longer possible.</li>
+    </ul>
+  </div>
+  {% else %}
+  <!-- Path A: full deletion -->
+  <div style="border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-6);">
+    <p style="font-weight:600;margin:0 0 var(--spacing-2);">Full account deletion</p>
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0;">
+      You have no published articles. Your account and all associated personal data will be permanently and irreversibly deleted. This cannot be undone.
+    </p>
+  </div>
+  {% endif %}
+
+  <form method="post" x-data="{ val: '' }">
+    {% csrf_token %}
+    <div style="margin-bottom:var(--spacing-4);">
+      <label style="display:block;font-size:var(--size-sm);font-weight:600;margin-bottom:var(--spacing-2);">
+        Type <code style="background:var(--color-surface);padding:1px 6px;border-radius:3px;font-size:0.85em;">DELETE</code> to confirm
+      </label>
+      <input
+        type="text"
+        name="confirm"
+        x-model="val"
+        autocomplete="off"
+        placeholder="DELETE"
+        style="width:100%;padding:var(--spacing-3) var(--spacing-4);border:1.5px solid #e53e3e;border-radius:var(--radius-sm);font-size:var(--size-base);outline:none;box-sizing:border-box;"
+      >
+    </div>
+    <div style="display:flex;align-items:center;gap:var(--spacing-4);flex-wrap:wrap;">
+      <button
+        type="submit"
+        class="btn btn--danger"
+        :disabled="val !== 'DELETE'"
+        :style="val !== 'DELETE' ? 'opacity:0.45;cursor:not-allowed;' : ''"
+      >
+        {% if has_published %}Anonymise &amp; deactivate account{% else %}Delete my account permanently{% endif %}
+      </button>
+      <a href="{% url 'account_settings' %}" style="font-size:var(--size-sm);color:var(--color-muted);">Cancel</a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

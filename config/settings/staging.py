@@ -33,6 +33,12 @@ LOGIN_URL = f'{_script_name}/accounts/login/'
 LOGIN_REDIRECT_URL = f'{_script_name}/author/dashboard/'
 LOGOUT_REDIRECT_URL = f'{_script_name}/'
 
+# ── CSRF ─────────────────────────────────────────────────────────────────────
+# django-environ cannot parse list syntax in .env files, so set this in code.
+# Includes the parent domain so the staging subdirectory works correctly.
+_allowed_host = env('ALLOWED_HOST', default='misc.lmta.lt')
+CSRF_TRUSTED_ORIGINS = [f'https://{_allowed_host}', f'http://{_allowed_host}']
+
 # ── Proxy / SSL ───────────────────────────────────────────────────────────────
 # SSL is terminated at Nginx — the app receives plain HTTP from Gunicorn.
 SECURE_SSL_REDIRECT = False

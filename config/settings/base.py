@@ -134,6 +134,7 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_SUBJECT_PREFIX = ''   # our subject templates already include the journal name
 # Use URL names, not paths — resolve_url() calls reverse() which respects
 # SCRIPT_NAME so subpath deployments (e.g. /ARJournal/) work correctly.
 LOGIN_REDIRECT_URL = 'author_dashboard'

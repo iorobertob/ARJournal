@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Session Expired — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<div style="
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: var(--spacing-12) var(--spacing-6);
+  text-align: center;
+">
+
+  <svg width="52" height="52" viewBox="0 0 24 24" fill="none"
+       stroke="var(--color-muted)" stroke-width="1.4"
+       stroke-linecap="round" stroke-linejoin="round"
+       aria-hidden="true" style="margin-bottom: var(--spacing-6);">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+
+  <p style="
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-bottom: var(--spacing-3);
+  ">403 — Session Expired</p>
+
+  <h1 style="
+    font-family: var(--font-serif);
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    font-weight: 400;
+    color: var(--color-text);
+    margin-bottom: var(--spacing-4);
+    max-width: 42ch;
+    line-height: var(--leading-snug);
+  ">Your session has expired or the security token was invalid.</h1>
+
+  <p style="
+    font-family: var(--font-sans);
+    font-size: var(--size-sm);
+    color: var(--color-muted);
+    max-width: 52ch;
+    margin-bottom: var(--spacing-8);
+    line-height: var(--leading-normal);
+  ">This can happen if you've been inactive for a while or opened the page in multiple tabs. Reload the page and try again.</p>
+
+  <div style="display: flex; gap: var(--spacing-3); flex-wrap: wrap; justify-content: center;">
+    <a href="javascript:location.reload()" class="btn btn--ghost">Reload page</a>
+    <a href="{% url 'home' %}" class="btn btn--secondary">Go to homepage</a>
+  </div>
+
+</div>
+{% endblock %}

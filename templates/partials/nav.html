@@ -91,7 +91,7 @@ function notifPanel() {
     openNotif(el, pk, url) {
       if (el.classList.contains('notif-item--unread')) {
         el.classList.remove('notif-item--unread');
-        fetch(`/notifications/${pk}/read/`, {
+        fetch(`${SCRIPT_NAME}/notifications/${pk}/read/`, {
           method: 'POST',
           headers: { 'X-CSRFToken': this._csrf() },
         }).then(() => {

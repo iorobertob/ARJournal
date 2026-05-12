@@ -172,7 +172,7 @@
       selectedId: null,
       async search() {
         this.loading = true;
-        const url = `/editorial/submission/${submissionPk}/editors/search/?q=${encodeURIComponent(this.query)}`;
+        const url = `${SCRIPT_NAME}/editorial/submission/${submissionPk}/editors/search/?q=${encodeURIComponent(this.query)}`;
         const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await resp.json();
         this.results = data.results;
@@ -348,7 +348,7 @@
       },
       async search() {
         this.loading = true;
-        const url = `/review/suggest/${submissionPk}/search/?q=${encodeURIComponent(this.query)}`;
+        const url = `${SCRIPT_NAME}/review/suggest/${submissionPk}/search/?q=${encodeURIComponent(this.query)}`;
         const resp = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
         const data = await resp.json();
         this.results = data.results;

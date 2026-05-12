@@ -24,7 +24,7 @@
     if (!reviewId) return;
     const csrfToken = getCookie('csrftoken');
     try {
-      const resp = await fetch(`/review/${reviewId}/draft/`, {
+      const resp = await fetch(`${SCRIPT_NAME}/review/${reviewId}/draft/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,7 +58,7 @@
       await saveDraft();
       const csrfToken = getCookie('csrftoken');
       try {
-        const resp = await fetch(`/review/${reviewId}/submit/`, {
+        const resp = await fetch(`${SCRIPT_NAME}/review/${reviewId}/submit/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

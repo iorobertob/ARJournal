@@ -98,7 +98,7 @@
 
       const csrfToken = getCookie('csrftoken');
       try {
-        const resp = await fetch(`/review/${reviewId}/annotate/`, {
+        const resp = await fetch(`${SCRIPT_NAME}/review/${reviewId}/annotate/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

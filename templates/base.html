@@ -50,6 +50,7 @@
   </div>
 </div>
 
+<script>const SCRIPT_NAME = "{{ request.META.SCRIPT_NAME|escapejs }}";</script>
 <script src="{% static 'js/alpine.min.js' %}" defer></script>
 <script src="{% static 'js/htmx.min.js' %}"></script>
 <script src="{% static 'js/main.js' %}"></script>

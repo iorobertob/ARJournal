@@ -115,6 +115,53 @@ Key fields:
 
 ---
 
+## First Admin User — Granting Roles
+
+After the superuser account is created (via `createsuperuser` or the deploy script), that user still has **no journal roles**. Two separate permission layers exist:
+
+| Layer | What it unlocks | How to set |
+|---|---|---|
+| `is_superuser` + `is_staff` | Django admin at `/admin/` | Shell or Django admin |
+| `roles` field | Journal admin at `/journal-admin/` and editorial tools | Shell (first time), then UI |
+
+**The first admin must be bootstrapped from the shell** — a one-time step. After that, all role management can be done through the UI.
+
+```bash
+source venv/bin/activate
+# For staging add:  DJANGO_SETTINGS_MODULE=config.settings.staging
+python manage.py shell -c "
+from apps.accounts.models import User, UserRole
+u = User.objects.get(email='your-admin@email.here')
+u.is_staff = True
+u.is_superuser = True
+u.roles = [UserRole.SYSTEM_ADMIN, UserRole.JOURNAL_ADMIN]
+u.save()
+print('Done — roles:', u.roles)
+"
+```
+
+Once logged in with those roles, manage all other users at:
+
+```
+/journal-admin/users/
+```
+
+Available roles:
+
+| Role value | Label | Access |
+|---|---|---|
+| `system_admin` | System Administrator | Everything |
+| `journal_admin` | Journal Administrator | `/journal-admin/` settings and user management |
+| `editor_in_chief` | Editor-in-Chief | Full editorial workflow |
+| `managing_editor` | Managing Editor | Editorial workflow |
+| `handling_editor` | Handling Editor | Assigned submissions |
+| `editorial_assistant` | Editorial Assistant | Screening queue |
+| `production_editor` | Production Editor | HTML build and publication |
+| `copyeditor` | Copyeditor | Production tasks |
+| `reviewer` | Reviewer | Review workspace |
+
+---
+
 ## Architecture Overview
 
 ```

@@ -3,12 +3,10 @@
 
 
 ## TODO
-- Editorial access required error on production/admin/preview/2/ , page without format/styling	
-- media files are not rendereed in the review workspace, nor are they in the html. something is wrong. 	
+- Editorial access required error on production/admin/preview/2/ , page without format/styling		
 - Journal should have a publish button. 
 - time of the system is wrong, is GMT, we are GMT + 2 + 1 summer time KNOWN
 - There should be a button in the Editorial view to mark an article again as not published. 
-- when articles are added from Available Articles to Articles in This Issued, the card that appears on ARticles in This Issue shoul immediatly have already the dropdown menu to select the section it will be in. 
 - The abstract that is written at the upload time is not used for nothign? where is it shown?
 - where are the keywords shown in the published article coming from?
 - users should be able to change their email and password. if they change their email they log in with the new email
@@ -20,8 +18,10 @@
 - Add Contact, Partners and Editorial Board pages.
 - Or simply remove the Contact menu, as there is an email at the footer. change this email. 
 - user profiles accessibles by other users. linked from their articles. 
-- change html render to be more like the workspace, with smaller font, different background color for the main text and same size of the main text and the side columns for content tree and annotations. the column of anotations should be used for footnotes on the rendered html .
-- fix font size accross the site and unify it. 
+- change html render to be more like the workspace, with smaller font, different background color for the main text and same size of the main text and the side columns for content tree and annotations. the column of anotations should be used for footnotes on the rendered html . 
+- create a deploy script 
+- check what is used the mailersend config from admin dashboard ofr the info on the .env file?
+
 
 
 

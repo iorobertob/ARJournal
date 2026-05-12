@@ -69,6 +69,60 @@
   </div>
 </div>
 
+<!-- ── Editorial Content ──────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Editorial Content</div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_about_text">About text</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Displayed on the About page (/about/).</p>
+    <textarea name="about_text" id="id_about_text" rows="8" class="form-control">{{ journal.about_text }}</textarea>
+  </div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_mission_text">Mission text</label>
+    <textarea name="mission_text" id="id_mission_text" rows="4" class="form-control">{{ journal.mission_text }}</textarea>
+  </div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_methodology_text">Methodology text</label>
+    <textarea name="methodology_text" id="id_methodology_text" rows="4" class="form-control">{{ journal.methodology_text }}</textarea>
+  </div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_submission_guidelines">Submission guidelines</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Displayed on the Submit page (/submit/).</p>
+    <textarea name="submission_guidelines" id="id_submission_guidelines" rows="8" class="form-control">{{ journal.submission_guidelines }}</textarea>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="id_institution">Institution</label>
+      <input type="text" name="institution" id="id_institution" value="{{ journal.institution }}" class="form-control">
+    </div>
+    <div class="form-group">
+      <label for="id_publisher">Publisher</label>
+      <input type="text" name="publisher" id="id_publisher" value="{{ journal.publisher }}" class="form-control">
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_imprint">Imprint</label>
+    <textarea name="imprint" id="id_imprint" rows="3" class="form-control">{{ journal.imprint }}</textarea>
+  </div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_legal_notice">Legal notice</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Appended to the Terms &amp; Conditions page.</p>
+    <textarea name="legal_notice" id="id_legal_notice" rows="4" class="form-control">{{ journal.legal_notice }}</textarea>
+  </div>
+
+  <div class="form-group">
+    <label for="id_instagram_url">Instagram URL</label>
+    <input type="url" name="instagram_url" id="id_instagram_url" value="{{ journal.instagram_url }}" class="form-control" placeholder="https://instagram.com/yourjournal">
+  </div>
+</div>
+
 <!-- ── Email ──────────────────────────────────────────────── -->
 <div class="jadmin-card" x-data="{ backend: '{{ journal.email_backend_type }}' }">
   <div class="jadmin-card__title">Email</div>

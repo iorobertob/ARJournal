@@ -1169,3 +1169,68 @@ def notify_editors_issue_published(issue_pk):
         )
     except Exception:
         pass
+
+
+@shared_task
+def notify_editors_submission_withdrawn(submission_title, author_name, author_email):
+    """Email opted-in editors and badge all editors when an author withdraws a submission.
+
+    Receives raw strings instead of a PK because the submission is deleted
+    before this task runs.
+    """
+    subject = f'Submission withdrawn — {submission_title[:70]}'
+    editorial_url = f'{_site_url()}/editorial/'
+
+    html_body = (
+        _p('An author has withdrawn their submission.')
+        + _detail_box('Title', submission_title)
+        + _detail_box('Author', author_name)
+        + _btn(editorial_url, 'Go to editorial queue')
+        + _signature()
+    )
+    plain = (
+        f'An author has withdrawn their submission.\n\n'
+        f'Title: {submission_title}\n'
+        f'Author: {author_name} ({author_email})\n\n'
+        f'Editorial queue:\n{editorial_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial System'
+    )
+
+    # Email the generic editorial inbox.
+    editorial_email = getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)
+    try:
+        _send(editorial_email, subject, plain, html_body)
+        _log_email(editorial_email, subject, 'sent')
+    except Exception as exc:
+        _log_email(editorial_email, subject, 'failed', str(exc))
+
+    # Also email each individual editor who has opted in.
+    all_editors = _editorial_users()
+    for editor in _editors_email_opted_in(all_editors):
+        if editor.email == editorial_email:
+            continue
+        editor_html = (
+            _greeting(editor.display_name)
+            + _p('An author has withdrawn their submission.')
+            + _detail_box('Title', submission_title)
+            + _detail_box('Author', author_name)
+            + _btn(editorial_url, 'Go to editorial queue')
+            + _signature()
+        )
+        editor_plain = f'Dear {editor.display_name},\n\n' + plain
+        try:
+            _send(editor.email, subject, editor_plain, editor_html)
+            _log_email(editor.email, subject, 'sent')
+        except Exception as exc:
+            _log_email(editor.email, subject, 'failed', str(exc))
+
+    # In-app badge for all editors.
+    try:
+        _notify_editors_inapp(
+            all_editors,
+            'general',
+            f'Submission withdrawn: “{submission_title[:60]}” by {author_name}.',
+            '/editorial/',
+        )
+    except Exception:
+        pass

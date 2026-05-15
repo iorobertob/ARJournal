@@ -351,11 +351,17 @@ def delete_submission(request, pk):
         if request.POST.get('confirm') != 'DELETE':
             messages.error(request, 'Type DELETE exactly to confirm.')
             return redirect('delete_submission', pk=pk)
+        # Capture data before deletion so the notification task can use it.
+        _title = sub.title
+        _author_name = sub.author.display_name
+        _author_email = sub.author.email
         sub.delete()
         if is_draft:
             messages.success(request, 'Draft deleted.')
         else:
             messages.success(request, 'Submission withdrawn and deleted.')
+            from apps.notifications.tasks import notify_editors_submission_withdrawn
+            notify_editors_submission_withdrawn(_title, _author_name, _author_email)
         return redirect('author_dashboard')
 
     return render(request, 'author/delete_submission.html', {

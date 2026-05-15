@@ -13,7 +13,7 @@
 - there should be an email notification for Editors of a new submission.
 - Editorial access required. page needs styling. 
 - Journal admin access required. page needs styling. 
-- increase width of articles html page, so text takes more space, content tree is pushed to the left and footnotes to the right
+- increase width of articles html page, so text takes more space, content tree is pushed to the left and footnotes to the right 
 - in the .tex template and cls file it is not contemplated how the authors will reference the images, tables, videos and audio in their manuscript, can you add that to the template, and the explanation. Also, what will happen when authors include \pagebreak or \newpage on their manuscript to control how everything is nicely arranged throught the pages, since the rendered PDF from the journal site will be different?  
 - Add Contact, Partners and Editorial Board pages.
 - Or simply remove the Contact menu, as there is an email at the footer. change this email. 

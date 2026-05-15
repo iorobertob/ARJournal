@@ -7,37 +7,40 @@ on:
 jobs:
   deploy:
     name: Deploy to staging
-    runs-on: ubuntu-latest
-    environment: staging      # optional: adds a deployment environment in GitHub UI
+    runs-on: self-hosted          # executes directly on the VPS — no SSH needed
+    environment: staging
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host:     ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USER }}
-          key:      ${{ secrets.STAGING_SSH_KEY }}
-          script: |
-            set -e
-            cd ${{ secrets.STAGING_PATH }}
+      - name: Pull latest code
+        run: |
+          cd ${{ vars.STAGING_PATH }}
+          git fetch origin main
+          git reset --hard origin/main
 
-            echo "── Pull ──────────────────────────────────────"
-            git fetch origin main
-            git reset --hard origin/main
+      - name: Install dependencies
+        run: |
+          cd ${{ vars.STAGING_PATH }}
+          source venv/bin/activate
+          pip install -q -r requirements/production.txt
 
-            echo "── Dependencies ──────────────────────────────"
-            source venv/bin/activate
-            pip install -q -r requirements/production.txt
+      - name: Collect static files
+        run: |
+          cd ${{ vars.STAGING_PATH }}
+          source venv/bin/activate
+          python manage.py collectstatic --noinput
 
-            echo "── Static files ──────────────────────────────"
-            python manage.py collectstatic --noinput
+      - name: Run migrations
+        run: |
+          cd ${{ vars.STAGING_PATH }}
+          source venv/bin/activate
+          python manage.py migrate --noinput
 
-            echo "── Migrations ────────────────────────────────"
-            python manage.py migrate --noinput
+      - name: Restart services
+        run: |
+          sudo systemctl restart transact-staging-gunicorn
+          sudo systemctl restart transact-staging-celery
 
-            echo "── Restart services ──────────────────────────"
-            sudo systemctl restart transact-staging-gunicorn
-            sudo systemctl restart transact-staging-celery
-
-            echo "── Done ──────────────────────────────────────"
-            git log -1 --format="Deployed: %h — %s (%cr)"
+      - name: Done
+        run: |
+          cd ${{ vars.STAGING_PATH }}
+          git log -1 --format="✓ Deployed: %h — %s"

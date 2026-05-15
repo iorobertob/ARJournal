@@ -8,7 +8,7 @@
 - time of the system is wrong, is GMT, we are GMT + 2 + 1 summer time KNOWN
 - There should be a button in the Editorial view to mark an article again as not published. 
 - The abstract that is written at the upload time is not used for nothign? where is it shown?
-- where are the keywords shown in the published article coming from?
+- where are the keywords  shown in the published article coming from?
 - users should be able to change their email and password. if they change their email they log in with the new email
 - there should be an email notification for Editors of a new submission.
 - Editorial access required. page needs styling. 

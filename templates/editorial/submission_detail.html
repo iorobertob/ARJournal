@@ -332,7 +332,7 @@
       selectedId: null,
       selectedName: '',
       get formAction() {
-        return `/review/suggest/${submissionPk}/add/`;
+        return `${SCRIPT_NAME}/review/suggest/${submissionPk}/add/`;
       },
       openAddModal(replacePk) {
         this.replacePk = replacePk;

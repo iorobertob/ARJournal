@@ -69,7 +69,7 @@
         const data = await resp.json();
         if (data.status === 'submitted') {
           await showAlert('Review submitted successfully. Thank you!');
-          window.location.href = '/';
+          window.location.href = (typeof SCRIPT_NAME !== 'undefined' ? SCRIPT_NAME : '') + '/';
         } else if (data.error) {
           showAlert(data.error);
         }

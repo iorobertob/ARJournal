@@ -244,6 +244,65 @@ textarea.form-control {
   line-height: var(--leading-normal);
 }
 
+/* ── Checkbox option rows (role picker, toggles) ────────────── */
+.check-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-2);
+}
+
+.check-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: var(--size-sm);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  color: var(--color-text);
+  background: var(--color-bg);
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+  line-height: 1.3;
+}
+
+.check-option:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.check-option:has(input:checked) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.check-option input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+/* Single-row toggle (e.g. account active) */
+.check-option--single {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.check-option--single .check-option__sub {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin-top: 0.15rem;
+}
+
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .jadmin-layout { flex-direction: column; }

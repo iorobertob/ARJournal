@@ -6,9 +6,10 @@
 <h1 class="jadmin-page-title">Edit User</h1>
 
 <div class="jadmin-card" style="max-width:520px;">
-  <div style="margin-bottom:var(--space-6);">
+
+  <div style="margin-bottom:var(--spacing-6);">
     <div style="font-weight:600;font-size:1rem;">{{ edited_user.email }}</div>
-    <div style="color:var(--color-muted);font-size:0.875rem;margin-top:var(--space-1);">
+    <div style="color:var(--color-muted);font-size:0.875rem;margin-top:var(--spacing-1);">
       {{ edited_user.get_full_name|default:"No name set" }}
       &middot; Joined {{ edited_user.date_joined|date:"d M Y" }}
     </div>
@@ -17,32 +18,47 @@
   <form method="post">
     {% csrf_token %}
 
-    <div class="form-group" style="margin-bottom:var(--space-5);">
-      <label>Platform roles <small style="font-weight:400;color:var(--color-muted);">(select one or more)</small></label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-2);">
+    <!-- Platform roles -->
+    <div class="form-group" style="margin-bottom:var(--spacing-6);">
+      <label>
+        Platform roles
+        <small style="font-weight:400;color:var(--color-muted);">(select one or more)</small>
+      </label>
+
+      <div class="check-options">
         {% for value, label in roles %}
-        <label style="display:flex;align-items:center;gap:var(--space-2);font-weight:400;cursor:pointer;padding:var(--space-2) var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-sm);{% if value in edited_user.roles %}background:#fff7f2;border-color:var(--color-accent);{% endif %}">
+        <label class="check-option">
           <input type="checkbox" name="roles" value="{{ value }}"
-                 {% if value in edited_user.roles %}checked{% endif %}
-                 style="accent-color:var(--color-accent);width:15px;height:15px;">
+                 {% if value in edited_user.roles %}checked{% endif %}>
           {{ label }}
         </label>
         {% endfor %}
       </div>
-      <small style="color:var(--color-muted);font-size:0.78rem;margin-top:var(--space-2);display:block;">
-        At least one role is required. Controls platform access.
+
+      <small style="display:block;margin-top:var(--spacing-3);color:var(--color-muted);font-size:0.78rem;">
+        At least one role required. Controls platform access.
       </small>
     </div>
 
-    <div class="form-group" style="margin-bottom:var(--space-6);display:flex;align-items:center;gap:var(--space-3);">
-      <input type="checkbox" name="is_active" id="id_is_active" {% if edited_user.is_active %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
-      <label for="id_is_active" style="margin:0;font-weight:400;">Account active (uncheck to suspend)</label>
+    <!-- Account status -->
+    <div class="form-group" style="margin-bottom:var(--spacing-6);">
+      <label>Account status</label>
+      <label class="check-option check-option--single" for="id_is_active">
+        <input type="checkbox" name="is_active" id="id_is_active"
+               {% if edited_user.is_active %}checked{% endif %}>
+        <span>
+          Account active
+          <span class="check-option__sub">Uncheck to suspend access without deleting the account</span>
+        </span>
+      </label>
     </div>
 
-    <div style="display:flex;gap:var(--space-3);">
+    <div style="display:flex;gap:var(--spacing-3);">
       <button type="submit" class="btn btn-primary">Save changes</button>
-      <a href="{% url 'journal_admin_users' %}" class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
+      <a href="{% url 'journal_admin_users' %}" class="btn"
+         style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
     </div>
+
   </form>
 </div>
 {% endblock %}

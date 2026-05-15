@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.conf import settings
+from django.contrib.postgres.indexes import GinIndex
 from apps.journal.models import ArticleType, Issue, Section
 
 
@@ -58,6 +59,11 @@ class Submission(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['author']),
+            GinIndex(fields=['keywords'], name='submission_keywords_gin'),
+        ]
 
     def __str__(self):
         return f'{self.title[:60]} ({self.get_status_display()})'

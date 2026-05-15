@@ -43,6 +43,18 @@
       {% for d in submission.disciplines %}<p>{{ d }}</p>{% endfor %}
       {% endif %}
 
+      {% if submission.keywords %}
+      <p class="article-meta-sidebar__label">Keywords</p>
+      <p style="display:flex;flex-wrap:wrap;gap:var(--spacing-1);margin:0;">
+        {% for kw in submission.keywords %}
+        <a href="{% url 'archive' %}?q={{ kw|urlencode }}"
+           style="display:inline-block;font-size:0.72rem;color:var(--color-muted);background:var(--color-surface);border:1px solid var(--color-border);border-radius:100px;padding:1px var(--spacing-3);text-decoration:none;transition:border-color 0.15s,color 0.15s;"
+           onmouseover="this.style.borderColor='var(--color-accent)';this.style.color='var(--color-accent)'"
+           onmouseout="this.style.borderColor='var(--color-border)';this.style.color='var(--color-muted)'">{{ kw }}</a>
+        {% endfor %}
+      </p>
+      {% endif %}
+
       {% if submission.issue %}
       <p class="article-meta-sidebar__label">Year</p>
       <p>{{ submission.issue.year }}</p>

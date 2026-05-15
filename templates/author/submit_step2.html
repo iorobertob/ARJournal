@@ -12,18 +12,62 @@
     <span class="wizard__step">3. Media</span>
     <span class="wizard__step">4. Declarations</span>
   </div>
+
   <h1 class="wizard__title">Upload Manuscript</h1>
   <p>Upload your <code>.tex</code> source file. The platform will parse it into a structured document.</p>
-  <form method="post" enctype="multipart/form-data" class="form">
+
+  <form method="post" enctype="multipart/form-data" class="form" id="manuscript-form">
     {% csrf_token %}
+
     <div class="form__group">
-      <label class="form__label" for="manuscript">Manuscript File (.tex) <span>*</span></label>
-      <input class="form__file" type="file" id="manuscript" name="manuscript" accept=".tex,.txt" required>
+      <label class="form__label">Manuscript File (.tex) <span>*</span></label>
+
+      <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;">
+        <button type="button" class="btn btn--secondary" id="choose-manuscript-btn">Choose file</button>
+        <span id="manuscript-filename"
+              style="font-size:var(--size-sm);color:var(--color-muted);font-family:var(--font-sans);">
+          No file chosen
+        </span>
+      </div>
+
+      <!-- Hidden native input — still submitted with the form -->
+      <input type="file" id="manuscript" name="manuscript"
+             accept=".tex,.txt" required
+             style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;"
+             tabindex="-1" aria-hidden="true">
+
+      <p style="margin-top:var(--spacing-3);font-size:0.78rem;color:var(--color-muted);">
+        Accepted formats: <code>.tex</code>, <code>.txt</code>
+      </p>
     </div>
+
     <div class="form__actions">
       <a href="{% url 'submission_step1' %}" class="btn btn--secondary">← Back</a>
-      <button type="submit" class="btn btn--primary">Continue →</button>
+      <button type="submit" class="btn btn--primary" id="submit-btn" disabled>Continue →</button>
     </div>
   </form>
 </div>
+
+<script>
+(function () {
+  const btn      = document.getElementById('choose-manuscript-btn');
+  const input    = document.getElementById('manuscript');
+  const label    = document.getElementById('manuscript-filename');
+  const submitBtn = document.getElementById('submit-btn');
+
+  btn.addEventListener('click', () => input.click());
+
+  input.addEventListener('change', () => {
+    if (input.files.length) {
+      label.textContent = input.files[0].name;
+      label.style.color = 'var(--color-text)';
+      submitBtn.disabled = false;
+    } else {
+      label.textContent = 'No file chosen';
+      label.style.color = 'var(--color-muted)';
+      submitBtn.disabled = true;
+    }
+  });
+})();
+</script>
 {% endblock %}

@@ -5,6 +5,7 @@ urlpatterns = [
     path('', admin_views.dashboard, name='journal_admin_dashboard'),
     path('users/', admin_views.user_list, name='journal_admin_users'),
     path('users/<int:pk>/edit/', admin_views.user_edit, name='journal_admin_user_edit'),
+    path('users/<int:pk>/delete/', admin_views.user_delete, name='journal_admin_user_delete'),
     path('settings/', admin_views.journal_settings, name='journal_admin_settings'),
     # Issue & Volume assembly
     path('issues/', admin_views.issue_list, name='journal_admin_issues'),

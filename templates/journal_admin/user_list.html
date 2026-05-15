@@ -6,7 +6,8 @@
 <h1 class="jadmin-page-title">Users &amp; Roles</h1>
 
 <div class="jadmin-card">
-  <form method="get" style="display:flex;gap:var(--space-4);align-items:flex-end;flex-wrap:wrap;margin-bottom:var(--space-5);">
+
+  <form method="get" style="display:flex;gap:var(--spacing-4);align-items:flex-end;flex-wrap:wrap;margin-bottom:var(--spacing-6);">
     <div class="form-group" style="min-width:240px;">
       <label>Search</label>
       <input type="text" name="q" value="{{ search }}" placeholder="Email or name…" class="form-control">
@@ -21,34 +22,63 @@
       </select>
     </div>
     <button type="submit" class="btn btn-primary">Filter</button>
-    {% if search or role_filter %}<a href="{% url 'journal_admin_users' %}" class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Clear</a>{% endif %}
+    {% if search or role_filter %}
+    <a href="{% url 'journal_admin_users' %}" class="btn"
+       style="background:var(--color-surface);border:1px solid var(--color-border);">Clear</a>
+    {% endif %}
   </form>
 
   <table class="jadmin-table">
     <thead>
       <tr>
-        <th>Email</th>
         <th>Name</th>
-        <th>Role</th>
+        <th>Email</th>
+        <th>Roles</th>
         <th>Active</th>
         <th>Joined</th>
+        <th>Last seen</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
     {% for u in users %}
     <tr>
-      <td>{{ u.email }}</td>
-      <td>{{ u.get_full_name|default:"—" }}</td>
-      <td>{% for r in u.roles %}<span class="role-badge role-badge--{{ r }}" style="margin-right:2px;">{{ r|title|cut:"_" }}</span>{% empty %}—{% endfor %}</td>
-      <td>{% if u.is_active %}<span style="color:#16a34a;">Yes</span>{% else %}<span style="color:#dc2626;">No</span>{% endif %}</td>
-      <td style="color:var(--color-muted);">{{ u.date_joined|date:"d M Y" }}</td>
-      <td><a href="{% url 'journal_admin_user_edit' u.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Edit role</a></td>
+      <td style="font-weight:500;">{{ u.get_full_name|default:"—" }}</td>
+      <td style="color:var(--color-muted);">{{ u.email }}</td>
+      <td>
+        {% for r in u.roles %}
+        <span class="role-badge role-badge--{{ r }}" style="margin-right:2px;">{{ r|title|cut:"_" }}</span>
+        {% empty %}—{% endfor %}
+      </td>
+      <td>
+        {% if u.is_active %}
+        <span style="color:#16a34a;font-size:0.78rem;font-weight:500;">Active</span>
+        {% else %}
+        <span style="color:#dc2626;font-size:0.78rem;font-weight:500;">Suspended</span>
+        {% endif %}
+      </td>
+      <td style="color:var(--color-muted);font-size:var(--size-sm);">{{ u.date_joined|date:"d M Y" }}</td>
+      <td style="color:var(--color-muted);font-size:var(--size-sm);">
+        {% if u.last_login %}{{ u.last_login|timesince }} ago{% else %}<span style="color:var(--color-light);">Never</span>{% endif %}
+      </td>
+      <td>
+        <div style="display:flex;gap:var(--spacing-2);justify-content:flex-end;">
+          <a href="{% url 'journal_admin_user_edit' u.pk %}" class="btn btn-sm"
+             style="background:var(--color-surface);border:1px solid var(--color-border);">Edit</a>
+          {% if can_delete and u != request.user %}
+          <a href="{% url 'journal_admin_user_delete' u.pk %}" class="btn btn-sm"
+             style="color:#dc2626;border:1px solid #fecaca;background:#fff5f5;">Delete</a>
+          {% endif %}
+        </div>
+      </td>
     </tr>
     {% empty %}
-    <tr><td colspan="6" style="color:var(--color-muted);text-align:center;padding:var(--space-8);">No users found.</td></tr>
+    <tr>
+      <td colspan="7" style="color:var(--color-muted);text-align:center;padding:var(--spacing-8);">No users found.</td>
+    </tr>
     {% endfor %}
     </tbody>
   </table>
+
 </div>
 {% endblock %}

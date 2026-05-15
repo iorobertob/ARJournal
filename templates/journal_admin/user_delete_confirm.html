@@ -1,0 +1,68 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Delete Account — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Delete Account</h1>
+
+<div class="jadmin-card" style="max-width:520px;">
+
+  <div style="display:flex;align-items:flex-start;gap:var(--spacing-4);padding:var(--spacing-4) var(--spacing-6);background:#fff5f5;border:1px solid #fecaca;border-radius:var(--radius);margin-bottom:var(--spacing-6);">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+         stroke="#dc2626" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+         style="flex-shrink:0;margin-top:1px;">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <div>
+      <p style="font-weight:600;color:#991b1b;margin:0 0 var(--spacing-2);">This action is permanent and cannot be undone.</p>
+      <p style="font-size:var(--size-sm);color:#b91c1c;margin:0;line-height:1.6;">
+        Deleting this account will remove the user and all data linked to them from the platform.
+      </p>
+    </div>
+  </div>
+
+  <div style="margin-bottom:var(--spacing-6);">
+    <p style="font-size:0.82rem;font-weight:500;color:var(--color-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:var(--spacing-3);">Account to be deleted</p>
+    <div style="font-weight:600;font-size:1rem;color:var(--color-text);">{{ target.get_full_name|default:"No name set" }}</div>
+    <div style="color:var(--color-muted);font-size:var(--size-sm);margin-top:var(--spacing-1);">{{ target.email }}</div>
+    <div style="color:var(--color-muted);font-size:var(--size-sm);margin-top:var(--spacing-1);">
+      Joined {{ target.date_joined|date:"d M Y" }}
+      {% if target.last_login %}&middot; Last seen {{ target.last_login|timesince }} ago{% endif %}
+    </div>
+  </div>
+
+  {% if submission_count %}
+  <div style="padding:var(--spacing-4) var(--spacing-6);background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);margin-bottom:var(--spacing-6);">
+    <p style="font-size:0.82rem;font-weight:600;color:var(--color-text);margin-bottom:var(--spacing-2);">Data that will be deleted</p>
+    <ul style="margin:0;padding-left:var(--spacing-6);font-size:var(--size-sm);color:var(--color-muted);line-height:1.8;">
+      <li>{{ submission_count }} submission{{ submission_count|pluralize }} and all associated files, revisions, and reviews</li>
+      <li>Reviewer invitations and completed reviews</li>
+      <li>All notifications and activity history</li>
+    </ul>
+  </div>
+  {% endif %}
+
+  <p style="font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-6);line-height:1.6;">
+    If you only want to prevent this user from accessing the platform, consider
+    <a href="{% url 'journal_admin_user_edit' target.pk %}" style="color:var(--color-accent);">suspending their account</a>
+    instead — that preserves all data.
+  </p>
+
+  <div style="display:flex;gap:var(--spacing-3);align-items:center;">
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit"
+              style="padding:var(--spacing-2) var(--spacing-6);background:#dc2626;color:#fff;border:1px solid #dc2626;border-radius:var(--radius);font-size:var(--size-sm);font-family:var(--font-sans);font-weight:500;cursor:pointer;transition:background 0.15s;"
+              onmouseover="this.style.background='#b91c1c';this.style.borderColor='#b91c1c'"
+              onmouseout="this.style.background='#dc2626';this.style.borderColor='#dc2626'">
+        Permanently delete account
+      </button>
+    </form>
+    <a href="{% url 'journal_admin_users' %}"
+       class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
+  </div>
+
+</div>
+{% endblock %}

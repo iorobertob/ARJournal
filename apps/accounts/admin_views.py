@@ -74,11 +74,16 @@ def user_list(request):
             first_name__icontains=search
         ) | User.objects.filter(last_name__icontains=search)
         users = users.distinct()
+    can_delete = (
+        request.user.is_superuser
+        or request.user.has_role(UserRole.SYSTEM_ADMIN, UserRole.EDITOR_IN_CHIEF)
+    )
     return render(request, 'journal_admin/user_list.html', {
         'users': users,
         'roles': UserRole.choices,
         'role_filter': role_filter,
         'search': search,
+        'can_delete': can_delete,
     })
 
 
@@ -98,6 +103,37 @@ def user_edit(request, pk):
     return render(request, 'journal_admin/user_edit.html', {
         'edited_user': user,
         'roles': UserRole.choices,
+    })
+
+
+@journal_admin_required
+def user_delete(request, pk):
+    can_delete = (
+        request.user.is_superuser
+        or request.user.has_role(UserRole.SYSTEM_ADMIN, UserRole.EDITOR_IN_CHIEF)
+    )
+    if not can_delete:
+        return render(request, '403.html', {'message': 'Only System Administrators and Editors-in-Chief can delete accounts.'}, status=403)
+
+    target = get_object_or_404(User, pk=pk)
+
+    if target == request.user:
+        messages.error(request, 'You cannot delete your own account.')
+        return redirect('journal_admin_users')
+
+    if request.method == 'POST':
+        email = target.email
+        target.delete()
+        messages.success(request, f'Account for {email} has been permanently deleted.')
+        return redirect('journal_admin_users')
+
+    # Count related data to show in the warning
+    from apps.submissions.models import Submission
+    submission_count = Submission.objects.filter(author=target).count()
+
+    return render(request, 'journal_admin/user_delete_confirm.html', {
+        'target': target,
+        'submission_count': submission_count,
     })
 
 

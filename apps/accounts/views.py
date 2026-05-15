@@ -84,7 +84,11 @@ def profile_edit(request):
         profile.country = request.POST.get('country', profile.country)
         profile.website = request.POST.get('website', profile.website)
         if request.FILES.get('photo'):
-            profile.photo = request.FILES['photo']
+            photo = request.FILES['photo']
+            if photo.size > 2 * 1024 * 1024:
+                messages.error(request, 'Photo not saved — the file exceeds the 2 MB limit. Please resize the image and try again.')
+            else:
+                profile.photo = photo
         profile.save()
 
         if reviewer_profile:

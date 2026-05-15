@@ -19,6 +19,7 @@
     <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-6);margin-bottom:var(--spacing-4);">
       <h2 style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);margin:0 0 var(--spacing-4);">Photo</h2>
       <div style="display:flex;align-items:center;gap:var(--spacing-4);">
+        <div data-photo-preview>
         {% if profile.photo %}
         <img src="{{ profile.photo.url }}" alt=""
              style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--color-border);flex-shrink:0;">
@@ -27,13 +28,18 @@
           {{ request.user.display_name|first|upper }}
         </div>
         {% endif %}
+        </div>
         <div>
-          <label for="photo" style="display:inline-block;padding:0.4rem 0.9rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-sm);font-size:var(--size-sm);cursor:pointer;font-family:var(--font-sans);">
-            Choose image
-          </label>
+          <div style="display:flex;align-items:center;gap:var(--spacing-3);">
+            <label for="photo" style="display:inline-block;padding:0.4rem 0.9rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-sm);font-size:var(--size-sm);cursor:pointer;font-family:var(--font-sans);white-space:nowrap;">
+              Choose image
+            </label>
+            <span id="photo-filename" style="font-size:var(--size-sm);color:var(--color-muted);font-family:var(--font-sans);"></span>
+          </div>
           <input type="file" id="photo" name="photo" accept="image/*"
                  style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
-          <p style="font-size:0.78rem;color:var(--color-muted);margin:var(--spacing-2) 0 0;">JPG, PNG or GIF · max 2 MB</p>
+          <p id="photo-hint" style="font-size:0.78rem;color:var(--color-muted);margin:var(--spacing-2) 0 0;">JPG, PNG or GIF · max 2 MB</p>
+          <p id="photo-error" style="display:none;font-size:0.78rem;color:var(--color-error);margin:var(--spacing-2) 0 0;"></p>
         </div>
       </div>
     </div>
@@ -189,4 +195,44 @@
   </div>
 
 </div>
+
+<script>
+(function () {
+  const input   = document.getElementById('photo');
+  const fname   = document.getElementById('photo-filename');
+  const hint    = document.getElementById('photo-hint');
+  const errMsg  = document.getElementById('photo-error');
+  const saveBtn = document.querySelector('button[type="submit"]');
+  const MAX     = 2 * 1024 * 1024;
+
+  function setPreview(src) {
+    const wrap = input.closest('form').querySelector('[data-photo-preview]');
+    if (!wrap) return;
+    wrap.innerHTML = `<img src="${src}" alt=""
+      style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--color-border);flex-shrink:0;">`;
+  }
+
+  input.addEventListener('change', function () {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (file.size > MAX) {
+      errMsg.textContent = 'File exceeds the 2 MB limit — please resize the image and try again.';
+      errMsg.style.display = 'block';
+      hint.style.display   = 'none';
+      fname.textContent    = '';
+      input.value          = '';
+      if (saveBtn) saveBtn.disabled = true;
+    } else {
+      errMsg.style.display = 'none';
+      hint.style.display   = 'block';
+      fname.textContent    = file.name;
+      if (saveBtn) saveBtn.disabled = false;
+      const reader = new FileReader();
+      reader.onload = e => setPreview(e.target.result);
+      reader.readAsDataURL(file);
+    }
+  });
+})();
+</script>
 {% endblock %}

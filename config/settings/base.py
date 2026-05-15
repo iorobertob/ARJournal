@@ -22,7 +22,26 @@ environ.Env.read_env(BASE_DIR / '.env')
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+
+# ── Site URL — single source of truth for all URL-derived settings ────────────
+# Set this in .env:
+#   dev:        SITE_URL=http://localhost:5002
+#   staging:    SITE_URL=https://misc.lmta.lt/ARJournal
+#   production: SITE_URL=https://your-domain.com
+#
+# The path component (e.g. /ARJournal) prefixes STATIC_URL, MEDIA_URL, and the
+# auth redirect URLs. For root-path domains the path is empty and all URLs are
+# normal slash-only values. SCRIPT_NAME is injected by wsgi.py from this same value.
+SITE_URL = env('SITE_URL', default='http://localhost:5002')
+_site    = _urlparse(SITE_URL)
+_prefix  = _site.path.rstrip('/')   # '/ARJournal' or '' for root domains
+
+# CSRF — default to the scheme+host from SITE_URL; override in .env if needed
+# (comma-separated values, not Python list syntax).
+CSRF_TRUSTED_ORIGINS = env.list(
+    'CSRF_TRUSTED_ORIGINS',
+    default=[f'{_site.scheme}://{_site.netloc}'] if _site.netloc else [],
+)
 
 # Application definition
 DJANGO_APPS = [
@@ -140,13 +159,6 @@ LOGIN_URL            = f'{_prefix}/accounts/login/'
 LOGIN_REDIRECT_URL   = f'{_prefix}/author/dashboard/'
 LOGOUT_REDIRECT_URL  = f'{_prefix}/' if _prefix else '/'
 
-# CSRF — default to the scheme+host from SITE_URL; override via .env if needed.
-# django-environ reads env.list() as comma-separated values (not Python syntax).
-CSRF_TRUSTED_ORIGINS = env.list(
-    'CSRF_TRUSTED_ORIGINS',
-    default=[f'{_site.scheme}://{_site.netloc}'] if _site.netloc else [],
-)
-
 # ORCID OAuth
 SOCIALACCOUNT_PROVIDERS = {}
 ORCID_OAUTH_ENABLED = env('ORCID_OAUTH_ENABLED')
@@ -241,19 +253,6 @@ else:
 
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@trans-act-journal.org')
 SERVER_EMAIL = env('SERVER_EMAIL', default=DEFAULT_FROM_EMAIL)
-
-# ── Site URL — single source of truth for all URL-derived settings ────────────
-# Set this in .env for every environment:
-#   dev:        SITE_URL=http://localhost:5002
-#   staging:    SITE_URL=https://misc.lmta.lt/ARJournal
-#   production: SITE_URL=https://your-domain.com
-#
-# The path component (e.g. /ARJournal) is used as a prefix for STATIC_URL,
-# MEDIA_URL, LOGIN_URL, and CSRF_TRUSTED_ORIGINS. For root-path deployments
-# the path is empty and all URLs are normal slash-only values.
-SITE_URL = env('SITE_URL', default='http://localhost:5002')
-_site    = _urlparse(SITE_URL)
-_prefix  = _site.path.rstrip('/')   # '/ARJournal' or '' for root domains
 
 # Feature flags
 DOI_ENABLED = env('DOI_ENABLED')

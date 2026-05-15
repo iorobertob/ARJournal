@@ -379,7 +379,7 @@ def notify_reviewer_invited(invitation_pk):
         user=inv.reviewer,
         notification_type=NotificationType.REVIEWER_INVITED,
         message=f'You have been invited to review "{inv.submission.title[:80]}" — deadline {deadline_str}.',
-        url=invitation_url,
+        url=f'/review/invitation/{inv.magic_token}/',
     )
 
 
@@ -677,7 +677,7 @@ def notify_screening_resubmission(revision_pk):
             user=submission.author,
             notification_type='revision_submitted',
             message=f'Your corrected manuscript for "{submission.title[:50]}" has been received.',
-            url=dashboard_url,
+            url=f'/author/submission/{submission.pk}/',
         )
     except Exception:
         pass

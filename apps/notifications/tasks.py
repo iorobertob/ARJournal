@@ -17,11 +17,6 @@ def _site_url() -> str:
     return settings.SITE_URL.rstrip('/')
 
 
-def _site_path() -> str:
-    """Return just the URL path prefix for in-app notification hrefs (e.g. '/ARJournal' or '')."""
-    from urllib.parse import urlparse as _up
-    return _up(settings.SITE_URL).path.rstrip('/')
-
 
 def _e(text: str) -> str:
     """HTML-escape a string for safe inline insertion."""
@@ -261,14 +256,12 @@ def _assigned_editors(submission):
 def _notify_editors_inapp(editors, notif_type, message, url):
     """Create an in-app Notification for each editor in the list."""
     from .models import Notification
-    prefix = _site_path()
-    full_url = (prefix + url) if url.startswith('/') else url
     for editor in editors:
         Notification.objects.create(
             user=editor,
             notification_type=notif_type,
             message=message,
-            url=full_url,
+            url=url,
         )
 
 
@@ -329,7 +322,7 @@ def notify_submission_received(submission_pk):
             user=sub.author,
             notification_type='submission_received',
             message=f'Your submission \u201c{sub.title[:60]}\u201d has been received.',
-            url=f'{_site_path()}/author/submission/{sub.pk}/',
+            url=f'/author/submission/{sub.pk}/',
         )
     except Exception as exc:
         _log_email(sub.author.email, subject, 'failed', str(exc))
@@ -454,7 +447,7 @@ def notify_review_submitted(review_pk):
                 f'A peer review has been received for “{submission.title[:55]}”. '
                 f'The editorial team will review the feedback before sharing it with you.'
             ),
-            url=f'{_site_path()}/author/submission/{submission.pk}/',
+            url=f'/author/submission/{submission.pk}/',
         )
     except Exception:
         pass
@@ -514,7 +507,7 @@ def notify_decision_sent(decision_pk):
             user=submission.author,
             notification_type='decision_sent',
             message=f'Editorial decision received for \u201c{submission.title[:50]}\u201d.',
-            url=f'{_site_path()}/author/submission/{submission.pk}/',
+            url=f'/author/submission/{submission.pk}/',
         )
     except Exception as exc:
         _log_email(submission.author.email, subject, 'failed', str(exc))
@@ -625,7 +618,7 @@ def notify_revision_submitted(revision_pk):
                     f'A revised manuscript (v{revision.version}) has been submitted '
                     f'for \u201c{submission.title[:50]}\u201d.'
                 ),
-                url=f'{_site_path()}/review/my-reviews/',
+                url='/review/my-reviews/',
             )
         except Exception:
             pass
@@ -637,7 +630,7 @@ def notify_revision_submitted(revision_pk):
             user=submission.author,
             notification_type='revision_submitted',
             message=f'Your revision of \u201c{submission.title[:50]}\u201d has been submitted.',
-            url=f'{_site_path()}/author/submission/{submission.pk}/',
+            url=f'/author/submission/{submission.pk}/',
         )
     except Exception:
         pass
@@ -788,7 +781,7 @@ def notify_returned_to_author(submission_pk):
             user=sub.author,
             notification_type='returned_to_author',
             message=f'Your submission “{sub.title[:55]}” has been returned for correction.',
-            url=f'{_site_path()}/author/submission/{sub.pk}/',
+            url=f'/author/submission/{sub.pk}/',
         )
     except Exception as exc:
         _log_email(sub.author.email, subject, 'failed', str(exc))
@@ -833,7 +826,7 @@ def notify_review_released(review_pk):
             user=author,
             notification_type='review_released',
             message=f'Reviewer feedback is now available for "{submission.title[:55]}".',
-            url=f'{_site_path()}/author/submission/{submission.pk}/',
+            url=f'/author/submission/{submission.pk}/',
         )
     except Exception as exc:
         _log_email(author.email, subject, 'failed', str(exc))
@@ -879,7 +872,7 @@ def notify_article_published(submission_pk):
             user=author,
             notification_type='published',
             message=f'Your article "{sub.title[:55]}" has been published.',
-            url=f'{_site_path()}/articles/{sub.slug}/',
+            url=f'/articles/{sub.slug}/',
         )
     except Exception as exc:
         _log_email(author.email, subject, 'failed', str(exc))

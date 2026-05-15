@@ -4,7 +4,7 @@
   <div class="notification {% if n.read %}notification--read{% endif %}">
     <p class="notification__message">{{ n.message }}</p>
     <p class="notification__time">{{ n.created_at|timesince }} ago</p>
-    {% if n.url %}<a href="{{ n.url }}">View</a>{% endif %}
+    {% if n.url %}<a href="{{ request.META.SCRIPT_NAME }}{{ n.url }}">View</a>{% endif %}
   </div>
   {% empty %}
   <p>No notifications.</p>

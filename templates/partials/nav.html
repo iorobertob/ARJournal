@@ -36,10 +36,10 @@
         <div class="notif-dropdown__list">
           {% if recent_notifications %}
           {% for n in recent_notifications %}
-          <a href="{{ n.url|default:'#' }}"
+          <a href="{% if n.url %}{{ request.META.SCRIPT_NAME }}{{ n.url }}{% else %}#{% endif %}"
              class="notif-item {% if not n.read %}notif-item--unread{% endif %}"
              id="notif-item-{{ n.pk }}"
-             @click.prevent="openNotif($el, {{ n.pk }}, '{{ n.url|default:'' }}')">
+             @click.prevent="openNotif($el, {{ n.pk }}, '{% if n.url %}{{ request.META.SCRIPT_NAME|escapejs }}{{ n.url|escapejs }}{% endif %}')">
             <span class="notif-item__msg">{{ n.message }}</span>
             <span class="notif-item__time">{{ n.created_at|timesince }} ago</span>
           </a>

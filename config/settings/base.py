@@ -2,6 +2,7 @@
 Base settings shared across all environments.
 """
 from pathlib import Path
+from urllib.parse import urlparse as _urlparse
 import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -135,10 +136,16 @@ ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_EMAIL_SUBJECT_PREFIX = ''   # our subject templates already include the journal name
-# Use URL names, not paths — resolve_url() calls reverse() which respects
-# SCRIPT_NAME so subpath deployments (e.g. /ARJournal/) work correctly.
-LOGIN_REDIRECT_URL = 'author_dashboard'
-LOGOUT_REDIRECT_URL = 'home'
+LOGIN_URL            = f'{_prefix}/accounts/login/'
+LOGIN_REDIRECT_URL   = f'{_prefix}/author/dashboard/'
+LOGOUT_REDIRECT_URL  = f'{_prefix}/' if _prefix else '/'
+
+# CSRF — default to the scheme+host from SITE_URL; override via .env if needed.
+# django-environ reads env.list() as comma-separated values (not Python syntax).
+CSRF_TRUSTED_ORIGINS = env.list(
+    'CSRF_TRUSTED_ORIGINS',
+    default=[f'{_site.scheme}://{_site.netloc}'] if _site.netloc else [],
+)
 
 # ORCID OAuth
 SOCIALACCOUNT_PROVIDERS = {}
@@ -160,7 +167,7 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files
-STATIC_URL = '/static/'
+STATIC_URL = f'{_prefix}/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -176,7 +183,7 @@ if USE_S3:
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/'
 else:
-    MEDIA_URL = '/media/'
+    MEDIA_URL = f'{_prefix}/media/'
     MEDIA_ROOT = BASE_DIR / env('MEDIA_ROOT', default='media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -234,8 +241,19 @@ else:
 
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@trans-act-journal.org')
 SERVER_EMAIL = env('SERVER_EMAIL', default=DEFAULT_FROM_EMAIL)
-# Public URL of the site — used to build absolute URLs in emails.
+
+# ── Site URL — single source of truth for all URL-derived settings ────────────
+# Set this in .env for every environment:
+#   dev:        SITE_URL=http://localhost:5002
+#   staging:    SITE_URL=https://misc.lmta.lt/ARJournal
+#   production: SITE_URL=https://your-domain.com
+#
+# The path component (e.g. /ARJournal) is used as a prefix for STATIC_URL,
+# MEDIA_URL, LOGIN_URL, and CSRF_TRUSTED_ORIGINS. For root-path deployments
+# the path is empty and all URLs are normal slash-only values.
 SITE_URL = env('SITE_URL', default='http://localhost:5002')
+_site    = _urlparse(SITE_URL)
+_prefix  = _site.path.rstrip('/')   # '/ARJournal' or '' for root domains
 
 # Feature flags
 DOI_ENABLED = env('DOI_ENABLED')

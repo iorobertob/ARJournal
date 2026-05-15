@@ -264,6 +264,18 @@ def _notify_editors_inapp(editors, notif_type, message, url):
         )
 
 
+def _editors_email_opted_in(editors):
+    """Return the subset of editors who have email_notifications=True (default True if no profile)."""
+    result = []
+    for editor in editors:
+        try:
+            if editor.profile.email_notifications:
+                result.append(editor)
+        except Exception:
+            result.append(editor)
+    return result
+
+
 # ── Notification tasks ────────────────────────────────────────────────────────
 
 @shared_task
@@ -380,10 +392,15 @@ def notify_review_submitted(review_pk):
     subject_editors = f'Review submitted — {submission.title[:70]}'
 
     # ── Notify editors ────────────────────────────────────────────────────────
-    for assignment in submission.assignments.filter(is_active=True):
+    for assignment in submission.assignments.filter(is_active=True).select_related('editor__profile'):
         editor = assignment.editor
         if not editor:
             continue
+        try:
+            if not editor.profile.email_notifications:
+                continue
+        except Exception:
+            pass
         dashboard_url = f'{_site_url()}/editorial/submission/{submission.pk}/'
         html_body = (
             _greeting(editor.display_name)
@@ -523,15 +540,19 @@ def notify_revision_submitted(revision_pk):
         f'Warm regards,\nThe Trans/Act Editorial System'
     )
 
-    # Email assigned active editors; fall back to EDITORIAL_EMAIL setting.
-    assigned_editors = list(
-        EditorialAssignment.objects.filter(
-            submission=submission, is_active=True
-        ).select_related('editor').values_list('editor__email', flat=True)
-    )
-    recipients = assigned_editors or [getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)]
+    # Email assigned active editors who have email notifications enabled.
+    assigned_editor_users = [
+        a.editor for a in
+        EditorialAssignment.objects.filter(submission=submission, is_active=True)
+        .select_related('editor', 'editor__profile')
+        if a.editor
+    ]
+    email_recipients = _editors_email_opted_in(assigned_editor_users)
+    recipient_emails = [e.email for e in email_recipients] or [
+        getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)
+    ]
 
-    for email in recipients:
+    for email in recipient_emails:
         try:
             _send(email, subject, plain, html_body)
             _log_email(email, subject, 'sent')
@@ -685,10 +706,31 @@ def notify_screening_resubmission(revision_pk):
     except Exception as exc:
         _log_email(editorial_email, editorial_subject, 'failed', str(exc))
 
+    # Also email each individual editor who has opted in.
+    all_editors = _editorial_users()
+    for editor in _editors_email_opted_in(all_editors):
+        if editor.email == editorial_email:
+            continue
+        editor_html = (
+            _greeting(editor.display_name)
+            + _p(f'A corrected manuscript (version {revision.version}) has been resubmitted '
+                 f'after technical screening for:')
+            + _detail_box('Submission', submission.title)
+            + _detail_box('Author', submission.author.display_name)
+            + _btn(editorial_url, 'Review resubmission')
+            + _signature()
+        )
+        editor_plain = f'Dear {editor.display_name},\n\n' + editorial_plain
+        try:
+            _send(editor.email, editorial_subject, editor_plain, editor_html)
+            _log_email(editor.email, editorial_subject, 'sent')
+        except Exception as exc:
+            _log_email(editor.email, editorial_subject, 'failed', str(exc))
+
     # ── In-app badge for all editors ──────────────────────────────────────────
     try:
         _notify_editors_inapp(
-            _editorial_users(),
+            all_editors,
             'revision_submitted',
             f'Corrected manuscript resubmitted: “{submission.title[:50]}”.',
             f'/editorial/submission/{submission.pk}/',
@@ -954,9 +996,33 @@ def notify_editors_new_submission(submission_pk):
     except Exception as exc:
         _log_email(editorial_email, subject, 'failed', str(exc))
 
+    # Also email each individual editor who has opted in (skip if same as editorial_email).
+    all_editors = _editorial_users()
+    for editor in _editors_email_opted_in(all_editors):
+        if editor.email == editorial_email:
+            continue
+        editor_html = (
+            _greeting(editor.display_name)
+            + _p('A new submission has been received and is awaiting technical screening.')
+            + _detail_box('Title', sub.title)
+            + _detail_box('Author', sub.author.display_name)
+            + _detail_box('Type', sub.get_article_type_display())
+            + _btn(editorial_url, 'Open in editorial dashboard')
+            + _signature()
+        )
+        editor_plain = (
+            f'Dear {editor.display_name},\n\n'
+            + plain
+        )
+        try:
+            _send(editor.email, subject, editor_plain, editor_html)
+            _log_email(editor.email, subject, 'sent')
+        except Exception as exc:
+            _log_email(editor.email, subject, 'failed', str(exc))
+
     try:
         _notify_editors_inapp(
-            _editorial_users(),
+            all_editors,
             'submission_received',
             f'New submission: “{sub.title[:60]}” by {sub.author.display_name}.',
             f'/editorial/submission/{sub.pk}/',
@@ -994,7 +1060,9 @@ def notify_editors_reviewer_response(invitation_pk):
     )
 
     editors = _assigned_editors(submission)
-    recipients = [e.email for e in editors] or [getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)]
+    recipients = [e.email for e in _editors_email_opted_in(editors)] or [
+        getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)
+    ]
     for email in recipients:
         try:
             _send(email, subject, plain, html_body)
@@ -1015,14 +1083,39 @@ def notify_editors_reviewer_response(invitation_pk):
 
 @shared_task
 def notify_editors_article_published(submission_pk):
-    """Badge assigned editors when an article goes live."""
+    “””Badge assigned editors and email opted-in editors when an article goes live.”””
     from apps.submissions.models import Submission
     sub = Submission.objects.get(pk=submission_pk)
+    article_url = f'{_site_url()}/articles/{sub.slug}/'
+    subject = f'Article published — {sub.title[:70]}'
+    editors = _assigned_editors(sub) or _editorial_users()
+
+    for editor in _editors_email_opted_in(editors):
+        html_body = (
+            _greeting(editor.display_name)
+            + _p('The following article has just been published on the journal site.')
+            + _detail_box('Title', sub.title)
+            + _btn(article_url, 'View published article')
+            + _signature()
+        )
+        plain = (
+            f'Dear {editor.display_name},\n\n'
+            f'The following article has just been published.\n\n'
+            f'Title: {sub.title}\n\n'
+            f'Read it here:\n{article_url}\n\n'
+            f'Warm regards,\nThe Trans/Act Editorial System'
+        )
+        try:
+            _send(editor.email, subject, plain, html_body)
+            _log_email(editor.email, subject, 'sent')
+        except Exception as exc:
+            _log_email(editor.email, subject, 'failed', str(exc))
+
     try:
         _notify_editors_inapp(
-            _assigned_editors(sub) or _editorial_users(),
+            editors,
             'published',
-            f'“{sub.title[:60]}” is now live on the journal site.',
+            f'”{sub.title[:60]}” is now live on the journal site.',
             f'/articles/{sub.slug}/',
         )
     except Exception:
@@ -1031,18 +1124,44 @@ def notify_editors_article_published(submission_pk):
 
 @shared_task
 def notify_editors_issue_published(issue_pk):
-    """Badge all editors when an issue is published."""
+    """Badge all editors and email opted-in editors when an issue is published."""
     from apps.journal.models import Issue
     issue = Issue.objects.get(pk=issue_pk)
     article_count = issue.submissions.filter(status='published').count()
     vol_str = f' (Vol. {issue.volume})' if issue.volume else ''
+    issue_url = f'{_site_url()}/issues/{issue.pk}/'
     message = (
         f'Issue #{issue.number}{vol_str} published — '
         f'{article_count} article{"s" if article_count != 1 else ""}.'
     )
+    subject = f'Issue #{issue.number}{vol_str} published — Trans/Act'
+    all_editors = _editorial_users()
+
+    for editor in _editors_email_opted_in(all_editors):
+        html_body = (
+            _greeting(editor.display_name)
+            + _p(f'Issue #{_e(str(issue.number))}{_e(vol_str)} of <strong>Trans/Act: Journal of '
+                 f'Artistic Research</strong> has been published with '
+                 f'{article_count} article{"s" if article_count != 1 else ""}.')
+            + _btn(issue_url, 'View published issue')
+            + _signature()
+        )
+        plain = (
+            f'Dear {editor.display_name},\n\n'
+            f'Issue #{issue.number}{vol_str} of Trans/Act has been published '
+            f'with {article_count} article{"s" if article_count != 1 else ""}.\n\n'
+            f'View it here:\n{issue_url}\n\n'
+            f'Warm regards,\nThe Trans/Act Editorial System'
+        )
+        try:
+            _send(editor.email, subject, plain, html_body)
+            _log_email(editor.email, subject, 'sent')
+        except Exception as exc:
+            _log_email(editor.email, subject, 'failed', str(exc))
+
     try:
         _notify_editors_inapp(
-            _editorial_users(),
+            all_editors,
             'issue_published',
             message,
             f'/issues/{issue.pk}/',

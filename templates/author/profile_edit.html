@@ -159,6 +159,22 @@
     </div>
     {% endif %}
 
+    {% if request.user.has_editorial_access %}
+    <!-- Notification Preferences -->
+    <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--spacing-6);margin-bottom:var(--spacing-6);">
+      <h2 style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);margin:0 0 var(--spacing-4);">Notification Preferences</h2>
+      <label style="display:flex;align-items:flex-start;gap:var(--spacing-3);cursor:pointer;">
+        <input type="checkbox" name="email_notifications" id="email_notifications"
+               {% if profile.email_notifications %}checked{% endif %}
+               style="margin-top:3px;flex-shrink:0;accent-color:var(--color-accent);">
+        <span>
+          <span style="font-weight:600;font-size:var(--size-sm);">Receive email notifications</span>
+          <span style="display:block;font-size:0.78rem;color:var(--color-muted);margin-top:var(--spacing-1);">Get email alerts for new submissions, reviewer responses, reviews submitted, revisions, and published articles. In-app badge notifications are always shown regardless of this setting.</span>
+        </span>
+      </label>
+    </div>
+    {% endif %}
+
     <!-- Actions -->
     <div style="display:flex;gap:var(--spacing-3);justify-content:flex-end;">
       <a href="{% url 'profile' %}" class="btn btn--secondary">Cancel</a>

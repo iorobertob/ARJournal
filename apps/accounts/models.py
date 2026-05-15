@@ -107,6 +107,7 @@ class UserProfile(models.Model):
     interests = models.JSONField(default=list, blank=True)
     website = models.URLField(blank=True, default='')
     public_profile = models.BooleanField(default=True)
+    email_notifications = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

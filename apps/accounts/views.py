@@ -89,6 +89,8 @@ def profile_edit(request):
                 messages.error(request, 'Photo not saved — the file exceeds the 2 MB limit. Please resize the image and try again.')
             else:
                 profile.photo = photo
+        if user.has_editorial_access():
+            profile.email_notifications = request.POST.get('email_notifications') == 'on'
         profile.save()
 
         if reviewer_profile:

@@ -1,0 +1,43 @@
+name: Deploy — Staging
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to staging
+    runs-on: ubuntu-latest
+    environment: staging      # optional: adds a deployment environment in GitHub UI
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key:      ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.STAGING_PATH }}
+
+            echo "── Pull ──────────────────────────────────────"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "── Dependencies ──────────────────────────────"
+            source venv/bin/activate
+            pip install -q -r requirements/production.txt
+
+            echo "── Static files ──────────────────────────────"
+            python manage.py collectstatic --noinput
+
+            echo "── Migrations ────────────────────────────────"
+            python manage.py migrate --noinput
+
+            echo "── Restart services ──────────────────────────"
+            sudo systemctl restart transact-staging-gunicorn
+            sudo systemctl restart transact-staging-celery
+
+            echo "── Done ──────────────────────────────────────"
+            git log -1 --format="Deployed: %h — %s (%cr)"

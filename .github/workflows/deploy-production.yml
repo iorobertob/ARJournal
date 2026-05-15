@@ -1,0 +1,61 @@
+name: Deploy — Production
+
+on:
+  # Manual trigger from the GitHub Actions UI.
+  # Go to Actions → Deploy — Production → Run workflow.
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm production deployment'
+        required: true
+
+jobs:
+  guard:
+    name: Confirm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check confirmation input
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "deploy" ]; then
+            echo "Confirmation input was not 'deploy' — aborting."
+            exit 1
+          fi
+
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    needs: guard
+    environment: production   # optional: can require a manual approval in GitHub UI
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key:      ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.PRODUCTION_PATH }}
+
+            echo "── Pull ──────────────────────────────────────"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "── Dependencies ──────────────────────────────"
+            source venv/bin/activate
+            pip install -q -r requirements/production.txt
+
+            echo "── Static files ──────────────────────────────"
+            python manage.py collectstatic --noinput
+
+            echo "── Migrations ────────────────────────────────"
+            python manage.py migrate --noinput
+
+            echo "── Restart services ──────────────────────────"
+            sudo systemctl restart transact-gunicorn
+            sudo systemctl restart transact-celery
+            sudo systemctl restart transact-celerybeat
+
+            echo "── Done ──────────────────────────────────────"
+            git log -1 --format="Deployed: %h — %s (%cr)"

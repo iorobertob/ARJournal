@@ -201,12 +201,17 @@ def assign_editor(request, submission_pk):
     editor = get_object_or_404(User, pk=request.POST.get('editor_id'))
     role = request.POST.get('role', 'handling_editor')
 
-    # Deactivate any existing assignment for this submission + role
+    # Deactivate any existing assignment for this submission + role, notifying displaced editors.
+    displaced = list(
+        EditorialAssignment.objects.filter(
+            submission=submission, role=role, is_active=True
+        ).select_related('editor')
+    )
     EditorialAssignment.objects.filter(
         submission=submission, role=role, is_active=True
     ).update(is_active=False)
 
-    EditorialAssignment.objects.create(
+    asgn = EditorialAssignment.objects.create(
         submission=submission,
         editor=editor,
         role=role,
@@ -219,9 +224,44 @@ def assign_editor(request, submission_pk):
         event_type='editor_assigned',
         payload={'note': f'{request.user.display_name} assigned {editor.display_name} as {role}'},
     )
-    asgn = EditorialAssignment.objects.filter(submission=submission, editor=editor, is_active=True).last()
-    role_label = asgn.get_role_display() if asgn else role
+    role_label = asgn.get_role_display()
     messages.success(request, f'{editor.display_name} assigned as {role_label}.')
+
+    from apps.notifications.tasks import notify_editor_assigned, notify_editor_removed
+    notify_editor_assigned(asgn.pk)
+    for prev in displaced:
+        if prev.editor and prev.editor != editor:
+            notify_editor_removed(prev.editor.pk, submission.title, role_label)
+
+    return redirect('editorial_submission', pk=submission_pk)
+
+
+@editorial_required
+@require_POST
+def remove_editor(request, submission_pk, assignment_pk):
+    """Remove (deactivate) an editorial assignment."""
+    submission = get_object_or_404(Submission, pk=submission_pk)
+    asgn = get_object_or_404(EditorialAssignment, pk=assignment_pk, submission=submission, is_active=True)
+
+    editor_pk = asgn.editor.pk if asgn.editor else None
+    role_label = asgn.get_role_display()
+
+    asgn.is_active = False
+    asgn.save(update_fields=['is_active'])
+
+    from apps.notifications.models import AuditEvent
+    AuditEvent.objects.create(
+        submission=submission,
+        actor=request.user,
+        event_type='editor_removed',
+        payload={'note': f'{request.user.display_name} removed {asgn.editor.display_name if asgn.editor else "editor"} ({role_label})'},
+    )
+    messages.success(request, f'{asgn.editor.display_name if asgn.editor else "Editor"} removed.')
+
+    if editor_pk:
+        from apps.notifications.tasks import notify_editor_removed
+        notify_editor_removed(editor_pk, submission.title, role_label)
+
     return redirect('editorial_submission', pk=submission_pk)
 
 

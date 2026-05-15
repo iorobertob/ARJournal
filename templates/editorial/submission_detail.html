@@ -88,6 +88,7 @@
             <th>Role</th>
             <th>Assigned</th>
             <th>Status</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -104,6 +105,16 @@
               <span class="status-badge" style="background:#dcfce7;color:#16a34a;border-color:#86efac;">Active</span>
               {% else %}
               <span class="status-badge status-badge--draft">Ended</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if asgn.is_active %}
+              <form method="post" action="{% url 'remove_editor' submission.pk asgn.pk %}"
+                    onsubmit="return confirm('Remove {{ asgn.editor.display_name }} from this submission?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--secondary btn--small"
+                        style="color:var(--color-error);border-color:var(--color-error);">Remove</button>
+              </form>
               {% endif %}
             </td>
           </tr>

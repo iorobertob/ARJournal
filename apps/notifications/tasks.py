@@ -1234,3 +1234,104 @@ def notify_editors_submission_withdrawn(submission_title, author_name, author_em
         )
     except Exception:
         pass
+
+
+@shared_task
+def notify_editor_assigned(assignment_pk):
+    """Email and badge the assigned editor when they are assigned to a submission."""
+    from apps.editorial.models import EditorialAssignment
+    try:
+        asgn = EditorialAssignment.objects.select_related(
+            'editor', 'editor__profile', 'submission__author'
+        ).get(pk=assignment_pk)
+    except EditorialAssignment.DoesNotExist:
+        return
+
+    editor = asgn.editor
+    submission = asgn.submission
+    role_label = asgn.get_role_display()
+    editorial_url = f'{_site_url()}/editorial/submission/{submission.pk}/'
+    subject = f'You have been assigned as {role_label} — {submission.title[:60]}'
+
+    html_body = (
+        _greeting(editor.display_name)
+        + _p(f'You have been assigned as <strong>{_e(role_label)}</strong> for the following submission.')
+        + _detail_box('Submission title', submission.title)
+        + _detail_box('Author', submission.author.display_name)
+        + _btn(editorial_url, 'Open submission in dashboard')
+        + _signature()
+    )
+    plain = (
+        f'Dear {editor.display_name},\n\n'
+        f'You have been assigned as {role_label} for the following submission.\n\n'
+        f'Title: {submission.title}\n'
+        f'Author: {submission.author.display_name}\n\n'
+        f'Open in editorial dashboard:\n{editorial_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial Office'
+    )
+
+    try:
+        if getattr(getattr(editor, 'profile', None), 'email_notifications', True):
+            _send(editor.email, subject, plain, html_body)
+            _log_email(editor.email, subject, 'sent')
+    except Exception as exc:
+        _log_email(editor.email, subject, 'failed', str(exc))
+
+    try:
+        from .models import Notification
+        Notification.objects.create(
+            user=editor,
+            notification_type='general',
+            message=f'You have been assigned as {role_label} for "{submission.title[:60]}".',
+            url=f'/editorial/submission/{submission.pk}/',
+        )
+    except Exception:
+        pass
+
+
+@shared_task
+def notify_editor_removed(editor_pk, submission_title, role_label):
+    """Email and badge an editor when they are removed from a submission.
+
+    Receives raw strings because the assignment may be deactivated before the task runs.
+    """
+    from apps.accounts.models import User
+    try:
+        editor = User.objects.select_related('profile').get(pk=editor_pk)
+    except User.DoesNotExist:
+        return
+
+    editorial_url = f'{_site_url()}/editorial/'
+    subject = f'You have been removed as {role_label} — {submission_title[:60]}'
+
+    html_body = (
+        _greeting(editor.display_name)
+        + _p(f'You have been removed as <strong>{_e(role_label)}</strong> for the following submission.')
+        + _detail_box('Submission title', submission_title)
+        + _btn(editorial_url, 'Go to editorial dashboard')
+        + _signature()
+    )
+    plain = (
+        f'Dear {editor.display_name},\n\n'
+        f'You have been removed as {role_label} for "{submission_title}".\n\n'
+        f'Editorial dashboard:\n{editorial_url}\n\n'
+        f'Warm regards,\nThe Trans/Act Editorial Office'
+    )
+
+    try:
+        if getattr(getattr(editor, 'profile', None), 'email_notifications', True):
+            _send(editor.email, subject, plain, html_body)
+            _log_email(editor.email, subject, 'sent')
+    except Exception as exc:
+        _log_email(editor.email, subject, 'failed', str(exc))
+
+    try:
+        from .models import Notification
+        Notification.objects.create(
+            user=editor,
+            notification_type='general',
+            message=f'You have been removed as {role_label} for "{submission_title[:60]}".',
+            url='/editorial/',
+        )
+    except Exception:
+        pass

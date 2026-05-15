@@ -105,6 +105,30 @@ templates/
 └── reviewer/               — invitation response, workspace (split pane)
 ```
 
+## UI Conventions
+
+### Confirmation dialogs — always use the custom modal, never native browser dialogs
+Never use `confirm()`, `alert()`, or `onsubmit="return confirm(…)"`. The site has a global Alpine.js modal store wired up in `base.html` + `static/js/main.js`.
+
+**For forms** — add `data-confirm="Your message here"` to the `<form>` element. The `main.js` submit interceptor catches it automatically and shows the modal. Optionally add `data-confirm-ok="Label"` to customise the confirm button text:
+```html
+<form method="post" action="…"
+      data-confirm="Are you sure you want to delete this?"
+      data-confirm-ok="Delete">
+  {% csrf_token %}
+  <button type="submit">Delete</button>
+</form>
+```
+
+**For JavaScript actions** — use the `showConfirm(message, { title, okLabel })` global (returns a Promise):
+```js
+showConfirm('Remove this item?', { okLabel: 'Remove' }).then(ok => {
+  if (ok) { /* proceed */ }
+});
+```
+
+**For non-destructive notices** — use `showAlert(message)`.
+
 ## API
 REST API at `/api/v1/` uses JWT auth (`djangorestframework-simplejwt`).
 See `apps/api/urls.py` and `design/openapi.yaml` for full endpoint list.

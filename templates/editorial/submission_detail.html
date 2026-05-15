@@ -110,7 +110,8 @@
             <td>
               {% if asgn.is_active %}
               <form method="post" action="{% url 'remove_editor' submission.pk asgn.pk %}"
-                    onsubmit="return confirm('Remove {{ asgn.editor.display_name }} from this submission?');">
+                    data-confirm="Remove {{ asgn.editor.display_name }} as {{ asgn.get_role_display }} from this submission?"
+                    data-confirm-ok="Remove">
                 {% csrf_token %}
                 <button type="submit" class="btn btn--secondary btn--small"
                         style="color:var(--color-error);border-color:var(--color-error);">Remove</button>

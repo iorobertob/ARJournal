@@ -13,7 +13,8 @@
     <!-- Avatar -->
     {% if profile.photo %}
     <img src="{{ profile.photo.url }}" alt="{{ request.user.display_name }}"
-         style="width:88px;height:88px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid var(--color-bg);box-shadow:0 0 0 2px var(--color-border);">
+         data-lightbox="{{ profile.photo.url }}"
+         style="width:88px;height:88px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid var(--color-bg);box-shadow:0 0 0 2px var(--color-border);cursor:pointer;">
     {% else %}
     <div style="width:88px;height:88px;border-radius:50%;background:var(--color-accent-light);border:3px solid var(--color-bg);box-shadow:0 0 0 2px var(--color-border);display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:2rem;color:var(--color-accent);flex-shrink:0;">
       {{ request.user.display_name|first|upper }}
@@ -131,4 +132,37 @@
   {% endif %}
 
 </div>
+
+<!-- Lightbox overlay -->
+<div id="lb-overlay" role="dialog" aria-modal="true" aria-label="Photo"
+     style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.78);align-items:center;justify-content:center;cursor:zoom-out;">
+  <img id="lb-img" src="" alt=""
+       style="max-width:90vw;max-height:90vh;border-radius:var(--radius-sm);box-shadow:0 8px 48px rgba(0,0,0,0.6);object-fit:contain;display:block;">
+</div>
+
+<script>
+(function () {
+  const overlay = document.getElementById('lb-overlay');
+  const lbImg   = document.getElementById('lb-img');
+
+  document.querySelectorAll('[data-lightbox]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      lbImg.src = el.dataset.lightbox;
+      overlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') close();
+  });
+
+  function close() {
+    overlay.style.display = 'none';
+    document.body.style.overflow = '';
+    lbImg.src = '';
+  }
+})();
+</script>
 {% endblock %}

@@ -431,7 +431,7 @@ def notify_review_submitted(review_pk):
         _notify_editors_inapp(
             _assigned_editors(submission),
             'review_submitted',
-            f'Peer review submitted for “{submission.title[:55]}”.',
+            f'Peer review submitted for "{submission.title[:55]}".',
             f'/editorial/submission/{submission.pk}/',
         )
     except Exception:
@@ -444,7 +444,7 @@ def notify_review_submitted(review_pk):
             user=author,
             notification_type='review_submitted',
             message=(
-                f'A peer review has been received for “{submission.title[:55]}”. '
+                f'A peer review has been received for "{submission.title[:55]}". '
                 f'The editorial team will review the feedback before sharing it with you.'
             ),
             url=f'/author/submission/{submission.pk}/',
@@ -676,7 +676,7 @@ def notify_screening_resubmission(revision_pk):
         Notification.objects.create(
             user=submission.author,
             notification_type='revision_submitted',
-            message=f'Your corrected manuscript for “{submission.title[:50]}” has been received.',
+            message=f'Your corrected manuscript for "{submission.title[:50]}" has been received.',
             url=dashboard_url,
         )
     except Exception:
@@ -733,7 +733,7 @@ def notify_screening_resubmission(revision_pk):
         _notify_editors_inapp(
             all_editors,
             'revision_submitted',
-            f'Corrected manuscript resubmitted: “{submission.title[:50]}”.',
+            f'Corrected manuscript resubmitted: "{submission.title[:50]}".',
             f'/editorial/submission/{submission.pk}/',
         )
     except Exception:
@@ -780,7 +780,7 @@ def notify_returned_to_author(submission_pk):
         Notification.objects.create(
             user=sub.author,
             notification_type='returned_to_author',
-            message=f'Your submission “{sub.title[:55]}” has been returned for correction.',
+            message=f'Your submission "{sub.title[:55]}" has been returned for correction.',
             url=f'/author/submission/{sub.pk}/',
         )
     except Exception as exc:
@@ -1025,7 +1025,7 @@ def notify_editors_new_submission(submission_pk):
         _notify_editors_inapp(
             all_editors,
             'submission_received',
-            f'New submission: “{sub.title[:60]}” by {sub.author.display_name}.',
+            f'New submission: "{sub.title[:60]}" by {sub.author.display_name}.',
             f'/editorial/submission/{sub.pk}/',
         )
     except Exception:
@@ -1075,7 +1075,7 @@ def notify_editors_reviewer_response(invitation_pk):
         _notify_editors_inapp(
             editors or _editorial_users(),
             notif_type,
-            f'Reviewer {verb} invitation for “{submission.title[:55]}”.',
+            f'Reviewer {verb} invitation for "{submission.title[:55]}".',
             f'/editorial/submission/{submission.pk}/',
         )
     except Exception:
@@ -1084,7 +1084,7 @@ def notify_editors_reviewer_response(invitation_pk):
 
 @shared_task
 def notify_editors_article_published(submission_pk):
-    “””Badge assigned editors and email opted-in editors when an article goes live.”””
+    """Badge assigned editors and email opted-in editors when an article goes live."""
     from apps.submissions.models import Submission
     sub = Submission.objects.get(pk=submission_pk)
     article_url = f'{_site_url()}/articles/{sub.slug}/'
@@ -1116,7 +1116,7 @@ def notify_editors_article_published(submission_pk):
         _notify_editors_inapp(
             editors,
             'published',
-            f'”{sub.title[:60]}” is now live on the journal site.',
+            f'"{sub.title[:60]}" is now live on the journal site.',
             f'/articles/{sub.slug}/',
         )
     except Exception:
@@ -1229,7 +1229,7 @@ def notify_editors_submission_withdrawn(submission_title, author_name, author_em
         _notify_editors_inapp(
             all_editors,
             'general',
-            f'Submission withdrawn: “{submission_title[:60]}” by {author_name}.',
+            f'Submission withdrawn: "{submission_title[:60]}" by {author_name}.',
             '/editorial/',
         )
     except Exception:

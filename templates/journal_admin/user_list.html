@@ -43,7 +43,11 @@
     <tbody>
     {% for u in users %}
     <tr>
-      <td style="font-weight:500;">{{ u.get_full_name|default:"—" }}</td>
+      <td style="font-weight:500;">
+        <a href="{% url 'author_page' u.pk %}" style="color:var(--color-text);text-decoration:none;">
+          {{ u.get_full_name|default:"—" }}
+        </a>
+      </td>
       <td style="color:var(--color-muted);">{{ u.email }}</td>
       <td>
         {% for r in u.roles %}

@@ -382,6 +382,18 @@ def notify_reviewer_invited(invitation_pk):
         url=f'/review/invitation/{inv.magic_token}/',
     )
 
+    # ── In-app badge for assigned editors ────────────────────────────────────
+    try:
+        editors = _assigned_editors(inv.submission) or _editorial_users()
+        _notify_editors_inapp(
+            editors,
+            'reviewer_invited',
+            f'Invitation sent to {inv.reviewer.display_name} ({inv.reviewer.email}) for "{inv.submission.title[:50]}".',
+            f'/editorial/submission/{inv.submission.pk}/',
+        )
+    except Exception:
+        pass
+
 
 @shared_task
 def notify_review_submitted(review_pk):
@@ -822,6 +834,17 @@ def notify_returned_to_author(submission_pk):
     except Exception as exc:
         _log_email(sub.author.email, subject, 'failed', str(exc))
 
+    # ── In-app badge for all editors ─────────────────────────────────────────
+    try:
+        _notify_editors_inapp(
+            _assigned_editors(sub) or _editorial_users(),
+            'returned_to_author',
+            f'Submission returned for correction: "{sub.title[:55]}".',
+            f'/editorial/submission/{sub.pk}/',
+        )
+    except Exception:
+        pass
+
 
 @shared_task
 def notify_review_released(review_pk):
@@ -866,6 +889,17 @@ def notify_review_released(review_pk):
         )
     except Exception as exc:
         _log_email(author.email, subject, 'failed', str(exc))
+
+    # ── In-app badge for assigned editors ────────────────────────────────────
+    try:
+        _notify_editors_inapp(
+            _assigned_editors(submission) or _editorial_users(),
+            'review_released',
+            f'Review released to author for "{submission.title[:55]}".',
+            f'/editorial/submission/{submission.pk}/',
+        )
+    except Exception:
+        pass
 
 
 @shared_task

@@ -93,8 +93,9 @@
 
 <script>
 (function () {
-  const articleEl = document.getElementById('article-content');
-  const pane      = document.getElementById('manuscript-pane');
+  const articleEl        = document.getElementById('article-content');
+  const pane             = document.getElementById('manuscript-pane');
+  const annotationsPanel = document.querySelector('.workspace-panel');
   if (!articleEl || !pane) return;
 
   articleEl.querySelectorAll('.article-paragraph[data-para]').forEach(function (p) {
@@ -107,12 +108,40 @@
     p.insertBefore(span, p.firstChild);
   });
 
-  var annotatedIds = {{ annotated_block_ids|safe }};
-  annotatedIds.forEach(function (bid) {
-    var el = articleEl.querySelector('[data-block-id="' + bid + '"]');
-    if (el) el.classList.add('annotation-target');
-  });
+  // ── Flash helpers ────────────────────────────────────────────
+  function flashBlock(target) {
+    target.style.transition = 'none';
+    target.style.background = 'rgba(232,107,31,0.38)';
+    target.style.outline    = '2px solid #E86B1F';
+    target.style.outlineOffset = '3px';
+    target.style.borderRadius  = '3px';
+    setTimeout(function () {
+      target.style.transition  = 'background 1.3s ease-out, outline-color 1.3s ease-out';
+      target.style.background  = target.classList.contains('annotation-target') ? 'rgba(232,107,31,0.10)' : '';
+      target.style.outlineColor = 'transparent';
+    }, 60);
+    setTimeout(function () {
+      target.style.transition = target.style.outline = target.style.outlineOffset = target.style.borderRadius = '';
+      if (!target.classList.contains('annotation-target')) target.style.background = '';
+    }, 1500);
+  }
 
+  function flashCard(card) {
+    card.style.transition = 'none';
+    card.style.background = 'rgba(232,107,31,0.28)';
+    card.style.outline    = '2px solid #E86B1F';
+    card.style.outlineOffset = '2px';
+    setTimeout(function () {
+      card.style.transition  = 'background 1.2s ease-out, outline-color 1.2s ease-out';
+      card.style.background  = '';
+      card.style.outlineColor = 'transparent';
+    }, 60);
+    setTimeout(function () {
+      card.style.transition = card.style.outline = card.style.outlineOffset = '';
+    }, 1400);
+  }
+
+  // ── Annotation card → paragraph ──────────────────────────────
   function scrollToBlock(blockId) {
     var target = articleEl.querySelector('[data-block-id="' + blockId + '"]');
     if (!target) return;
@@ -120,31 +149,41 @@
     var targetMid  = target.getBoundingClientRect().top + target.offsetHeight / 2;
     var desiredMid = paneTop + pane.clientHeight / 2;
     pane.scrollBy({ top: targetMid - desiredMid, behavior: 'smooth' });
-    target.style.transition = 'none';
-    target.style.background = 'rgba(232,107,31,0.38)';
-    target.style.outline    = '2px solid #E86B1F';
-    target.style.outlineOffset = '3px';
-    target.style.borderRadius  = '3px';
-    setTimeout(function () {
-      target.style.transition = 'background 1.3s ease-out, outline-color 1.3s ease-out';
-      target.style.background  = target.classList.contains('annotation-target') ? 'rgba(232,107,31,0.10)' : '';
-      target.style.outlineColor = 'transparent';
-    }, 60);
-    setTimeout(function () {
-      target.style.transition = '';
-      target.style.outline = '';
-      target.style.outlineOffset = '';
-      target.style.borderRadius = '';
-      if (!target.classList.contains('annotation-target')) target.style.background = '';
-    }, 1500);
+    flashBlock(target);
   }
 
+  // ── Paragraph → annotation card ─────────────────────────────
+  function scrollToAnnotation(blockId) {
+    if (!annotationsPanel) return;
+    var card = annotationsPanel.querySelector('[data-scroll-to="' + blockId + '"]');
+    if (!card) return;
+    var panelRect  = annotationsPanel.getBoundingClientRect();
+    var cardMid    = card.getBoundingClientRect().top + card.offsetHeight / 2;
+    var desiredMid = panelRect.top + annotationsPanel.clientHeight / 2;
+    annotationsPanel.scrollBy({ top: cardMid - desiredMid, behavior: 'smooth' });
+    flashCard(card);
+  }
+
+  // ── Mark annotated paragraphs + reverse-click handler ────────
+  var annotatedIds = {{ annotated_block_ids|safe }};
+  annotatedIds.forEach(function (bid) {
+    var el = articleEl.querySelector('[data-block-id="' + bid + '"]');
+    if (!el) return;
+    el.classList.add('annotation-target');
+    if (annotationsPanel && annotationsPanel.querySelector('[data-scroll-to="' + bid + '"]')) {
+      el.style.cursor = 'pointer';
+      el.title = 'Click to jump to annotation';
+      el.addEventListener('click', function () { scrollToAnnotation(bid); });
+    }
+  });
+
+  // ── Wire annotation cards; mark stale ones ───────────────────
   document.querySelectorAll('[data-scroll-to]').forEach(function (el) {
     var bid    = el.dataset.scrollTo;
     var exists = bid && !!articleEl.querySelector('[data-block-id="' + bid + '"]');
     if (!exists) {
-      el.style.opacity = '0.45';
       el.style.cursor  = 'not-allowed';
+      el.style.opacity = '0.45';
       el.title = 'This paragraph is not present in the current version of the manuscript.';
     } else {
       el.addEventListener('click', function () { scrollToBlock(bid); });

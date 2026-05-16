@@ -86,6 +86,8 @@ class User(AbstractUser):
         return [label.get(r, r) for r in (self.roles or [])]
 
     def has_editorial_access(self):
+        if self.is_superuser:
+            return True
         editorial = {
             UserRole.EDITORIAL_ASSISTANT, UserRole.HANDLING_EDITOR,
             UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,

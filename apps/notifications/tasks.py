@@ -229,7 +229,7 @@ def _log_email(to: str, subject: str, status: str, error: str = '') -> None:
 # ── Editor helpers ────────────────────────────────────────────────────────────
 
 def _editorial_users():
-    """Return all active users with editorial access."""
+    """Return all active users with editorial access (including superusers)."""
     from django.db.models import Q
     from apps.accounts.models import User, UserRole
     editorial_roles = [
@@ -237,7 +237,7 @@ def _editorial_users():
         UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
         UserRole.JOURNAL_ADMIN, UserRole.SYSTEM_ADMIN,
     ]
-    q = Q()
+    q = Q(is_superuser=True)
     for role in editorial_roles:
         q |= Q(roles__contains=[role])
     return list(User.objects.filter(is_active=True).filter(q))

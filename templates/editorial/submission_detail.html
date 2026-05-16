@@ -663,6 +663,36 @@
   </section>
   {% endif %}
 
+  <section class="editorial-section">
+    <h2 style="margin:0 0 var(--spacing-4);">Activity Log</h2>
+    {% if audit_events %}
+    <div style="display:flex;flex-direction:column;gap:0;">
+      {% for event in audit_events %}
+      <div style="display:flex;gap:var(--spacing-4);padding:var(--spacing-3) 0;border-bottom:1px solid var(--color-border);">
+        <div style="flex-shrink:0;width:120px;font-size:var(--size-xs);color:var(--color-muted);padding-top:2px;">
+          {{ event.timestamp|date:"d M Y" }}<br>{{ event.timestamp|time:"H:i" }}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <span style="font-size:var(--size-sm);font-weight:600;color:var(--color-text);">{{ event.event_type|title|cut:"_" }}</span>
+          {% if event.actor %}
+          <span style="font-size:var(--size-xs);color:var(--color-muted);margin-left:var(--spacing-2);">by {{ event.actor.display_name }}</span>
+          {% endif %}
+          {% if event.payload %}
+          <div style="margin-top:var(--spacing-1);font-size:var(--size-xs);color:var(--color-muted);">
+            {% if event.payload.reviewer %}{{ event.payload.reviewer }}{% if event.payload.email %} &lt;{{ event.payload.email }}&gt;{% endif %}{% endif %}
+            {% if event.payload.note %}{{ event.payload.note }}{% endif %}
+            {% if event.payload.reason %} — {{ event.payload.reason }}{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:var(--color-muted);font-size:var(--size-sm);margin:0;">No activity recorded yet.</p>
+    {% endif %}
+  </section>
+
 </div>
 {% endblock %}
 

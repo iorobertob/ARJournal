@@ -304,6 +304,13 @@ def invitation_response(request, token):
             inv.save()
             from apps.notifications.tasks import notify_editors_reviewer_response
             notify_editors_reviewer_response(inv.pk)
+            from apps.notifications.models import AuditEvent
+            AuditEvent.objects.create(
+                submission=inv.submission,
+                actor=inv.reviewer,
+                event_type='reviewer_accepted',
+                payload={'reviewer': inv.reviewer.display_name, 'email': inv.reviewer.email},
+            )
             messages.success(request, 'You have accepted the review invitation.')
             return redirect('reviewer_workspace', invitation_pk=inv.pk)
         elif response == 'decline':
@@ -312,6 +319,17 @@ def invitation_response(request, token):
             inv.save()
             from apps.notifications.tasks import notify_editors_reviewer_response
             notify_editors_reviewer_response(inv.pk)
+            from apps.notifications.models import AuditEvent
+            AuditEvent.objects.create(
+                submission=inv.submission,
+                actor=inv.reviewer,
+                event_type='reviewer_declined',
+                payload={
+                    'reviewer': inv.reviewer.display_name,
+                    'email': inv.reviewer.email,
+                    'reason': inv.decline_reason,
+                },
+            )
             messages.info(request, 'You have declined the invitation. Thank you for letting us know.')
             return redirect('home')
     return render(request, 'reviewer/invitation_response.html', {'invitation': inv})
@@ -329,6 +347,13 @@ def respond_to_invitation(request, invitation_pk):
         inv.save()
         from apps.notifications.tasks import notify_editors_reviewer_response
         notify_editors_reviewer_response(inv.pk)
+        from apps.notifications.models import AuditEvent
+        AuditEvent.objects.create(
+            submission=inv.submission,
+            actor=request.user,
+            event_type='reviewer_accepted',
+            payload={'reviewer': request.user.display_name, 'email': request.user.email},
+        )
         messages.success(request, f'You have accepted the review for “{inv.submission.title}”.')
         return redirect('reviewer_workspace', invitation_pk=inv.pk)
     elif response == 'decline' and inv.status == 'pending':
@@ -337,6 +362,17 @@ def respond_to_invitation(request, invitation_pk):
         inv.save()
         from apps.notifications.tasks import notify_editors_reviewer_response
         notify_editors_reviewer_response(inv.pk)
+        from apps.notifications.models import AuditEvent
+        AuditEvent.objects.create(
+            submission=inv.submission,
+            actor=request.user,
+            event_type='reviewer_declined',
+            payload={
+                'reviewer': request.user.display_name,
+                'email': request.user.email,
+                'reason': inv.decline_reason,
+            },
+        )
         messages.info(request, 'You have declined the invitation. Thank you for letting us know.')
 
     return redirect('reviewer_dashboard')

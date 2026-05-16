@@ -101,6 +101,9 @@ def submission_detail(request, pk):
 
     default_deadline = (timezone.now().date() + timezone.timedelta(days=21)).isoformat()
 
+    from apps.notifications.models import AuditEvent
+    audit_events = AuditEvent.objects.filter(submission=submission).order_by('-timestamp')
+
     return render(request, 'editorial/submission_detail.html', {
         'submission': submission,
         'revision': revision,
@@ -114,6 +117,7 @@ def submission_detail(request, pk):
         'build': build,
         'canonical_doc': canonical_doc,
         'default_deadline': default_deadline,
+        'audit_events': audit_events,
     })
 
 

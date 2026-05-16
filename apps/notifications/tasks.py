@@ -512,6 +512,42 @@ def notify_decision_sent(decision_pk):
     except Exception as exc:
         _log_email(submission.author.email, subject, 'failed', str(exc))
 
+    # \u2500\u2500 Notify assigned editors \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    editorial_url = f'{_site_url()}/editorial/submission/{submission.pk}/'
+    editor_subject = f'Decision recorded \u2014 {submission.title[:70]}'
+    editors = _assigned_editors(submission)
+    for editor in _editors_email_opted_in(editors):
+        editor_html = (
+            _greeting(editor.display_name)
+            + _p('An editorial decision has been recorded and sent to the author for the following submission.')
+            + _detail_box('Submission', submission.title)
+            + _detail_box('Decision', decision_label)
+            + _btn(editorial_url, 'View submission')
+            + _signature()
+        )
+        editor_plain = (
+            f'Dear {editor.display_name},\n\n'
+            f'An editorial decision has been recorded and sent to the author.\n\n'
+            f'Submission: {submission.title}\n'
+            f'Decision: {decision_label}\n\n'
+            f'{editorial_url}\n\n'
+            f'Warm regards,\nThe Trans/Act Editorial System'
+        )
+        try:
+            _send(editor.email, editor_subject, editor_plain, editor_html)
+            _log_email(editor.email, editor_subject, 'sent')
+        except Exception as exc:
+            _log_email(editor.email, editor_subject, 'failed', str(exc))
+    try:
+        _notify_editors_inapp(
+            editors,
+            'decision_sent',
+            f'Decision \u201c{decision_label}\u201d recorded for \u201c{submission.title[:50]}\u201d.',
+            f'/editorial/submission/{submission.pk}/',
+        )
+    except Exception:
+        pass
+
 
 @shared_task
 def notify_revision_submitted(revision_pk):
@@ -1044,10 +1080,14 @@ def notify_editors_reviewer_response(invitation_pk):
     subject = f'Reviewer {verb} — {submission.title[:65]}'
     editorial_url = f'{_site_url()}/editorial/submission/{submission.pk}/'
 
+    reviewer_name = inv.reviewer.display_name
+    reviewer_email = inv.reviewer.email
+
     html_body = (
         _p(f'A reviewer has <strong>{_e(verb)}</strong> their invitation to review '
            f'the following submission.')
         + _detail_box('Submission', submission.title)
+        + _detail_box('Reviewer', f'{reviewer_name} ({reviewer_email})')
         + ((_detail_box('Decline reason', inv.decline_reason) if inv.decline_reason else '')
            if not accepted else '')
         + _btn(editorial_url, 'View submission')
@@ -1055,6 +1095,7 @@ def notify_editors_reviewer_response(invitation_pk):
     )
     plain = (
         f'A reviewer has {verb} the review invitation for "{submission.title}".\n\n'
+        f'Reviewer: {reviewer_name} ({reviewer_email})\n\n'
         + (f'Decline reason: {inv.decline_reason}\n\n' if not accepted and inv.decline_reason else '')
         + f'View submission:\n{editorial_url}\n\n'
         f'Warm regards,\nThe Trans/Act Editorial System'
@@ -1075,7 +1116,7 @@ def notify_editors_reviewer_response(invitation_pk):
         _notify_editors_inapp(
             editors or _editorial_users(),
             notif_type,
-            f'Reviewer {verb} invitation for "{submission.title[:55]}".',
+            f'{reviewer_name} ({reviewer_email}) {verb} the review invitation for "{submission.title[:45]}".',
             f'/editorial/submission/{submission.pk}/',
         )
     except Exception:

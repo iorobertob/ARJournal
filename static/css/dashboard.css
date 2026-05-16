@@ -213,6 +213,53 @@
 
 .form__label span { color: var(--color-accent); }
 
+.form__label .tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--color-muted);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1;
+  cursor: default;
+  position: relative;
+  vertical-align: middle;
+  margin-left: var(--spacing-1);
+}
+
+.form__label .tooltip-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  color: #fff;
+  font-size: var(--size-xs);
+  font-weight: 400;
+  line-height: 1.45;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius);
+  white-space: normal;
+  width: 260px;
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+
+.form__label .tooltip-icon:hover::after,
+.form__label .tooltip-icon:focus::after {
+  opacity: 1;
+}
+
 .form__input, .form__select, .form__textarea {
   padding: var(--spacing-3);
   border: 1px solid var(--color-border);

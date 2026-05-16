@@ -199,6 +199,11 @@ def resubmit_step1(request, pk):
         if request.FILES.get('response_letter'):
             rev.response_letter = request.FILES['response_letter']
             rev.save()
+        kw = request.POST.get('keywords', '')
+        updated_kw = [k.strip() for k in kw.replace(';', ',').split(',') if k.strip()]
+        if updated_kw != (sub.keywords or []):
+            sub.keywords = updated_kw
+            sub.save(update_fields=['keywords'])
         # Copy assets from the previous revision so authors only re-upload what changed.
         if current_version:
             for old_asset in current_version.assets.all():

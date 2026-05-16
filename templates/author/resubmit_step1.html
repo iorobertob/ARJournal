@@ -51,6 +51,13 @@
       <input class="form__file" type="file" id="response_letter" name="response_letter" accept=".pdf,.doc,.docx">
     </div>
     <div class="form__group">
+      <label class="form__label" for="keywords">Keywords (semicolon-separated)</label>
+      <input class="form__input" type="text" id="keywords" name="keywords"
+             placeholder="e.g. artistic research; performance; sound"
+             value="{{ submission.keywords|join:'; ' }}">
+      <p style="font-size:var(--size-sm);color:var(--color-muted);margin-top:var(--spacing-1);">Update if your keywords have changed since the original submission.</p>
+    </div>
+    <div class="form__group">
       <label class="form__label" for="notes">Notes to Editors (optional)</label>
       <textarea class="form__textarea" id="notes" name="notes" rows="4" placeholder="Briefly summarise the changes made in this revision…"></textarea>
     </div>

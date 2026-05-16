@@ -335,7 +335,9 @@ def issue_edit(request, pk):
     # GET: gather data for the template
     assigned_articles = issue.submissions.order_by('issue_order').select_related('author')
     available_articles = Submission.objects.filter(
-        Q(status=SubmissionStatus.ACCEPTED) | Q(status=SubmissionStatus.IN_PRODUCTION),
+        Q(status=SubmissionStatus.ACCEPTED)
+        | Q(status=SubmissionStatus.IN_PRODUCTION)
+        | Q(status=SubmissionStatus.PUBLISHED),
         issue__isnull=True,
     ).select_related('author')
     sections = issue.sections.all()

@@ -9,4 +9,5 @@ urlpatterns = [
     path('pdf/download/<uuid:token>/', views.download_pdf, name='download_pdf'),
     path('admin/preview/<int:document_pk>/', views.admin_preview, name='admin_preview'),
     path('admin/pdf/<int:document_pk>/', views.admin_request_pdf, name='admin_request_pdf'),
+    path('slug/<int:document_pk>/', views.update_slug, name='update_article_slug'),
 ]

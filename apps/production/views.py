@@ -97,6 +97,44 @@ def unpublish_article(request, document_pk):
 
 
 @editorial_required
+def update_slug(request, document_pk):
+    """Allow editors to set a custom URL slug for an article."""
+    if request.method != 'POST':
+        return redirect('editorial_submission', pk=get_object_or_404(CanonicalDocument, pk=document_pk).revision.submission.pk)
+
+    doc = get_object_or_404(CanonicalDocument, pk=document_pk)
+    submission = doc.revision.submission
+
+    import re
+    raw = request.POST.get('slug', '').strip()
+    new_slug = re.sub(r'[^a-z0-9]+', '-', raw.lower()).strip('-')
+
+    if not new_slug:
+        messages.error(request, 'Slug cannot be empty.')
+        return redirect('editorial_submission', pk=submission.pk)
+
+    from apps.submissions.models import Submission
+    if Submission.objects.filter(slug=new_slug).exclude(pk=submission.pk).exists():
+        messages.error(request, f'The slug "{new_slug}" is already in use by another article.')
+        return redirect('editorial_submission', pk=submission.pk)
+
+    old_slug = submission.slug
+    submission.slug = new_slug
+    submission.save(update_fields=['slug'])
+
+    # Keep HTMLBuild slug in sync
+    try:
+        build = doc.html_build
+        build.slug = new_slug
+        build.save(update_fields=['slug'])
+    except HTMLBuild.DoesNotExist:
+        pass
+
+    messages.success(request, f'Article URL slug updated: /articles/{new_slug}/')
+    return redirect('editorial_submission', pk=submission.pk)
+
+
+@editorial_required
 def admin_preview(request, document_pk):
     """Admin HTML preview — works for any build, published or not.
     Falls back to rendering from canonical JSON when no HTMLBuild exists yet

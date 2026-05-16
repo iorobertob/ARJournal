@@ -581,6 +581,25 @@
     <h2>Production</h2>
     {% if canonical_doc %}
 
+    <!-- Article URL slug -->
+    <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-4);margin-bottom:var(--spacing-4);">
+      <p style="font-size:var(--size-xs);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-muted);margin-bottom:var(--spacing-2);">Article URL</p>
+      <form method="post" action="{% url 'update_article_slug' canonical_doc.pk %}" style="display:flex;gap:var(--spacing-2);align-items:center;flex-wrap:wrap;">
+        {% csrf_token %}
+        <span style="font-size:var(--size-sm);color:var(--color-muted);white-space:nowrap;">/articles/</span>
+        <input type="text" name="slug" value="{{ submission.slug }}"
+               style="font-size:var(--size-sm);font-family:var(--font-sans);padding:var(--spacing-1) var(--spacing-3);border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-bg);color:var(--color-text);min-width:240px;flex:1;"
+               pattern="[a-zA-Z0-9\-]+" title="Letters, numbers, and hyphens only"
+               placeholder="article-url-slug">
+        <span style="font-size:var(--size-sm);color:var(--color-muted);">/</span>
+        <button type="submit" class="btn btn--small btn--ghost">Update slug</button>
+        {% if build and build.is_published %}
+        <a href="{% url 'article_detail' submission.slug %}" target="_blank" style="font-size:var(--size-xs);color:var(--color-accent);">View live ↗</a>
+        {% endif %}
+      </form>
+      <p style="font-size:var(--size-xs);color:var(--color-muted);margin-top:var(--spacing-1);">Changing the slug after publishing will break existing links to the article.</p>
+    </div>
+
     <!-- Build status -->
     <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-4);margin-bottom:var(--spacing-4);">
       {% if build %}

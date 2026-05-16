@@ -1,5 +1,5 @@
 {% extends "journal_admin/base.html" %}
-{% load static %}
+{% load static time_filters %}
 
 {% block title %}{{ submission.title|truncatechars:50 }} — Articles — Journal Admin{% endblock %}
 
@@ -43,9 +43,9 @@
         <dt style="color:var(--color-muted);font-weight:600;">Language</dt>
         <dd>{{ submission.language|upper }}</dd>
         <dt style="color:var(--color-muted);font-weight:600;">Submitted</dt>
-        <dd>{{ submission.submission_date|date:"d M Y H:i"|default:"—" }}</dd>
+        <dd>{% if submission.submission_date %}{{ submission.submission_date|local_dt }}{% else %}—{% endif %}</dd>
         <dt style="color:var(--color-muted);font-weight:600;">Last updated</dt>
-        <dd>{{ submission.updated_at|date:"d M Y H:i" }}</dd>
+        <dd>{{ submission.updated_at|local_dt }}</dd>
         <dt style="color:var(--color-muted);font-weight:600;">Issue</dt>
         <dd>
           {% if submission.issue %}

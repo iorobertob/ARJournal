@@ -1,4 +1,5 @@
 {% extends "journal_admin/base.html" %}
+{% load time_filters %}
 
 {% block title %}Email Log — Journal Admin{% endblock %}
 
@@ -41,7 +42,7 @@
     {% for log in page.object_list %}
     <tr class="email-log-row" style="cursor:pointer;" data-pk="{{ log.pk }}" title="Click to preview email">
       <td style="white-space:nowrap;color:var(--color-muted);">
-        {% if log.sent_at %}{{ log.sent_at|date:"d M Y, H:i" }}{% else %}—{% endif %}
+        {% if log.sent_at %}{{ log.sent_at|local_dt }}{% else %}—{% endif %}
       </td>
       <td style="font-size:var(--size-sm);">{{ log.to_email }}</td>
       <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ log.subject }}</td>
@@ -60,7 +61,7 @@
             &#9679; {{ log.opened_count }}×
           </span>
           {% if log.opened_at %}
-          <span style="font-size:var(--size-xs);color:var(--color-muted);display:block;">{{ log.opened_at|date:"d M, H:i" }}</span>
+          <span style="font-size:var(--size-xs);color:var(--color-muted);display:block;">{{ log.opened_at|local_dt }}</span>
           {% endif %}
         {% else %}
           <span style="font-size:var(--size-sm);color:var(--color-muted);">—</span>

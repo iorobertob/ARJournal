@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static time_filters %}
 {% block title %}{{ submission.title|truncatechars:50 }} — Editorial — {{ journal.name }}{% endblock %}
 {% block body_class %}dashboard{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
@@ -410,7 +410,7 @@
         <div style="display:flex;align-items:center;gap:var(--spacing-4);">
           <div style="text-align:right;font-size:var(--size-sm);color:var(--color-muted);">
             {% if review.submitted_at %}
-            <div><strong style="color:var(--color-text);">Submitted {{ review.submitted_at|date:"d M Y, H:i" }}</strong></div>
+            <div><strong style="color:var(--color-text);">Submitted {{ review.submitted_at|local_dt }}</strong></div>
             {% elif review.status == 'draft' %}
             <div>In progress — not yet submitted</div>
             {% endif %}
@@ -503,7 +503,7 @@
               <div style="padding:var(--spacing-3) var(--spacing-4);border:1px solid var(--color-border);border-radius:6px;{% if ann.released_to_author %}background:#f0fdf4;border-color:#86efac;{% endif %}">
                 <p style="font-size:var(--size-xs);color:var(--color-muted);margin-bottom:4px;">
                   {% if ann.selector_data.para %}¶{{ ann.selector_data.para }}{% if ann.selector_data.section %} &middot; <em>{{ ann.selector_data.section }}</em>{% endif %}{% else %}{{ ann.block_id }}{% endif %}
-                  &middot; {{ ann.created_at|date:"d M Y, H:i" }}
+                  &middot; {{ ann.created_at|local_dt }}
                   {% if ann.released_to_author %}&middot; <span style="color:#16a34a;font-weight:600;">Released to author</span>{% else %}&middot; <span style="color:var(--color-muted);">Internal</span>{% endif %}
                 </p>
                 <p style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;margin:0;">{{ ann.comment }}</p>
@@ -609,14 +609,14 @@
               &#10003; Published
             </span>
             {% if build.published_at %}
-            <span style="color:var(--color-muted);font-size:var(--size-sm);">{{ build.published_at|date:"d M Y, H:i" }}</span>
+            <span style="color:var(--color-muted);font-size:var(--size-sm);">{{ build.published_at|local_dt }}</span>
             {% endif %}
             <span style="color:var(--color-muted);font-size:var(--size-sm);">· Access: {{ build.access_mode|title }}</span>
           {% else %}
             <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600;color:#d97706;">
               &#9679; HTML built — not yet published
             </span>
-            <span style="color:var(--color-muted);font-size:var(--size-sm);">Built {{ build.built_at|date:"d M Y, H:i" }}</span>
+            <span style="color:var(--color-muted);font-size:var(--size-sm);">Built {{ build.built_at|local_dt }}</span>
           {% endif %}
         </div>
       {% else %}
@@ -689,7 +689,7 @@
       {% for event in audit_events %}
       <div style="display:flex;gap:var(--spacing-4);padding:var(--spacing-3) 0;border-bottom:1px solid var(--color-border);">
         <div style="flex-shrink:0;width:120px;font-size:var(--size-xs);color:var(--color-muted);padding-top:2px;">
-          {{ event.timestamp|date:"d M Y" }}<br>{{ event.timestamp|time:"H:i" }}
+          {{ event.timestamp|local_dt }}
         </div>
         <div style="flex:1;min-width:0;">
           <span style="font-size:var(--size-sm);font-weight:600;color:var(--color-text);">{{ event.event_type|title|cut:"_" }}</span>

@@ -36,7 +36,8 @@
         const data = await resp.json();
         if (saveStatus) {
           const t = new Date(data.saved_at);
-          saveStatus.textContent = `Saved ${t.toLocaleTimeString()}`;
+          const timeStr = t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+          saveStatus.textContent = `Saved ${timeStr}`;
         }
       }
     } catch (err) {

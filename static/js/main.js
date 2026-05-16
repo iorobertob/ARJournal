@@ -113,3 +113,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 5000);
   });
 });
+
+// ── Local-time conversion ─────────────────────────────────────
+// Converts <time class="local-dt" datetime="ISO"> elements to the
+// viewer's local timezone, adding a timezone abbreviation label.
+document.addEventListener('DOMContentLoaded', function () {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  document.querySelectorAll('time.local-dt[datetime]').forEach(function (el) {
+    const d = new Date(el.getAttribute('datetime'));
+    if (isNaN(d)) return;
+    el.textContent = d.toLocaleString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
+    el.title = tz;
+  });
+});

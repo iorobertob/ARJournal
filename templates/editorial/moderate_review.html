@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static time_filters %}
 {% block title %}Moderate Review — {{ journal.name }}{% endblock %}
 {% block body_class %}dashboard{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
@@ -16,7 +16,7 @@
   <div style="display:flex;gap:var(--spacing-8);font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-6);">
     <p>Reviewer: <strong style="color:var(--color-text);">{{ review.reviewer.display_name }}</strong></p>
     {% if review.recommendation %}<p>Recommendation: <strong style="color:var(--color-text);">{{ review.get_recommendation_display }}</strong></p>{% endif %}
-    {% if review.submitted_at %}<p>Submitted: <strong style="color:var(--color-text);">{{ review.submitted_at|date:"d M Y, H:i" }}</strong></p>{% endif %}
+    {% if review.submitted_at %}<p>Submitted: <strong style="color:var(--color-text);">{{ review.submitted_at|local_dt }}</strong></p>{% endif %}
   </div>
 
   <!-- Full review content (read-only) -->
@@ -84,7 +84,7 @@
                 {{ ann.block_id }}
               {% endif %}
             {% endif %}
-            &middot; {{ ann.created_at|date:"d M Y, H:i" }}
+            &middot; {{ ann.created_at|local_dt }}
           </span>
           <span style="font-size:var(--size-sm);line-height:var(--leading-loose);white-space:pre-wrap;">{{ ann.comment }}</span>
         </label>

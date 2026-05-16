@@ -1,0 +1,283 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Email Log — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);">
+  <h1 class="jadmin-page-title" style="margin:0;">Email Log</h1>
+  <span style="font-size:var(--size-sm);color:var(--color-muted);">{{ total }} record{{ total|pluralize }}</span>
+</div>
+
+<!-- Filters -->
+<form method="get" style="display:flex;gap:var(--spacing-3);flex-wrap:wrap;margin-bottom:var(--spacing-4);align-items:center;">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search subject or recipient…"
+         style="padding:var(--spacing-2) var(--spacing-3);border:1px solid var(--color-border);border-radius:var(--radius);font-size:var(--size-sm);font-family:var(--font-sans);width:240px;background:var(--color-bg);">
+  <select name="status" style="padding:var(--spacing-2) var(--spacing-3);border:1px solid var(--color-border);border-radius:var(--radius);font-size:var(--size-sm);font-family:var(--font-sans);background:var(--color-bg);">
+    <option value="">All statuses</option>
+    <option value="sent" {% if status_filter == 'sent' %}selected{% endif %}>Sent</option>
+    <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+  </select>
+  <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+  {% if q or status_filter %}
+  <a href="{% url 'journal_admin_email_log' %}" style="font-size:var(--size-sm);color:var(--color-muted);">Clear</a>
+  {% endif %}
+</form>
+
+<div class="jadmin-card" style="padding:0;overflow:hidden;">
+  {% if page.object_list %}
+  <table class="jadmin-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>To</th>
+        <th>Subject</th>
+        <th>Status</th>
+        <th>Opened</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for log in page.object_list %}
+    <tr class="email-log-row" style="cursor:pointer;" data-pk="{{ log.pk }}" title="Click to preview email">
+      <td style="white-space:nowrap;color:var(--color-muted);">
+        {% if log.sent_at %}{{ log.sent_at|date:"d M Y, H:i" }}{% else %}—{% endif %}
+      </td>
+      <td style="font-size:var(--size-sm);">{{ log.to_email }}</td>
+      <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ log.subject }}</td>
+      <td>
+        {% if log.status == 'sent' %}
+          <span class="role-badge" style="background:#d1fae5;color:#065f46;">Sent</span>
+        {% elif log.status == 'failed' %}
+          <span class="role-badge" style="background:#fee2e2;color:#991b1b;">Failed</span>
+        {% else %}
+          <span class="role-badge" style="background:#fef3c7;color:#92400e;">Pending</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if log.opened_count %}
+          <span style="font-size:var(--size-sm);color:#16a34a;font-weight:600;">
+            &#9679; {{ log.opened_count }}×
+          </span>
+          {% if log.opened_at %}
+          <span style="font-size:var(--size-xs);color:var(--color-muted);display:block;">{{ log.opened_at|date:"d M, H:i" }}</span>
+          {% endif %}
+        {% else %}
+          <span style="font-size:var(--size-sm);color:var(--color-muted);">—</span>
+        {% endif %}
+      </td>
+      <td>
+        <span style="font-size:var(--size-xs);color:var(--color-accent);">Preview ↗</span>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center;padding:var(--spacing-12);color:var(--color-muted);">
+    <p style="font-size:var(--size-lg);margin-bottom:var(--spacing-2);">No emails found.</p>
+    {% if q or status_filter %}<p style="font-size:var(--size-sm);">Try clearing the filters.</p>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if page.has_other_pages %}
+<div style="display:flex;justify-content:center;gap:var(--spacing-2);margin-top:var(--spacing-4);flex-wrap:wrap;">
+  {% if page.has_previous %}
+  <a href="?page={{ page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+     class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">← Prev</a>
+  {% endif %}
+  <span style="padding:var(--spacing-2) var(--spacing-3);font-size:var(--size-sm);color:var(--color-muted);align-self:center;">
+    Page {{ page.number }} of {{ page.paginator.num_pages }}
+  </span>
+  {% if page.has_next %}
+  <a href="?page={{ page.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+     class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+
+<!-- ── Email preview modal ──────────────────────────────────────────────── -->
+<div id="email-modal-backdrop" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.5);padding:var(--spacing-4);box-sizing:border-box;">
+  <div id="email-modal" style="background:var(--color-bg);border-radius:12px;box-shadow:0 24px 64px rgba(0,0,0,0.25);width:min(800px,100%);max-height:90vh;display:flex;flex-direction:column;margin:auto;margin-top:5vh;overflow:hidden;">
+
+    <!-- Modal header -->
+    <div style="padding:var(--spacing-4) var(--spacing-6);border-bottom:1px solid var(--color-border);display:flex;align-items:flex-start;gap:var(--spacing-4);">
+      <div style="flex:1;min-width:0;">
+        <p style="font-size:var(--size-xs);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Email Preview</p>
+        <h2 id="modal-subject" style="font-family:var(--font-sans);font-size:var(--size-base);font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></h2>
+        <p id="modal-meta" style="font-size:var(--size-xs);color:var(--color-muted);margin:var(--spacing-1) 0 0;"></p>
+      </div>
+      <div style="flex-shrink:0;display:flex;gap:var(--spacing-3);align-items:center;">
+        <span id="modal-status-badge"></span>
+        <span id="modal-open-badge" style="display:none;font-size:var(--size-xs);color:#16a34a;font-weight:600;"></span>
+        <button id="modal-close-btn" type="button"
+                style="width:32px;height:32px;border-radius:50%;border:1px solid var(--color-border);background:var(--color-surface);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+                aria-label="Close preview">&times;</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid var(--color-border);padding:0 var(--spacing-6);">
+      <button class="modal-tab modal-tab--active" data-tab="html" type="button"
+              style="padding:var(--spacing-3) var(--spacing-4);font-size:var(--size-sm);font-family:var(--font-sans);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--color-muted);">
+        HTML
+      </button>
+      <button class="modal-tab" data-tab="plain" type="button"
+              style="padding:var(--spacing-3) var(--spacing-4);font-size:var(--size-sm);font-family:var(--font-sans);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--color-muted);">
+        Plain text
+      </button>
+      {% comment %}Only show error tab for failed emails — done via JS{% endcomment %}
+      <button class="modal-tab" data-tab="error" type="button" id="modal-error-tab"
+              style="display:none;padding:var(--spacing-3) var(--spacing-4);font-size:var(--size-sm);font-family:var(--font-sans);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;color:#991b1b;">
+        Error
+      </button>
+    </div>
+
+    <!-- Tab content -->
+    <div style="flex:1;overflow:hidden;position:relative;">
+      <div id="tab-html" class="modal-tab-content" style="position:absolute;inset:0;">
+        <iframe id="modal-iframe" sandbox="allow-same-origin"
+                style="width:100%;height:100%;border:none;display:block;"></iframe>
+      </div>
+      <div id="tab-plain" class="modal-tab-content" style="display:none;position:absolute;inset:0;overflow-y:auto;padding:var(--spacing-6);">
+        <pre id="modal-plain" style="font-family:var(--font-sans);font-size:var(--size-sm);white-space:pre-wrap;line-height:1.6;margin:0;color:var(--color-text);"></pre>
+      </div>
+      <div id="tab-error" class="modal-tab-content" style="display:none;position:absolute;inset:0;overflow-y:auto;padding:var(--spacing-6);">
+        <pre id="modal-error" style="font-family:monospace;font-size:var(--size-sm);white-space:pre-wrap;line-height:1.6;margin:0;color:#991b1b;"></pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+(function () {
+  var backdrop   = document.getElementById('email-modal-backdrop');
+  var closeBtn   = document.getElementById('modal-close-btn');
+  var iframeEl   = document.getElementById('modal-iframe');
+  var subjectEl  = document.getElementById('modal-subject');
+  var metaEl     = document.getElementById('modal-meta');
+  var statusBadge = document.getElementById('modal-status-badge');
+  var openBadge  = document.getElementById('modal-open-badge');
+  var plainEl    = document.getElementById('modal-plain');
+  var errorEl    = document.getElementById('modal-error');
+  var errorTab   = document.getElementById('modal-error-tab');
+  var activeTab  = 'html';
+
+  var STATUS_STYLES = {
+    sent:    'background:#d1fae5;color:#065f46;',
+    failed:  'background:#fee2e2;color:#991b1b;',
+    pending: 'background:#fef3c7;color:#92400e;',
+  };
+
+  /* ── Tab switching ──────────────────────────────────────────── */
+  document.querySelectorAll('.modal-tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      switchTab(btn.dataset.tab);
+    });
+  });
+
+  function switchTab(name) {
+    activeTab = name;
+    document.querySelectorAll('.modal-tab').forEach(function (b) {
+      var isActive = b.dataset.tab === name;
+      b.style.borderBottomColor = isActive ? 'var(--color-accent)' : 'transparent';
+      b.style.color = isActive ? 'var(--color-text)' : 'var(--color-muted)';
+      b.style.fontWeight = isActive ? '600' : '400';
+    });
+    document.querySelectorAll('.modal-tab-content').forEach(function (el) {
+      el.style.display = 'none';
+    });
+    var content = document.getElementById('tab-' + name);
+    if (content) content.style.display = 'block';
+  }
+
+  /* ── Open modal ─────────────────────────────────────────────── */
+  function openModal(pk) {
+    fetch('{% url "journal_admin_email_log_preview" 0 %}'.replace('/0/', '/' + pk + '/'))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        subjectEl.textContent  = data.subject || '(no subject)';
+
+        var sentStr = data.sent_at
+          ? new Date(data.sent_at).toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+          : '—';
+        metaEl.textContent = 'To: ' + data.to_email + ' · Sent: ' + sentStr;
+
+        var style = STATUS_STYLES[data.status] || '';
+        statusBadge.setAttribute('style',
+          'display:inline-block;padding:0.15em 0.6em;border-radius:100px;font-size:0.72rem;font-weight:600;text-transform:capitalize;' + style);
+        statusBadge.textContent = data.status;
+
+        if (data.opened_count) {
+          openBadge.style.display = 'inline';
+          openBadge.textContent = '&#9679; Opened ' + data.opened_count + '×';
+          openBadge.innerHTML = '&#9679; Opened ' + data.opened_count + (data.opened_count === 1 ? ' time' : ' times');
+        } else {
+          openBadge.style.display = 'none';
+        }
+
+        // HTML tab via iframe srcdoc
+        if (data.html) {
+          iframeEl.srcdoc = data.html;
+        } else {
+          iframeEl.srcdoc = '<p style="font-family:sans-serif;padding:2rem;color:#666;">No HTML body stored.</p>';
+        }
+
+        // Plain text tab
+        plainEl.textContent = data.plain_body || '(no plain text body stored)';
+
+        // Error tab — only show if failed
+        if (data.status === 'failed' && data.error) {
+          errorEl.textContent = data.error;
+          errorTab.style.display = 'inline-block';
+        } else {
+          errorTab.style.display = 'none';
+        }
+
+        switchTab('html');
+        backdrop.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      })
+      .catch(function (err) {
+        console.error('Email preview fetch failed:', err);
+      });
+  }
+
+  /* ── Close modal ────────────────────────────────────────────── */
+  function closeModal() {
+    backdrop.style.display = 'none';
+    document.body.style.overflow = '';
+    iframeEl.srcdoc = '';
+  }
+
+  closeBtn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', function (e) {
+    if (e.target === backdrop) closeModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && backdrop.style.display !== 'none') closeModal();
+  });
+
+  /* ── Row click ──────────────────────────────────────────────── */
+  document.querySelectorAll('.email-log-row').forEach(function (row) {
+    row.addEventListener('click', function () {
+      openModal(row.dataset.pk);
+    });
+    row.addEventListener('mouseenter', function () {
+      row.style.background = 'var(--color-surface)';
+    });
+    row.addEventListener('mouseleave', function () {
+      row.style.background = '';
+    });
+  });
+
+  /* ── Initialise first tab appearance ────────────────────────── */
+  switchTab('html');
+})();
+</script>
+{% endblock %}

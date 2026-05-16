@@ -455,3 +455,50 @@ def article_detail_admin(request, pk):
         'build': build,
         'current_rev': current_rev,
     })
+
+
+# ── Email Log ────────────────────────────────────────────────────
+
+@journal_admin_required
+def email_log(request):
+    from apps.notifications.models import EmailLog
+    from django.core.paginator import Paginator
+
+    qs = EmailLog.objects.all()
+
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+
+    q = request.GET.get('q', '').strip()
+    if q:
+        qs = qs.filter(subject__icontains=q) | qs.filter(to_email__icontains=q)
+
+    paginator = Paginator(qs, 50)
+    page = paginator.get_page(request.GET.get('page', 1))
+
+    return render(request, 'journal_admin/email_log.html', {
+        'page': page,
+        'status_filter': status_filter,
+        'q': q,
+        'total': qs.count(),
+    })
+
+
+@journal_admin_required
+def email_log_preview(request, pk):
+    from apps.notifications.models import EmailLog
+    from apps.notifications.tasks import _html_wrapper
+    from django.http import JsonResponse
+    log = get_object_or_404(EmailLog, pk=pk)
+    return JsonResponse({
+        'subject': log.subject,
+        'to_email': log.to_email,
+        'status': log.status,
+        'sent_at': log.sent_at.isoformat() if log.sent_at else None,
+        'error': log.error,
+        'opened_count': log.opened_count,
+        'opened_at': log.opened_at.isoformat() if log.opened_at else None,
+        'plain_body': log.plain_body,
+        'html': _html_wrapper(log.html_body) if log.html_body else '',
+    })

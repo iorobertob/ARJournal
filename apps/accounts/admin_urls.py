@@ -14,4 +14,7 @@ urlpatterns = [
     # Articles
     path('articles/', admin_views.article_list, name='journal_admin_articles'),
     path('articles/<int:pk>/', admin_views.article_detail_admin, name='journal_admin_article'),
+    # Email log
+    path('email-log/', admin_views.email_log, name='journal_admin_email_log'),
+    path('email-log/<int:pk>/preview/', admin_views.email_log_preview, name='journal_admin_email_log_preview'),
 ]

@@ -171,13 +171,34 @@ def _send(
     plain: str,
     html_body: str,
 ) -> None:
-    """Send a multipart email and raise on failure (caller handles logging).
+    """Send a multipart email and log the result.
 
-    Backend and credentials are read from JournalConfig so they can be
-    changed in the admin dashboard without a server restart.
+    Creates an EmailLog record before sending (to obtain the tracking token),
+    injects a 1×1 tracking pixel into the HTML, sends, then updates the log
+    status to 'sent' or 'failed'. Raises on failure so callers can add their
+    own Notification / in-app logic in the except block.
     """
+    from .models import EmailLog
     from apps.journal.models import JournalConfig
     from django.core.mail import get_connection
+
+    # Create the log entry first so we have a tracking token before sending.
+    log = EmailLog.objects.create(
+        to_email=to,
+        subject=subject,
+        status='pending',
+        plain_body=plain,
+        html_body=html_body,
+    )
+
+    # Inject tracking pixel into the HTML body before wrapping.
+    pixel_url = f'{_site_url()}/notifications/t/{log.tracking_token}/'
+    pixel_tag = (
+        f'<img src="{pixel_url}" width="1" height="1" '
+        f'style="display:none;border:0;outline:none;" alt="">'
+    )
+    full_html = _html_wrapper(html_body + pixel_tag)
+
     journal = JournalConfig.get()
 
     if journal.email_from_name and journal.email_from_address:
@@ -211,19 +232,23 @@ def _send(
         to=[to],
         connection=connection,
     )
-    msg.attach_alternative(_html_wrapper(html_body), 'text/html')
-    msg.send()
+    msg.attach_alternative(full_html, 'text/html')
+
+    try:
+        msg.send()
+        log.status = 'sent'
+        log.sent_at = timezone.now()
+        log.save(update_fields=['status', 'sent_at'])
+    except Exception as exc:
+        log.status = 'failed'
+        log.error = str(exc)
+        log.save(update_fields=['status', 'error'])
+        raise
 
 
 def _log_email(to: str, subject: str, status: str, error: str = '') -> None:
-    from .models import EmailLog
-    EmailLog.objects.create(
-        to_email=to,
-        subject=subject,
-        status=status,
-        sent_at=timezone.now() if status == 'sent' else None,
-        error=error,
-    )
+    # No-op: logging is now handled inside _send(). Kept so callers don't break.
+    pass
 
 
 # ── Editor helpers ────────────────────────────────────────────────────────────

@@ -42,6 +42,7 @@ class Notification(models.Model):
 
 
 class EmailLog(models.Model):
+    import uuid as _uuid
     to_email = models.EmailField()
     subject = models.CharField(max_length=500)
     template_name = models.CharField(max_length=100, blank=True)
@@ -53,6 +54,14 @@ class EmailLog(models.Model):
     )
     sent_at = models.DateTimeField(null=True, blank=True)
     error = models.TextField(blank=True, default='')
+    plain_body = models.TextField(blank=True, default='')
+    html_body = models.TextField(blank=True, default='')
+    tracking_token = models.UUIDField(default=_uuid.uuid4, unique=True, editable=False)
+    opened_at = models.DateTimeField(null=True, blank=True)
+    opened_count = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['-sent_at', '-id']
 
     def __str__(self):
         return f'{self.to_email} — {self.subject[:50]} ({self.status})'

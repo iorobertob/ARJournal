@@ -48,6 +48,9 @@
     <a href="{% url 'journal_admin_settings' %}" class="{% if request.resolver_match.url_name == 'journal_admin_settings' %}active{% endif %}">
       Journal Settings
     </a>
+    <a href="{% url 'journal_admin_email_log' %}" class="{% if 'journal_admin_email_log' in request.resolver_match.url_name %}active{% endif %}">
+      Email Log
+    </a>
     <a href="{% url 'editorial_dashboard' %}">Editorial Dashboard</a>
     <a href="{% url 'admin:index' %}">Django Admin</a>
   </aside>

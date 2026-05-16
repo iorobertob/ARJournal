@@ -1,0 +1,817 @@
+/* Ensure [hidden] attribute always wins even when a rule sets display explicitly */
+[hidden] { display: none !important; }
+
+/* ── Metadata panel ─────────────────────────────────────────────────────────── */
+
+.metadata-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  margin-bottom: var(--spacing-4);
+  background: var(--color-bg-subtle, #fafafa);
+}
+
+.metadata-panel__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-6);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.metadata-panel__toggle::-webkit-details-marker { display: none; }
+
+.metadata-panel__toggle::before {
+  content: '▸';
+  font-size: 0.7rem;
+  color: var(--color-muted);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+.metadata-panel[open] .metadata-panel__toggle::before {
+  transform: rotate(90deg);
+}
+
+.metadata-panel__title {
+  font-weight: 600;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.metadata-panel__hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  font-family: var(--font-sans);
+  white-space: nowrap;
+}
+
+.metadata-panel__body {
+  padding: var(--spacing-4) var(--spacing-6) var(--spacing-6);
+  border-top: 1px solid var(--color-border);
+}
+
+.metadata-panel__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4) var(--spacing-6);
+}
+
+.metadata-panel__grid .form__group--full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+  .metadata-panel__grid { grid-template-columns: 1fr; }
+}
+
+/* ── Editor page layout ────────────────────────────────────────────────────── */
+
+.wizard--wide {
+  max-width: 1280px;
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: var(--spacing-6);
+  align-items: start;
+  margin-top: var(--spacing-6);
+}
+
+@media (max-width: 900px) {
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Editor header ──────────────────────────────────────────────────────────── */
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.editor-header__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.editor-status {
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--color-bg-subtle, #f5f5f5);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.editor-status[data-status="ok"] {
+  background: #e6f5e6;
+  color: #2d7a2d;
+}
+
+.editor-status[data-status="warn"] {
+  background: #fff3e0;
+  color: #b35c00;
+}
+
+/* ── Toolbar ────────────────────────────────────────────────────────────────── */
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--color-bg-subtle, #f9f9f9);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: var(--radius-md, 6px) var(--radius-md, 6px) 0 0;
+  /* Stick to viewport top (below the 56px site nav) when page scrolls */
+  position: sticky;
+  top: 56px;
+  z-index: 10;
+}
+
+.editor-toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.editor-toolbar__sep {
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  margin: 0 var(--spacing-2);
+}
+
+.toolbar-btn {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.toolbar-btn:hover {
+  background: var(--color-border);
+}
+
+.toolbar-btn.is-active {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+/* ── Editor canvas ──────────────────────────────────────────────────────────── */
+
+.editor-canvas {
+  /* Fixed viewport-percentage height — independent of other elements on the page */
+  height: 65vh;
+  min-height: 400px;
+  overflow-y: auto;
+  padding: var(--spacing-6) var(--spacing-8);
+  border: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-md, 6px) var(--radius-md, 6px);
+  background: #fff;
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  outline: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.editor-canvas::-webkit-scrollbar { width: 5px; }
+.editor-canvas::-webkit-scrollbar-track { background: transparent; }
+.editor-canvas::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+/* Drag handle below the canvas — lets authors resize it vertically */
+.editor-canvas-resize {
+  height: 8px;
+  background: var(--color-bg-subtle, #f5f5f5);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md, 6px) var(--radius-md, 6px);
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.editor-canvas-resize::after {
+  content: '';
+  width: 32px;
+  height: 3px;
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+.editor-canvas:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+/* ProseMirror resets */
+.editor-canvas .ProseMirror {
+  outline: none;
+  min-height: 460px;
+}
+
+.editor-canvas .ProseMirror p { margin: 0 0 0.8em; }
+.editor-canvas .ProseMirror h2 { font-size: 1.4em; margin: 1.6em 0 0.5em; }
+.editor-canvas .ProseMirror h3 { font-size: 1.2em; margin: 1.4em 0 0.4em; }
+.editor-canvas .ProseMirror h4 { font-size: 1.05em; margin: 1.2em 0 0.3em; }
+.editor-canvas .ProseMirror blockquote {
+  margin: 1em 2em;
+  padding-left: 1em;
+  border-left: 3px solid var(--color-accent);
+  color: var(--color-muted);
+  font-style: italic;
+}
+.editor-canvas .ProseMirror ul,
+.editor-canvas .ProseMirror ol {
+  padding-left: 1.4em;
+  margin: 0.5em 0 0.8em;
+}
+.editor-canvas .ProseMirror li { margin-bottom: 0.2em; }
+.editor-canvas .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+.editor-canvas .ProseMirror td,
+.editor-canvas .ProseMirror th {
+  border: 1px solid var(--color-border);
+  padding: 0.4em 0.6em;
+  vertical-align: top;
+}
+.editor-canvas .ProseMirror th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+
+/* Placeholder text */
+.editor-canvas .ProseMirror p.is-empty::before {
+  content: 'Start writing your article…';
+  color: var(--color-muted);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* ── Inline editor elements ─────────────────────────────────────────────────── */
+
+.editor-fn-ref {
+  font-size: 0.7em;
+  vertical-align: super;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 0;
+  user-select: none;
+}
+
+.editor-fn-ref:hover {
+  text-decoration: underline;
+}
+
+.editor-cite {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+.editor-crossref {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-size: 0.85em;
+  font-family: var(--font-sans);
+  text-decoration: none;
+  cursor: default;
+  user-select: none;
+}
+
+/* ── Figure / media blocks ──────────────────────────────────────────────────── */
+
+.editor-figure,
+.editor-media {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--spacing-4) var(--spacing-6);
+  margin: var(--spacing-6) 0;
+  background: #fafafa;
+  position: relative;
+}
+
+.editor-figure__img {
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto var(--spacing-3);
+}
+
+.editor-figure__caption,
+.editor-media__caption {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  font-style: italic;
+  text-align: center;
+  margin: 0;
+}
+
+.editor-figure__label,
+.editor-media__label {
+  display: block;
+  margin-top: var(--spacing-2);
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.editor-figure__edit-btn,
+.editor-media__edit-btn {
+  position: absolute;
+  top: var(--spacing-2);
+  right: var(--spacing-2);
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  background: var(--color-bg-subtle, #f0f0f0);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  color: var(--color-muted);
+}
+
+.editor-media__icon {
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: var(--spacing-2);
+}
+
+.editor-media__filename {
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+  color: var(--color-muted);
+  text-align: center;
+  margin-bottom: var(--spacing-2);
+}
+
+/* ── Equation block ─────────────────────────────────────────────────────────── */
+
+.editor-equation {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--spacing-4) var(--spacing-6);
+  margin: var(--spacing-4) 0;
+  text-align: center;
+  background: #fdfdfd;
+  position: relative;
+  cursor: pointer;
+}
+
+.editor-equation__preview {
+  font-size: 1.1rem;
+  min-height: 2em;
+}
+
+.editor-equation__edit-btn {
+  position: absolute;
+  top: var(--spacing-2);
+  right: var(--spacing-2);
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  background: var(--color-bg-subtle, #f0f0f0);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  color: var(--color-muted);
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────────── */
+
+.editor-sidebar {
+  position: sticky;
+  top: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  max-height: calc(100vh - var(--spacing-6) * 2);
+  overflow-y: auto;
+  /* Custom scrollbar — subtle, doesn't take up layout space */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.editor-sidebar::-webkit-scrollbar { width: 4px; }
+.editor-sidebar::-webkit-scrollbar-track { background: transparent; }
+.editor-sidebar::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+
+.sidebar-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--spacing-4) var(--spacing-6);
+  flex-shrink: 0;
+}
+
+.sidebar-section--actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.sidebar-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-4);
+}
+
+.sidebar-section__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
+.sidebar-btn {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text);
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  transition: background 0.1s;
+}
+
+.sidebar-btn:hover {
+  background: var(--color-border);
+}
+
+.sidebar-btn--full {
+  width: 100%;
+}
+
+.sidebar-btn--sm {
+  font-size: 0.75rem;
+  padding: 3px 8px;
+}
+
+.btn--full { width: 100%; text-align: center; }
+
+/* ── Bibliography list ──────────────────────────────────────────────────────── */
+
+.bib-list {
+  list-style: none;
+  margin: var(--spacing-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.bib-item {
+  font-size: 0.78rem;
+  font-family: var(--font-sans);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: var(--spacing-3) var(--spacing-4);
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-rows: auto auto auto;
+  gap: 2px 4px;
+}
+
+.bib-item__key {
+  grid-column: 1;
+  grid-row: 1;
+  font-weight: 600;
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  align-self: center;
+}
+
+.bib-item__title {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  color: var(--color-text);
+}
+
+.bib-item__meta {
+  grid-column: 1;
+  grid-row: 3;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  align-self: center;
+}
+
+.bib-item__cite-btn,
+.bib-item__del-btn,
+.bib-item__edit-btn {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  align-self: start;
+}
+
+.bib-item__cite-btn {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.bib-item__del-btn {
+  grid-column: 3;
+  grid-row: 1;
+  color: var(--color-muted);
+}
+
+.bib-item__edit-btn {
+  grid-column: 2 / 4;
+  grid-row: 3;
+  justify-self: end;
+  color: var(--color-muted);
+}
+
+.bib-item-inline-form {
+  list-style: none;
+  border: 1px solid var(--color-accent);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  margin-top: -2px;  /* overlap the card's bottom border for a seamless connection */
+}
+
+.bib-item-inline-form #manual-cite-form-wrapper {
+  padding-top: var(--spacing-3);
+}
+
+.bibtex-import {
+  margin-top: var(--spacing-4);
+}
+
+/* ── Citation form ──────────────────────────────────────────────────────────── */
+
+.cite-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-4);
+  background: var(--color-bg-subtle, #fafafa);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+}
+
+.cite-form__row { display: flex; flex-direction: column; gap: 2px; }
+.cite-form__row--half { flex-direction: row; gap: var(--spacing-3); }
+.cite-form__row--half > div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+
+.cite-form__label {
+  font-size: 0.72rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cite-form__input {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cite-form__hint {
+  font-size: 0.68rem;
+  color: var(--color-muted);
+  margin: 0;
+  font-family: var(--font-sans);
+}
+
+/* ── Footnote popover ───────────────────────────────────────────────────────── */
+
+.fn-popover {
+  position: fixed;
+  bottom: var(--spacing-6);
+  right: var(--spacing-6);
+  width: 340px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  padding: var(--spacing-4) var(--spacing-6);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.fn-popover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fn-popover__num {
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--color-accent);
+}
+
+.fn-popover__close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--color-muted);
+  line-height: 1;
+  padding: 0;
+}
+
+.fn-popover__textarea {
+  width: 100%;
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: var(--spacing-3);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.fn-popover__actions {
+  display: flex;
+  gap: var(--spacing-3);
+  justify-content: flex-end;
+}
+
+/* ── Modal (shared: crossref picker, media upload, equation dialog) ─────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-6);
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: var(--radius-md, 6px);
+  padding: var(--spacing-6) var(--spacing-8);
+  max-width: 540px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+}
+
+.modal-box__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-box__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modal-box__close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--color-muted);
+  line-height: 1;
+  padding: 0;
+}
+
+/* ── Cross-reference list ───────────────────────────────────────────────────── */
+
+.crossref-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.crossref-item button {
+  width: 100%;
+  text-align: left;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  transition: background 0.1s;
+}
+
+.crossref-item button:hover {
+  background: var(--color-bg-subtle, #f5f5f5);
+}
+
+.crossref-item code {
+  font-size: 0.78rem;
+  color: var(--color-accent);
+  margin-left: var(--spacing-2);
+}
+
+.crossref-empty {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  font-family: var(--font-sans);
+  padding: var(--spacing-4) 0;
+  text-align: center;
+}
+
+/* ── Equation preview box ───────────────────────────────────────────────────── */
+
+.equation-preview-box {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--spacing-4) var(--spacing-6);
+  background: #fafafa;
+  min-height: 60px;
+}
+
+.equation-preview-box__label {
+  font-size: 0.72rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  margin: 0 0 var(--spacing-3);
+}
+
+.equation-preview-box__content {
+  font-size: 1.1rem;
+  text-align: center;
+  min-height: 2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

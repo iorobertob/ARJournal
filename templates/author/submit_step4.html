@@ -32,7 +32,11 @@
       <label for="originality_confirmed">I confirm this submission is original work and has not been published elsewhere, nor is it under consideration elsewhere.</label>
     </div>
     <div class="form__actions">
+      {% if revision.source_type == 'wysiwyg' %}
+      <a href="{% url 'submission_step2_wysiwyg' submission.pk %}" class="btn btn--secondary">← Back to editor</a>
+      {% else %}
       <a href="{% url 'submission_step3' submission.pk revision.pk %}" class="btn btn--secondary">← Back</a>
+      {% endif %}
       <button type="submit" class="btn btn--primary">Submit Manuscript ↗</button>
     </div>
   </form>

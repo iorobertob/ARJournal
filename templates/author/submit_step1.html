@@ -12,38 +12,55 @@
     <span class="wizard__step">3. Media</span>
     <span class="wizard__step">4. Declarations</span>
   </div>
-  <h1 class="wizard__title">New Submission — Article Details</h1>
+  <h1 class="wizard__title">{% if editing %}Edit Article Details{% else %}New Submission — Article Details{% endif %}</h1>
+  {% if editing %}
+  <p style="font-family:var(--font-sans);font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-6);">
+    Changes are saved immediately. Your manuscript and uploaded files are unaffected.
+  </p>
+  {% endif %}
   <form method="post" class="form">
     {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
     <div class="form__group">
       <label class="form__label" for="title">Title <span aria-hidden="true">*</span></label>
-      <input class="form__input" type="text" id="title" name="title" required maxlength="1000">
+      <input class="form__input" type="text" id="title" name="title" required maxlength="1000"
+             value="{{ submission.title|default:'' }}">
     </div>
     <div class="form__group">
       <label class="form__label" for="subtitle">Subtitle</label>
-      <input class="form__input" type="text" id="subtitle" name="subtitle" maxlength="500">
+      <input class="form__input" type="text" id="subtitle" name="subtitle" maxlength="500"
+             value="{{ submission.subtitle|default:'' }}">
     </div>
     <div class="form__group">
       <label class="form__label" for="article_type">Article Type <span aria-hidden="true">*</span></label>
       <select class="form__select" id="article_type" name="article_type" required>
-        {% for value, label in article_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        {% for value, label in article_types %}
+        <option value="{{ value }}"{% if submission.article_type == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
       </select>
     </div>
     <div class="form__group">
       <label class="form__label" for="abstract">Abstract <span aria-hidden="true">*</span></label>
-      <textarea class="form__textarea" id="abstract" name="abstract" rows="6" required></textarea>
+      <textarea class="form__textarea" id="abstract" name="abstract" rows="6" required>{{ submission.abstract|default:'' }}</textarea>
     </div>
     <div class="form__group">
-      <label class="form__label" for="keywords">Keywords (semicolon-separated)</label>
-      <input class="form__input" type="text" id="keywords" name="keywords" placeholder="e.g. artistic research; performance; sound">
+      <label class="form__label" for="keywords">Keywords (semicolon or comma separated)</label>
+      <input class="form__input" type="text" id="keywords" name="keywords"
+             placeholder="e.g. artistic research; performance; sound"
+             value="{{ submission.keywords|join:'; '|default:'' }}">
     </div>
     <div class="form__group">
       <label class="form__label" for="cover_letter">Cover Letter <i class="tooltip-icon" tabindex="0" aria-label="Cover letter guidance" data-tooltip="Address the editors directly. Explain why your work suits this journal, any relevant context, and confirm it is not under review elsewhere.">i</i></label>
-      <textarea class="form__textarea" id="cover_letter" name="cover_letter" rows="5"></textarea>
+      <textarea class="form__textarea" id="cover_letter" name="cover_letter" rows="5">{{ submission.cover_letter|default:'' }}</textarea>
     </div>
     <div class="form__actions">
+      {% if editing %}
+      <a href="{{ next|default:'' }}" class="btn btn--secondary">← Back</a>
+      <button type="submit" class="btn btn--primary">Save &amp; Return →</button>
+      {% else %}
       <a href="{% url 'author_dashboard' %}" class="btn btn--secondary">Cancel</a>
       <button type="submit" class="btn btn--primary">Continue →</button>
+      {% endif %}
     </div>
   </form>
 </div>

@@ -463,32 +463,44 @@ def _parse_bib(bib_source: str) -> dict[str, dict]:
 
 @shared_task
 def ingest_submission(revision_pk):
-    """Parse .tex file → canonical JSON → queue HTML build."""
-    from apps.submissions.models import SubmissionRevision
+    """Parse manuscript → canonical JSON → queue HTML build.
+
+    Supports two source types:
+      - 'latex'   : reads .tex file and runs the LaTeX parser
+      - 'wysiwyg' : uses wysiwyg_data already stored on the revision
+    """
+    from apps.submissions.models import SubmissionRevision, RevisionSource
     from apps.documents.models import CanonicalDocument
     from apps.documents.parsers.latex_parser import parse_latex
 
     revision = SubmissionRevision.objects.select_related('submission').get(pk=revision_pk)
     submission = revision.submission
 
-    # Read .tex source
-    try:
-        with revision.manuscript_file.open('rb') as f:
-            tex_source = f.read().decode('utf-8', errors='replace')
-    except Exception as e:
-        return {'error': f'Could not read manuscript file: {e}'}
+    if revision.source_type == RevisionSource.WYSIWYG:
+        from apps.documents.wysiwyg_ingest import build_canonical_from_wysiwyg
+        if not revision.wysiwyg_data:
+            return {'error': 'WYSIWYG revision has no wysiwyg_data saved.'}
+        canonical_data = build_canonical_from_wysiwyg(revision)
+    else:
+        # LaTeX path
+        # Read .tex source
+        try:
+            with revision.manuscript_file.open('rb') as f:
+                tex_source = f.read().decode('utf-8', errors='replace')
+        except Exception as e:
+            return {'error': f'Could not read manuscript file: {e}'}
 
-    meta = {
-        'title': submission.title,
-        'subtitle': submission.subtitle,
-        'abstract': submission.abstract,
-        'keywords': submission.keywords,
-        'disciplines': submission.disciplines,
-        'language': submission.language,
-        'article_type': submission.article_type,
-    }
+        meta = {
+            'title': submission.title,
+            'subtitle': submission.subtitle,
+            'abstract': submission.abstract,
+            'keywords': submission.keywords,
+            'disciplines': submission.disciplines,
+            'language': submission.language,
+            'article_type': submission.article_type,
+        }
 
-    canonical_data = parse_latex(tex_source, meta)
+        canonical_data = parse_latex(tex_source, meta)
 
     # Enrich bibliography items from the uploaded .bib asset (if present).
     bib_asset = revision.assets.filter(original_filename__endswith='.bib').first()

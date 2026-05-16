@@ -13,39 +13,82 @@
     <span class="wizard__step">4. Declarations</span>
   </div>
 
-  <h1 class="wizard__title">Upload Manuscript</h1>
-  <p>Upload your <code>.tex</code> source file. The platform will parse it into a structured document.</p>
+  <h1 class="wizard__title">How would you like to submit your manuscript?</h1>
+  <p style="color:var(--color-muted);font-family:var(--font-sans);font-size:var(--size-sm);max-width:56ch;">
+    Both methods produce the same published result. Choose based on how you prefer to write.
+  </p>
 
-  <form method="post" enctype="multipart/form-data" class="form" id="manuscript-form">
-    {% csrf_token %}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-6);margin:var(--spacing-6) 0 var(--spacing-4);">
 
-    <div class="form__group">
-      <label class="form__label">Manuscript File (.tex) <span>*</span></label>
+    <!-- ── WYSIWYG card (recommended) ─────────────────────────────── -->
+    <div style="border:2px solid var(--color-accent);border-radius:var(--radius-md);padding:var(--spacing-6) var(--spacing-8);display:flex;flex-direction:column;gap:var(--spacing-4);position:relative;">
+      <span style="position:absolute;top:calc(-1 * var(--spacing-3));left:var(--spacing-6);background:var(--color-accent);color:#fff;font-size:0.68rem;font-family:var(--font-sans);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;">Recommended for most authors</span>
 
-      <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;">
-        <button type="button" class="btn btn--secondary" id="choose-manuscript-btn">Choose file</button>
-        <span id="manuscript-filename"
-              style="font-size:var(--size-sm);color:var(--color-muted);font-family:var(--font-sans);">
-          No file chosen
-        </span>
-      </div>
+      <h2 style="margin:0;font-size:1.05rem;font-family:var(--font-sans);">Write in the browser</h2>
 
-      <!-- Hidden native input — still submitted with the form -->
-      <input type="file" id="manuscript" name="manuscript"
-             accept=".tex,.txt" required
-             style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;"
-             tabindex="-1" aria-hidden="true">
+      <ul style="margin:0;padding:0 0 0 var(--spacing-4);font-size:var(--size-sm);color:var(--color-text);display:flex;flex-direction:column;gap:var(--spacing-2);flex:1;">
+        <li>See your article as you write it — no markup syntax to learn</li>
+        <li>Upload images, video, and audio directly into the text where they appear</li>
+        <li>Insert footnotes with a click; they are numbered and placed automatically</li>
+        <li>Add citations manually or import a <code>.bib</code> file from your reference manager</li>
+        <li>Cross-reference figures and tables by name — numbering is handled for you</li>
+        <li>Equations supported via LaTeX input with live preview</li>
+      </ul>
 
-      <p style="margin-top:var(--spacing-3);font-size:0.78rem;color:var(--color-muted);">
-        Accepted formats: <code>.tex</code>, <code>.txt</code>
+      <p style="margin:0;font-size:0.75rem;color:var(--color-muted);font-family:var(--font-sans);padding-top:var(--spacing-3);border-top:1px solid var(--color-border);">
+        <strong>Not suitable if</strong> your article relies heavily on LaTeX packages, custom macros, or complex tables with merged cells.
       </p>
+
+      <a href="{% url 'submission_step2_wysiwyg' pk=submission.pk %}"
+         class="btn btn--primary" style="text-align:center;margin-top:auto;">
+        Open Editor →
+      </a>
     </div>
 
-    <div class="form__actions">
-      <a href="{% url 'submission_step1' %}" class="btn btn--secondary">← Back</a>
-      <button type="submit" class="btn btn--primary" id="submit-btn" disabled>Continue →</button>
+    <!-- ── LaTeX card ──────────────────────────────────────────────── -->
+    <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--spacing-6) var(--spacing-8);display:flex;flex-direction:column;gap:var(--spacing-4);">
+
+      <h2 style="margin:0;font-size:1.05rem;font-family:var(--font-sans);">Upload a LaTeX file</h2>
+
+      <ul style="margin:0;padding:0 0 0 var(--spacing-4);font-size:var(--size-sm);color:var(--color-text);display:flex;flex-direction:column;gap:var(--spacing-2);flex:1;">
+        <li>Write and edit entirely offline using tools you already know —
+            <a href="https://www.overleaf.com" target="_blank" rel="noopener" style="color:var(--color-accent);">Overleaf</a>
+            (browser-based, no install needed) or
+            <a href="https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop" target="_blank" rel="noopener" style="color:var(--color-accent);">LaTeX Workshop for VS Code</a></li>
+        <li>Keep your manuscript in version control alongside your research notes</li>
+        <li>Custom LaTeX macros and packages are preserved where supported</li>
+        <li>Bibliography parsed directly from your <code>.bib</code> file</li>
+        <li>Full support for mathematical notation and complex equations</li>
+      </ul>
+
+      <p style="margin:0;font-size:0.75rem;color:var(--color-muted);font-family:var(--font-sans);padding-top:var(--spacing-3);border-top:1px solid var(--color-border);">
+        <strong>Requires</strong> knowledge of LaTeX. Media files must be uploaded separately and their filenames must match the macros in your <code>.tex</code> source exactly.
+        See the <a href="{% url 'submit_info' %}" style="color:var(--color-accent);">author &amp; template guidelines</a> for the journal's custom macros (<code>\ARJfigure</code>, <code>\ARJvideo</code>, etc.) — the <strong>LaTeX template</strong> can be downloaded from that page.
+      </p>
+
+      <form method="post" enctype="multipart/form-data" id="manuscript-form" style="margin-top:auto;">
+        {% csrf_token %}
+        <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;margin-bottom:var(--spacing-3);">
+          <button type="button" class="btn btn--secondary" id="choose-manuscript-btn">Choose .tex file</button>
+          <span id="manuscript-filename" style="font-size:var(--size-sm);color:var(--color-muted);font-family:var(--font-sans);">
+            No file chosen
+          </span>
+        </div>
+        <input type="file" id="manuscript" name="manuscript"
+               accept=".tex,.txt" required
+               style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;"
+               tabindex="-1" aria-hidden="true">
+        <button type="submit" class="btn btn--secondary" id="submit-btn" disabled style="width:100%;">
+          Upload &amp; Continue →
+        </button>
+      </form>
     </div>
-  </form>
+
+  </div>
+
+  <div style="margin-top:var(--spacing-4);">
+    <a href="{% url 'edit_submission_metadata' pk=submission.pk %}?next={{ request.path }}" class="btn btn--ghost">← Edit article details</a>
+  </div>
 </div>
 
 <script>

@@ -35,6 +35,27 @@ def editorial_required(view_func):
 
 
 @editorial_required
+def trigger_ingest(request, submission_pk):
+    """Run the ingest task for the current revision and redirect back."""
+    from django.views.decorators.http import require_POST
+    if request.method != 'POST':
+        return redirect('editorial_submission', pk=submission_pk)
+    from apps.submissions.models import Submission
+    from apps.production.tasks import ingest_submission
+    sub = get_object_or_404(Submission, pk=submission_pk)
+    revision = sub.get_current_revision()
+    if not revision:
+        messages.error(request, 'No revision found to ingest.')
+        return redirect('editorial_submission', pk=submission_pk)
+    try:
+        ingest_submission(revision.pk)
+        messages.success(request, 'Manuscript parsed and ingested successfully.')
+    except Exception as e:
+        messages.error(request, f'Ingest failed: {e}')
+    return redirect('editorial_submission', pk=submission_pk)
+
+
+@editorial_required
 def build_html(request, document_pk):
     """Build and publish the HTML for a canonical document."""
     doc = get_object_or_404(CanonicalDocument, pk=document_pk)

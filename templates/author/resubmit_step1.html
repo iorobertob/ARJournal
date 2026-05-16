@@ -51,7 +51,7 @@
       <input class="form__file" type="file" id="response_letter" name="response_letter" accept=".pdf,.doc,.docx">
     </div>
     <div class="form__group">
-      <label class="form__label" for="keywords">Keywords (semicolon-separated)</label>
+      <label class="form__label" for="keywords">Keywords (semicolon or comma separated)</label>
       <input class="form__input" type="text" id="keywords" name="keywords"
              placeholder="e.g. artistic research; performance; sound"
              value="{{ submission.keywords|join:'; ' }}">

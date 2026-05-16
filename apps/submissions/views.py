@@ -32,7 +32,7 @@ def new_submission_step1(request):
             cover_letter=request.POST.get('cover_letter', ''),
         )
         kw = request.POST.get('keywords', '')
-        sub.keywords = [k.strip() for k in kw.split(';') if k.strip()]
+        sub.keywords = [k.strip() for k in kw.replace(';', ',').split(',') if k.strip()]
         sub.save()
         return redirect('submission_step2', pk=sub.pk)
     from apps.journal.models import ArticleType
@@ -40,27 +40,66 @@ def new_submission_step1(request):
 
 
 @login_required
+def edit_submission_metadata(request, pk):
+    """Edit article details for an existing submission (available at any wizard step)."""
+    sub = get_object_or_404(Submission, pk=pk, author=request.user)
+    next_url = request.GET.get('next') or ''
+
+    if request.method == 'POST':
+        next_url = request.POST.get('next', '')
+        sub.title = request.POST.get('title', sub.title).strip() or sub.title
+        sub.subtitle = request.POST.get('subtitle', '').strip()
+        sub.article_type = request.POST.get('article_type', sub.article_type)
+        sub.abstract = request.POST.get('abstract', sub.abstract).strip()
+        kw = request.POST.get('keywords', '')
+        sub.keywords = [k.strip() for k in kw.replace(';', ',').split(',') if k.strip()]
+        sub.cover_letter = request.POST.get('cover_letter', sub.cover_letter)
+        sub.save(update_fields=['title', 'subtitle', 'article_type', 'abstract', 'keywords', 'cover_letter', 'updated_at'])
+        if next_url:
+            return redirect(next_url)
+        return redirect('submission_step2', pk=sub.pk)
+
+    from apps.journal.models import ArticleType
+    return render(request, 'author/submit_step1.html', {
+        'submission': sub,
+        'article_types': ArticleType.choices,
+        'next': next_url,
+        'editing': True,
+    })
+
+
+@login_required
 def new_submission_step2(request, pk):
-    """Step 2: Upload manuscript file."""
+    """Step 2: Choose authoring path (LaTeX upload or WYSIWYG editor)."""
     sub = get_object_or_404(Submission, pk=pk, author=request.user)
     if request.method == 'POST' and request.FILES.get('manuscript'):
+        from .models import RevisionSource
         rev, created = SubmissionRevision.objects.get_or_create(
             submission=sub,
             version=1,
-            defaults={'manuscript_file': request.FILES['manuscript']},
+            defaults={
+                'manuscript_file': request.FILES['manuscript'],
+                'source_type': RevisionSource.LATEX,
+            },
         )
         if not created:
             rev.manuscript_file = request.FILES['manuscript']
-            rev.save(update_fields=['manuscript_file'])
+            rev.source_type = RevisionSource.LATEX
+            rev.save(update_fields=['manuscript_file', 'source_type'])
         return redirect('submission_step3', pk=sub.pk, rev=rev.pk)
     return render(request, 'author/submit_step2.html', {'submission': sub})
 
 
 @login_required
 def new_submission_step3(request, pk, rev):
-    """Step 3: Upload media assets."""
+    """Step 3: Upload media assets (LaTeX path only — WYSIWYG skips to step 4)."""
     sub = get_object_or_404(Submission, pk=pk, author=request.user)
     revision = get_object_or_404(SubmissionRevision, pk=rev, submission=sub)
+
+    from .models import RevisionSource
+    if revision.source_type == RevisionSource.WYSIWYG:
+        return redirect('submission_step4', pk=sub.pk, rev=revision.pk)
+
     if request.method == 'POST':
         for f in request.FILES.getlist('assets'):
             _upsert_asset(revision, f)
@@ -114,6 +153,7 @@ def _upsert_asset(revision, f):
         asset.save(update_fields=['size_bytes'])
     except Exception:
         pass
+    return asset
 
 
 @login_required

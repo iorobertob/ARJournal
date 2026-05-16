@@ -161,6 +161,7 @@ def journal_settings(request):
         journal.institution = request.POST.get('institution', journal.institution)
         journal.publisher = request.POST.get('publisher', journal.publisher)
         journal.imprint = request.POST.get('imprint', '')
+        journal.footer_text = request.POST.get('footer_text', '')
         journal.instagram_url = request.POST.get('instagram_url', journal.instagram_url)
         # Email
         journal.email_from_name = request.POST.get('email_from_name', journal.email_from_name)

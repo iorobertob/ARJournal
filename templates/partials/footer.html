@@ -27,7 +27,7 @@
     </div>
   </div>
   <div class="site-footer__bottom container">
-    <p>{{ journal.name }} is published twice yearly and features essays, visual projects, multimedia research, and experimental contributions across artistic research practices.</p>
+    {% if journal.footer_text %}<p>{{ journal.footer_text }}</p>{% endif %}
     {% if journal.imprint %}<p class="site-footer__imprint">{{ journal.imprint }}</p>{% endif %}
     <p class="site-footer__copy">&copy; {% now "Y" %} {{ journal.name }}. All rights reserved.</p>
   </div>

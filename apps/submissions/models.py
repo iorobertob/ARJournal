@@ -106,10 +106,17 @@ class RevisionStatus(models.TextChoices):
     REJECTED = 'rejected', 'Rejected'
 
 
+class RevisionSource(models.TextChoices):
+    LATEX = 'latex', 'LaTeX'
+    WYSIWYG = 'wysiwyg', 'WYSIWYG Editor'
+
+
 class SubmissionRevision(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='revisions')
     version = models.PositiveIntegerField(default=1)
-    manuscript_file = models.FileField(upload_to='manuscripts/')
+    source_type = models.CharField(max_length=16, choices=RevisionSource.choices, default=RevisionSource.LATEX)
+    manuscript_file = models.FileField(upload_to='manuscripts/', blank=True, null=True)
+    wysiwyg_data = models.JSONField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=RevisionStatus.choices, default=RevisionStatus.DRAFT)
     notes = models.TextField(blank=True, default='')
     response_letter = models.FileField(upload_to='response_letters/', blank=True, null=True)

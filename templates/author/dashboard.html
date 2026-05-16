@@ -15,7 +15,7 @@
     {% if submissions %}
     <table>
       <thead>
-        <tr><th>Title</th><th>Type</th><th>Status</th><th>Submitted</th><th colspan="2"></th></tr>
+        <tr><th>Title</th><th>Type</th><th>Status</th><th>Dates</th><th colspan="2"></th></tr>
       </thead>
       <tbody>
         {% for sub in submissions %}
@@ -32,11 +32,22 @@
             <span style="display:inline-block;margin-left:var(--spacing-2);font-size:var(--size-xs);font-weight:600;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;">Feedback available</span>
             {% endif %}
           </td>
-          <td>{{ sub.submission_date|date:"d M Y"|default:"—" }}</td>
+          <td>
+            <span style="display:block;font-size:var(--size-sm);color:var(--color-muted);">Started {{ sub.created_at|date:"d M Y" }}</span>
+            {% if sub.submission_date %}
+            <span style="display:block;font-size:var(--size-sm);margin-top:2px;">Submitted {{ sub.submission_date|date:"d M Y" }}</span>
+            {% endif %}
+          </td>
           <td>
             {% if sub.status == 'draft' %}
             {% with rev=sub.get_current_revision %}
-            <a href="{% if rev %}{% url 'submission_step4' sub.pk rev.pk %}{% else %}{% url 'submission_step2' sub.pk %}{% endif %}" style="color:var(--color-accent);font-weight:600;">Continue →</a>
+            {% if rev and rev.source_type == 'wysiwyg' %}
+            <a href="{% url 'submission_step2_wysiwyg' sub.pk %}" style="color:var(--color-accent);font-weight:600;">Continue →</a>
+            {% elif rev %}
+            <a href="{% url 'submission_step4' sub.pk rev.pk %}" style="color:var(--color-accent);font-weight:600;">Continue →</a>
+            {% else %}
+            <a href="{% url 'submission_step2' sub.pk %}" style="color:var(--color-accent);font-weight:600;">Continue →</a>
+            {% endif %}
             {% endwith %}
             {% else %}
             <a href="{% url 'submission_detail' sub.pk %}">View →</a>

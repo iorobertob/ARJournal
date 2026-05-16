@@ -107,6 +107,12 @@
   </div>
 
   <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_footer_text">Footer description</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Appears in the bottom bar of every page, below the navigation columns.</p>
+    <textarea name="footer_text" id="id_footer_text" rows="3" class="form-control">{{ journal.footer_text }}</textarea>
+  </div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
     <label for="id_imprint">Imprint</label>
     <textarea name="imprint" id="id_imprint" rows="3" class="form-control">{{ journal.imprint }}</textarea>
   </div>

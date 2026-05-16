@@ -27,6 +27,7 @@ class JournalConfig(models.Model):
     country = models.CharField(max_length=100, blank=True, default='')
     publisher = models.CharField(max_length=255, blank=True, default='')
     imprint = models.TextField(blank=True, default='')
+    footer_text = models.TextField(blank=True, default='')
     instagram_url = models.URLField(blank=True, default='')
     footer_partners = models.TextField(blank=True, default='')
     submission_guidelines = models.TextField(blank=True, default='')

@@ -1,0 +1,517 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Write Article — Step 2 — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard editor-page{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/editor.css' %}">
+<!-- MathJax for equation preview -->
+<script>window.MathJax = { tex: { inlineMath: [['\\(','\\)']] }, startup: { typeset: false } };</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="wizard container wizard--wide">
+  <div class="wizard__progress">
+    <span class="wizard__step wizard__step--done">1. Metadata</span>
+    <span class="wizard__step wizard__step--active">2. Write</span>
+    <span class="wizard__step">3. Declarations</span>
+  </div>
+
+  <!-- ── Inline metadata panel ──────────────────────────────────────── -->
+  <details id="metadata-panel" class="metadata-panel" open>
+    <summary class="metadata-panel__toggle">
+      <span class="metadata-panel__title">{{ submission.title|truncatechars:80 }}</span>
+      <span class="metadata-panel__hint">Article details — click to collapse</span>
+      <span id="metadata-status" class="editor-status" data-status="ok" style="margin-left:auto;">Saved</span>
+    </summary>
+    <div class="metadata-panel__body">
+      <div class="metadata-panel__grid">
+        <div class="form__group">
+          <label class="form__label" for="meta-title">Title <span aria-hidden="true">*</span></label>
+          <input class="form__input" type="text" id="meta-title" name="title"
+                 value="{{ submission.title }}" maxlength="1000" required>
+        </div>
+        <div class="form__group">
+          <label class="form__label" for="meta-subtitle">Subtitle</label>
+          <input class="form__input" type="text" id="meta-subtitle" name="subtitle"
+                 value="{{ submission.subtitle }}" maxlength="500">
+        </div>
+        <div class="form__group">
+          <label class="form__label" for="meta-article-type">Article type</label>
+          <select class="form__select" id="meta-article-type" name="article_type">
+            {% for value, label in article_types %}
+            <option value="{{ value }}"{% if submission.article_type == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__group form__group--full">
+          <label class="form__label" for="meta-abstract">Abstract <span aria-hidden="true">*</span></label>
+          <textarea class="form__textarea" id="meta-abstract" name="abstract" rows="4">{{ submission.abstract }}</textarea>
+        </div>
+        <div class="form__group form__group--full">
+          <label class="form__label" for="meta-keywords">Keywords <span style="font-weight:400;color:var(--color-muted);">(semicolon or comma separated)</span></label>
+          <input class="form__input" type="text" id="meta-keywords" name="keywords"
+                 value="{{ submission.keywords|join:'; ' }}"
+                 placeholder="e.g. artistic research; performance; sound">
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <div class="editor-layout">
+
+    <!-- ── Main editing area ───────────────────────────────────────── -->
+    <div class="editor-main">
+      <div class="editor-header">
+        <h1 class="editor-header__title">{{ submission.title }}</h1>
+        <span id="editor-status" class="editor-status" data-status="ok">Saved</span>
+      </div>
+
+      <!-- Toolbar -->
+      <div id="toolbar" class="editor-toolbar" role="toolbar" aria-label="Formatting toolbar">
+        <div class="editor-toolbar__group">
+          <button type="button" data-cmd="h2" class="toolbar-btn" title="Heading 2">H2</button>
+          <button type="button" data-cmd="h3" class="toolbar-btn" title="Heading 3">H3</button>
+          <button type="button" data-cmd="h4" class="toolbar-btn" title="Heading 4">H4</button>
+        </div>
+        <div class="editor-toolbar__sep"></div>
+        <div class="editor-toolbar__group">
+          <button type="button" data-cmd="bold" class="toolbar-btn" title="Bold"><strong>B</strong></button>
+          <button type="button" data-cmd="italic" class="toolbar-btn" title="Italic"><em>I</em></button>
+        </div>
+        <div class="editor-toolbar__sep"></div>
+        <div class="editor-toolbar__group">
+          <button type="button" data-cmd="blockquote" class="toolbar-btn" title="Blockquote">"</button>
+          <button type="button" data-cmd="bulletList" class="toolbar-btn" title="Bullet list">• List</button>
+          <button type="button" data-cmd="orderedList" class="toolbar-btn" title="Numbered list">1. List</button>
+        </div>
+        <div class="editor-toolbar__sep"></div>
+        <div class="editor-toolbar__group">
+          <button type="button" data-cmd="footnote" class="toolbar-btn" title="Insert footnote">Fn</button>
+          <button type="button" data-cmd="equation" class="toolbar-btn" title="Insert equation">∑</button>
+          <button type="button" data-cmd="crossref" class="toolbar-btn" title="Insert cross-reference">→ Ref</button>
+        </div>
+        <div class="editor-toolbar__sep"></div>
+        <div class="editor-toolbar__group">
+          <button type="button" data-cmd="image" class="toolbar-btn" title="Insert figure">Fig</button>
+          <button type="button" data-cmd="video" class="toolbar-btn" title="Insert video">▶</button>
+          <button type="button" data-cmd="audio" class="toolbar-btn" title="Insert audio">♪</button>
+          <button type="button" data-cmd="table" class="toolbar-btn" title="Insert table">⊞</button>
+        </div>
+        <div class="editor-toolbar__sep"></div>
+        <div class="editor-toolbar__group">
+          <button type="button" data-cmd="undo" class="toolbar-btn" title="Undo">↩</button>
+          <button type="button" data-cmd="redo" class="toolbar-btn" title="Redo">↪</button>
+        </div>
+      </div>
+
+      <!-- Editor canvas -->
+      <div id="editor-canvas" class="editor-canvas" spellcheck="true"></div>
+      <div id="editor-resize-handle" class="editor-canvas-resize" title="Drag to resize editor" aria-hidden="true"></div>
+
+      <!-- Continue form (hidden — submitted programmatically after final save) -->
+      <form id="editor-continue-form" method="get"
+            action="{% url 'submission_step4' pk=submission.pk rev=revision.pk %}">
+      </form>
+    </div>
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────── -->
+    <aside class="editor-sidebar">
+
+      <!-- Navigation actions -->
+      <div class="sidebar-section sidebar-section--actions">
+        <button type="button" id="editor-continue" class="btn btn--primary btn--full">
+          Save &amp; Continue →
+        </button>
+        <a href="{% url 'submission_step2' pk=submission.pk %}"
+           class="btn btn--ghost btn--full">← Change method</a>
+      </div>
+
+      <!-- References / bibliography -->
+      <div class="sidebar-section">
+        <div class="sidebar-section__header">
+          <h3 class="sidebar-section__title">References</h3>
+          <button type="button" id="add-citation-btn" class="sidebar-btn sidebar-btn--sm">+ Add</button>
+        </div>
+
+        <!-- Manual citation form (hidden by default) -->
+        <div id="manual-cite-form-wrapper" hidden>
+          <div class="cite-form" id="manual-cite-form">
+            <div class="cite-form__row">
+              <label class="cite-form__label">Key *</label>
+              <input id="cite-key" class="cite-form__input" placeholder="Smith2024" required>
+            </div>
+            <div class="cite-form__row">
+              <label class="cite-form__label">Type</label>
+              <select id="cite-type" class="cite-form__input">
+                <option value="article">Journal article</option>
+                <option value="book">Book</option>
+                <option value="incollection">Book chapter</option>
+                <option value="inproceedings">Conference paper</option>
+                <option value="phdthesis">PhD thesis</option>
+                <option value="misc">Other</option>
+              </select>
+            </div>
+            <div class="cite-form__row">
+              <label class="cite-form__label">Title *</label>
+              <input id="cite-title" class="cite-form__input" placeholder="Article title">
+            </div>
+            <div class="cite-form__row">
+              <label class="cite-form__label">Authors</label>
+              <input id="cite-authors" class="cite-form__input" placeholder="Smith, J.; Jones, A.">
+              <p class="cite-form__hint">Separate multiple authors with semicolons</p>
+            </div>
+            <div class="cite-form__row cite-form__row--half">
+              <div>
+                <label class="cite-form__label">Year</label>
+                <input id="cite-year" class="cite-form__input" placeholder="2024">
+              </div>
+              <div>
+                <label class="cite-form__label">Volume</label>
+                <input id="cite-volume" class="cite-form__input" placeholder="12">
+              </div>
+            </div>
+            <div class="cite-form__row">
+              <label class="cite-form__label">Journal / Publisher</label>
+              <input id="cite-journal" class="cite-form__input" placeholder="Journal name">
+              <input id="cite-publisher" class="cite-form__input" placeholder="Publisher" style="margin-top:4px;">
+            </div>
+            <div class="cite-form__row">
+              <label class="cite-form__label">Pages</label>
+              <input id="cite-pages" class="cite-form__input" placeholder="123–145">
+            </div>
+            <div class="cite-form__row">
+              <label class="cite-form__label">DOI</label>
+              <input id="cite-doi" class="cite-form__input" placeholder="10.1234/example">
+            </div>
+            <div class="cite-form__row">
+              <label class="cite-form__label">URL</label>
+              <input id="cite-url" class="cite-form__input" placeholder="https://...">
+            </div>
+            <button type="button" id="manual-cite-submit" class="btn btn--primary btn--sm">
+              Add to bibliography
+            </button>
+          </div>
+        </div>
+
+        <!-- BibTeX import -->
+        <div class="bibtex-import">
+          <label for="bibtex-file-input" class="sidebar-btn sidebar-btn--full" style="cursor:pointer;">
+            Import .bib file
+          </label>
+          <input type="file" id="bibtex-file-input" accept=".bib" style="display:none;">
+        </div>
+
+        <!-- Bibliography list -->
+        <ul id="bib-list" class="bib-list"></ul>
+      </div>
+
+    </aside>
+  </div>
+</div>
+
+<!-- ── Footnote popover ──────────────────────────────────────────────────── -->
+<div id="fn-popover" class="fn-popover" hidden role="dialog" aria-modal="true" aria-label="Edit footnote">
+  <div class="fn-popover__header">
+    <span id="fn-popover-num" class="fn-popover__num">Footnote</span>
+    <button type="button" id="fn-popover-cancel" class="fn-popover__close" aria-label="Close">×</button>
+  </div>
+  <textarea id="fn-popover-text" class="fn-popover__textarea" rows="4"
+            placeholder="Footnote text…"></textarea>
+  <div class="fn-popover__actions">
+    <button type="button" id="fn-popover-save" class="btn btn--primary btn--sm">Save</button>
+    <button type="button" id="fn-popover-cancel" class="btn btn--ghost btn--sm">Cancel</button>
+  </div>
+</div>
+
+<!-- ── Cross-reference picker ────────────────────────────────────────────── -->
+<div id="crossref-picker" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-label="Insert cross-reference">
+  <div class="modal-box">
+    <div class="modal-box__header">
+      <h3 class="modal-box__title">Insert Cross-Reference</h3>
+      <button type="button" id="crossref-picker-close" class="modal-box__close" aria-label="Close">×</button>
+    </div>
+    <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0 0 var(--spacing-3);">
+      Select a figure, video, or audio to reference. It will appear as "Figure 3" etc. in the final article.
+    </p>
+    <ul id="crossref-list" class="crossref-list"></ul>
+  </div>
+</div>
+
+<!-- ── Media upload modal ────────────────────────────────────────────────── -->
+<div id="media-upload-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-label="Insert media">
+  <div class="modal-box">
+    <div class="modal-box__header">
+      <h3 class="modal-box__title" id="media-modal-title">Insert Figure</h3>
+      <button type="button" id="media-upload-cancel" class="modal-box__close" aria-label="Close">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-4);">
+      <div class="form__group">
+        <label class="form__label">File *</label>
+        <input type="file" id="media-upload-file" class="form__input">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Caption</label>
+        <input type="text" id="media-upload-caption" class="form__input" placeholder="Describe this figure…">
+      </div>
+      <div class="form__group" id="alt-text-group">
+        <label class="form__label">Alt text (accessibility)</label>
+        <input type="text" id="media-upload-alt" class="form__input" placeholder="Brief description for screen readers">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Cross-reference label</label>
+        <input type="text" id="media-upload-label" class="form__input" placeholder="e.g. fig:landscape">
+        <p class="form__hint">Used when inserting cross-references in the text. Leave blank to auto-assign.</p>
+      </div>
+      <div class="form__actions">
+        <button type="button" id="media-upload-cancel" class="btn btn--ghost">Cancel</button>
+        <button type="button" id="media-upload-submit" class="btn btn--primary">Insert</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Equation dialog ───────────────────────────────────────────────────── -->
+<div id="equation-dialog" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-label="Insert equation">
+  <div class="modal-box">
+    <div class="modal-box__header">
+      <h3 class="modal-box__title">Insert Equation</h3>
+      <button type="button" id="equation-cancel" class="modal-box__close" aria-label="Close">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-4);">
+      <div class="form__group">
+        <label class="form__label">LaTeX</label>
+        <input type="text" id="equation-input" class="form__input" placeholder="e.g. E = mc^2">
+        <p class="form__hint">Enter LaTeX math notation. Do not include surrounding <code>\(</code> delimiters.</p>
+      </div>
+      <div class="equation-preview-box">
+        <p class="equation-preview-box__label">Preview</p>
+        <div id="equation-preview" class="equation-preview-box__content">Preview will appear here</div>
+      </div>
+      <div class="form__actions">
+        <button type="button" id="equation-cancel" class="btn btn--ghost">Cancel</button>
+        <button type="button" id="equation-insert" class="btn btn--primary">Insert</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Figure / media edit modal ──────────────────────────────────────────── -->
+<div id="figure-edit-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-label="Edit figure">
+  <div class="modal-box">
+    <div class="modal-box__header">
+      <h3 class="modal-box__title" id="figure-edit-modal-title">Edit Figure</h3>
+      <button type="button" class="modal-box__close figure-edit-close-btn" aria-label="Close">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-4);">
+      <div class="form__group">
+        <label class="form__label">Caption</label>
+        <input type="text" id="figure-edit-caption" class="form__input" placeholder="Describe this figure…">
+      </div>
+      <div class="form__group" id="figure-edit-alt-group">
+        <label class="form__label">Alt text (accessibility)</label>
+        <input type="text" id="figure-edit-alt" class="form__input" placeholder="Brief description for screen readers">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Cross-reference label</label>
+        <input type="text" id="figure-edit-label" class="form__input" placeholder="e.g. fig:landscape">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Replace file <span style="font-weight:400;color:var(--color-muted);">(optional — leave empty to keep existing)</span></label>
+        <input type="file" id="figure-edit-file" class="form__input">
+        <p id="figure-edit-current-file" class="form__hint" style="margin-top:var(--spacing-2);"></p>
+      </div>
+      <div id="figure-edit-upload-status" style="display:none;font-size:0.8rem;font-family:var(--font-sans);color:var(--color-muted);">Uploading…</div>
+      <div class="form__actions">
+        <button type="button" class="btn btn--ghost figure-edit-close-btn">Cancel</button>
+        <button type="button" id="figure-edit-save" class="btn btn--primary">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/editor.bundle.js' %}"></script>
+<script>
+TransActEditor.init({
+  saveUrl:          "{% url 'wysiwyg_autosave' pk=submission.pk rev=revision.pk %}",
+  assetUploadUrl:   "{% url 'wysiwyg_asset_upload' pk=submission.pk rev=revision.pk %}",
+  bibtexImportUrl:  "{% url 'wysiwyg_bibtex_import' pk=submission.pk %}",
+  csrfToken:        "{{ csrf_token }}",
+  {% if wysiwyg_json != 'null' %}
+  initialContent:      {{ wysiwyg_json|safe }},
+  initialBibliography: ({{ wysiwyg_json|safe }}).bibliography || [],
+  {% endif %}
+});
+
+// ── Editor canvas resize handle ───────────────────────────────────────────────
+(function () {
+  const handle  = document.getElementById('editor-resize-handle');
+  const canvas  = document.getElementById('editor-canvas');
+  if (!handle || !canvas) return;
+
+  const BASE_VH  = 0.65;  // matches 65vh default
+  const MAX_VH   = 1.30;  // capped at double (130vh)
+
+  let dragging   = false;
+  let startY     = 0;
+  let startH     = 0;
+
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    dragging = true;
+    startY   = e.clientY;
+    startH   = canvas.getBoundingClientRect().height;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const delta  = e.clientY - startY;
+    const minH   = Math.round(window.innerHeight * BASE_VH);
+    const maxH   = Math.round(window.innerHeight * MAX_VH);
+    const newH   = Math.min(maxH, Math.max(minH, startH + delta));
+    canvas.style.height = newH + 'px';
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+// ── Figure edit modal ─────────────────────────────────────────────────────────
+(function () {
+  let _figPos = null;
+  let _figAttrs = null;
+  const modal        = document.getElementById('figure-edit-modal');
+  const uploadStatus = document.getElementById('figure-edit-upload-status');
+  const ASSET_URL    = "{% url 'wysiwyg_asset_upload' pk=submission.pk rev=revision.pk %}";
+  const CSRF         = "{{ csrf_token }}";
+
+  window.addEventListener('editor:figureEdit', function (e) {
+    _figPos   = e.detail.pos;
+    _figAttrs = e.detail.attrs;
+    const isImage = !_figAttrs.mediaType;
+    document.getElementById('figure-edit-modal-title').textContent = isImage ? 'Edit Figure' : 'Edit Media';
+    document.getElementById('figure-edit-alt-group').hidden = !!_figAttrs.mediaType;
+    document.getElementById('figure-edit-caption').value = _figAttrs.caption || '';
+    document.getElementById('figure-edit-alt').value     = _figAttrs.altText  || '';
+    document.getElementById('figure-edit-label').value   = _figAttrs.label    || '';
+    // Show current filename hint
+    const hint = document.getElementById('figure-edit-current-file');
+    if (hint) hint.textContent = _figAttrs.originalFilename ? `Current file: ${_figAttrs.originalFilename}` : '';
+    // Reset file input and upload status
+    document.getElementById('figure-edit-file').value = '';
+    uploadStatus.style.display = 'none';
+    modal.hidden = false;
+  });
+
+  document.getElementById('figure-edit-save')?.addEventListener('click', async function () {
+    if (_figPos === null) return;
+    const saveBtn = document.getElementById('figure-edit-save');
+    const fileInput = document.getElementById('figure-edit-file');
+
+    let newAttrs = {
+      ..._figAttrs,
+      caption: document.getElementById('figure-edit-caption').value,
+      altText: document.getElementById('figure-edit-alt').value,
+      label:   document.getElementById('figure-edit-label').value || _figAttrs.label,
+    };
+
+    if (fileInput.files.length > 0) {
+      saveBtn.disabled = true;
+      uploadStatus.style.display = '';
+      try {
+        const fd = new FormData();
+        fd.append('file', fileInput.files[0]);
+        const resp = await fetch(ASSET_URL, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': CSRF },
+          body: fd,
+        });
+        if (resp.ok) {
+          const asset = await resp.json();
+          newAttrs.assetRef          = asset.asset_id;
+          newAttrs.assetUrl          = asset.url;
+          newAttrs.originalFilename  = asset.original_filename;
+        } else {
+          uploadStatus.textContent = 'Upload failed — changes to caption/label were still saved.';
+          uploadStatus.style.color = 'var(--color-error, #c0392b)';
+        }
+      } catch {
+        uploadStatus.textContent = 'Upload failed — changes to caption/label were still saved.';
+        uploadStatus.style.color = 'var(--color-error, #c0392b)';
+      } finally {
+        saveBtn.disabled = false;
+        uploadStatus.style.display = 'none';
+      }
+    }
+
+    TransActEditor.updateNodeAtPos(_figPos, newAttrs);
+    modal.hidden = true;
+    _figPos = null; _figAttrs = null;
+  });
+
+  document.querySelectorAll('.figure-edit-close-btn').forEach(btn => {
+    btn.addEventListener('click', () => { modal.hidden = true; });
+  });
+})();
+
+// ── Metadata panel auto-save ─────────────────────────────────────────────────
+(function () {
+  const META_URL  = "{% url 'wysiwyg_metadata_save' pk=submission.pk %}";
+  const CSRF      = "{{ csrf_token }}";
+  const statusEl  = document.getElementById('metadata-status');
+  const titleEl   = document.getElementById('meta-title');
+  let metaTimer   = null;
+
+  function setMetaStatus(msg) {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.dataset.status = msg === 'Saved' ? 'ok' : 'warn';
+  }
+
+  async function saveMeta() {
+    const payload = {
+      title:        document.getElementById('meta-title').value,
+      subtitle:     document.getElementById('meta-subtitle').value,
+      article_type: document.getElementById('meta-article-type').value,
+      abstract:     document.getElementById('meta-abstract').value,
+      keywords:     document.getElementById('meta-keywords').value,
+    };
+    try {
+      const resp = await fetch(META_URL, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body:    JSON.stringify(payload),
+      });
+      setMetaStatus(resp.ok ? 'Saved' : 'Save failed');
+    } catch {
+      setMetaStatus('Save failed');
+    }
+    // Keep the panel summary title in sync
+    if (titleEl) {
+      const summary = document.querySelector('.metadata-panel__title');
+      if (summary) summary.textContent = titleEl.value.slice(0, 80) || 'Untitled';
+    }
+  }
+
+  function debounceMetaSave() {
+    setMetaStatus('Saving…');
+    clearTimeout(metaTimer);
+    metaTimer = setTimeout(saveMeta, 1000);
+  }
+
+  ['meta-title', 'meta-subtitle', 'meta-article-type', 'meta-abstract', 'meta-keywords']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', debounceMetaSave);
+      if (el && el.tagName === 'SELECT') el.addEventListener('change', debounceMetaSave);
+    });
+})();
+</script>
+{% endblock %}

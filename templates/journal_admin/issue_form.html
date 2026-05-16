@@ -6,7 +6,14 @@
 <h1 class="jadmin-page-title">Create New Issue</h1>
 
 <div class="jadmin-card" style="max-width:640px;">
-  <form method="post" enctype="multipart/form-data">
+
+  <div id="draft-restore-banner" class="draft-restore-banner" style="display:none;" role="alert">
+    <span style="flex:1;">You have unsaved draft data from a previous visit.</span>
+    <button type="button" id="btn-restore-draft">Restore</button>
+    <button type="button" id="btn-discard-draft" style="background:transparent;border-color:transparent;color:var(--color-muted);">Discard</button>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="issue-create-form">
     {% csrf_token %}
 
     <div class="form-row">
@@ -42,12 +49,102 @@
     <div class="form-group" style="margin-bottom:var(--spacing-6);">
       <label for="id_cover">Cover image</label>
       <input type="file" name="cover_image" id="id_cover" accept="image/*" class="form-control">
+      <div class="cover-preview-wrap" id="cover-preview-wrap">
+        <p class="cover-preview-label">Preview</p>
+        <img id="cover-preview-img" src="" alt="Cover image preview">
+      </div>
     </div>
 
+    <p style="font-size:var(--size-xs);color:var(--color-muted);margin-bottom:var(--spacing-3);">
+      The issue will be saved as a draft. You can add articles and publish it from the assembly page.
+    </p>
+
     <div style="display:flex;gap:var(--spacing-3);">
-      <button type="submit" class="btn btn-primary">Create Issue</button>
+      <button type="submit" class="btn btn-primary">Save Draft &amp; Assemble →</button>
       <a href="{% url 'journal_admin_issues' %}" class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
     </div>
   </form>
 </div>
+
+<script>
+(function () {
+  var DRAFT_KEY = 'issue_create_draft';
+  var form      = document.getElementById('issue-create-form');
+  var banner    = document.getElementById('draft-restore-banner');
+  var isDirty   = false;
+  var submitted = false;
+
+  /* ── Text field IDs we autosave ─────────────────────────────── */
+  var TEXT_FIELDS = ['id_number', 'id_volume', 'id_year', 'id_title',
+                     'id_editorial_note', 'id_call_for_submissions'];
+
+  /* ── Read current form values ───────────────────────────────── */
+  function readForm() {
+    var obj = {};
+    TEXT_FIELDS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) obj[id] = el.value;
+    });
+    return obj;
+  }
+
+  /* ── Restore saved values into the form ─────────────────────── */
+  function applyDraft(data) {
+    TEXT_FIELDS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && data[id] !== undefined) el.value = data[id];
+    });
+  }
+
+  /* ── Check for saved draft on page load ─────────────────────── */
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) {}
+
+  if (saved) {
+    banner.style.display = 'flex';
+
+    document.getElementById('btn-restore-draft').addEventListener('click', function () {
+      applyDraft(saved);
+      banner.style.display = 'none';
+      isDirty = true;
+    });
+
+    document.getElementById('btn-discard-draft').addEventListener('click', function () {
+      localStorage.removeItem(DRAFT_KEY);
+      banner.style.display = 'none';
+    });
+  }
+
+  /* ── Mark form dirty on any input ───────────────────────────── */
+  form.addEventListener('input', function () { isDirty = true; });
+
+  /* ── Save to localStorage before navigating away ────────────── */
+  window.addEventListener('beforeunload', function () {
+    if (submitted) { localStorage.removeItem(DRAFT_KEY); return; }
+    if (isDirty)   { localStorage.setItem(DRAFT_KEY, JSON.stringify(readForm())); }
+  });
+
+  /* ── Clear localStorage on successful submit ────────────────── */
+  form.addEventListener('submit', function () {
+    submitted = true;
+    localStorage.removeItem(DRAFT_KEY);
+  });
+
+  /* ── Cover image thumbnail preview ─────────────────────────── */
+  var coverInput = document.getElementById('id_cover');
+  var previewWrap = document.getElementById('cover-preview-wrap');
+  var previewImg  = document.getElementById('cover-preview-img');
+
+  coverInput.addEventListener('change', function () {
+    var file = this.files[0];
+    if (!file) { previewWrap.style.display = 'none'; return; }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      previewImg.src = e.target.result;
+      previewWrap.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+})();
+</script>
 {% endblock %}

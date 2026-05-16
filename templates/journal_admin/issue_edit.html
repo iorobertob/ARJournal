@@ -84,10 +84,18 @@
       </div>
       <div class="form-group">
         <label for="id_cover">Cover image</label>
-        <input type="file" name="cover_image" id="id_cover" accept="image/*" class="form-control">
         {% if issue.cover_image %}
-        <small style="color:var(--color-muted);font-size:var(--size-xs);">Current: {{ issue.cover_image.name }}</small>
+        <div class="cover-preview-wrap" id="cover-preview-wrap" style="display:block;margin-bottom:var(--spacing-2);">
+          <p class="cover-preview-label">Current cover</p>
+          <img id="cover-preview-img" src="{{ issue.cover_image.url }}" alt="Current cover image">
+        </div>
+        {% else %}
+        <div class="cover-preview-wrap" id="cover-preview-wrap">
+          <p class="cover-preview-label">Preview</p>
+          <img id="cover-preview-img" src="" alt="Cover image preview">
+        </div>
         {% endif %}
+        <input type="file" name="cover_image" id="id_cover" accept="image/*" class="form-control">
       </div>
     </div>
 
@@ -629,6 +637,27 @@
     }
   });
 
+})();
+</script>
+
+<script>
+(function () {
+  var coverInput  = document.getElementById('id_cover');
+  var previewWrap = document.getElementById('cover-preview-wrap');
+  var previewImg  = document.getElementById('cover-preview-img');
+  if (!coverInput || !previewWrap || !previewImg) return;
+
+  coverInput.addEventListener('change', function () {
+    var file = this.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      previewImg.src = e.target.result;
+      previewWrap.style.display = 'block';
+      previewWrap.querySelector('.cover-preview-label').textContent = 'New cover (not yet saved)';
+    };
+    reader.readAsDataURL(file);
+  });
 })();
 </script>
 

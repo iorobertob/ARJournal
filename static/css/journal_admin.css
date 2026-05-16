@@ -244,6 +244,77 @@ textarea.form-control {
   line-height: var(--leading-normal);
 }
 
+input[type="file"].form-control {
+  color: var(--color-muted);
+  padding: var(--spacing-2);
+  cursor: pointer;
+}
+
+input[type="file"].form-control::file-selector-button {
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--size-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  margin-right: var(--spacing-3);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+input[type="file"].form-control::file-selector-button:hover {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* ── Cover image thumbnail ──────────────────────────────────── */
+.cover-preview-wrap {
+  margin-top: var(--spacing-3);
+  display: none;
+}
+.cover-preview-wrap img {
+  display: block;
+  max-width: 180px;
+  max-height: 180px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  object-fit: cover;
+}
+.cover-preview-label {
+  font-size: var(--size-xs);
+  color: var(--color-muted);
+  margin-bottom: var(--spacing-1);
+}
+
+/* ── Draft-restore banner ───────────────────────────────────── */
+.draft-restore-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  border-radius: var(--radius);
+  margin-bottom: var(--spacing-4);
+  font-size: var(--size-sm);
+  color: #92400e;
+}
+.draft-restore-banner button {
+  flex-shrink: 0;
+  padding: var(--spacing-1) var(--spacing-3);
+  border: 1px solid #fbbf24;
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: var(--size-xs);
+  cursor: pointer;
+  font-weight: 600;
+  color: #92400e;
+}
+.draft-restore-banner button:hover { background: #fef3c7; }
+
 /* ── Checkbox option rows (role picker, toggles) ────────────── */
 .check-options {
   display: grid;

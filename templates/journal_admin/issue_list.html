@@ -10,6 +10,7 @@
 
 <div class="jadmin-card">
   {% if issues %}
+  <div class="table-responsive">
   <table class="jadmin-table">
     <thead>
       <tr>
@@ -46,6 +47,7 @@
     {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
   <div style="text-align:center;padding:var(--spacing-12);color:var(--color-muted);">
     <p style="font-size:var(--size-lg);margin-bottom:var(--spacing-4);">No issues created yet.</p>

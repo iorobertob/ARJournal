@@ -643,7 +643,7 @@
   position: fixed;
   bottom: var(--spacing-6);
   right: var(--spacing-6);
-  width: 340px;
+  width: min(340px, calc(100vw - 2rem));
   background: #fff;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 6px);
@@ -815,3 +815,18 @@
   align-items: center;
   justify-content: center;
 }
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .cite-form__row--half { flex-direction: column; }
+  .editor-layout { flex-direction: column; }
+  .editor-sidebar {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+  .fn-popover { right: var(--spacing-4); bottom: var(--spacing-4); }
+}
+

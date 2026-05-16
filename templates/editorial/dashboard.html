@@ -8,7 +8,7 @@
 <div class="dashboard-layout container">
   <div class="dashboard-header">
     <h1>Editorial Dashboard</h1>
-    <div style="display:flex;gap:var(--spacing-3);">
+    <div style="display:flex;gap:var(--spacing-3);flex-wrap:wrap;">
       {% if user.has_editorial_access %}
       <a href="{% url 'journal_admin_issues' %}" class="btn btn--secondary">Issues & Volumes</a>
       <a href="{% url 'journal_admin_dashboard' %}" class="btn btn--secondary">Journal Admin</a>

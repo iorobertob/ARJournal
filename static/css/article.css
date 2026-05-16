@@ -3,7 +3,9 @@
    Refined typography and layout for long-form academic content
    ============================================================ */
 
-.article-page { }
+.article-page {
+  overflow-x: hidden;
+}
 
 .article-layout {
   display: grid;
@@ -11,14 +13,17 @@
   gap: var(--spacing-12);
   padding: var(--spacing-10) var(--spacing-6);
   max-width: 1440px;
+  overflow-x: clip;
 }
 
 /* ── Sidebar ────────────────────────────────────────────────── */
 .article-sidebar {
+  min-width: 0;
   position: sticky;
   top: 80px;
   height: calc(100vh - 100px);
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: var(--spacing-4);
 }
 
@@ -159,7 +164,27 @@ p.article-meta-sidebar__label {
 .article-meta-sidebar__cite-btn:hover { color: var(--color-accent); }
 
 /* ── Main Article ───────────────────────────────────────────── */
-.article-main { min-width: 0; }
+.article-main { min-width: 0; overflow-x: hidden; }
+
+/* Force all media elements to respect the viewport — catches inline width attrs */
+.article-body img,
+.article-body video,
+.article-body audio,
+.article-body iframe,
+.article-body embed,
+.article-body object,
+.article-body-content img,
+.article-body-content video,
+.article-body-content iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent long words / URLs / unbroken strings from forcing horizontal scroll */
+.article-body-content {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
 
 .article-issue-label {
   font-family: var(--font-sans);
@@ -341,12 +366,14 @@ p.article-meta-sidebar__label {
 .media-placeholder--audio .media-placeholder__type { color: #10B981; }
 
 .article-table {
+  display: block;
+  width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin: var(--spacing-10) 0;
 }
 
 .article-table table {
-  width: 100%;
   border-collapse: collapse;
   font-size: var(--size-sm);
   font-family: var(--font-sans);
@@ -725,7 +752,21 @@ p.article-meta-sidebar__label {
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .article-layout { grid-template-columns: 1fr; }
-  .article-sidebar { position: static; height: auto; }
+  .article-layout {
+    grid-template-columns: 1fr;
+    padding: var(--spacing-6) var(--spacing-4);
+    gap: var(--spacing-8);
+  }
+  .article-sidebar {
+    position: static;
+    height: auto;
+    overflow-y: visible;
+    padding-right: 0;
+    order: -1;
+  }
   .para-num { display: none; }
+}
+
+@media (max-width: 600px) {
+  .article-layout { padding: var(--spacing-4); }
 }

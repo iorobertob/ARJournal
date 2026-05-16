@@ -1,5 +1,5 @@
 {% load static %}
-<header class="site-header" role="banner">
+<header class="site-header" role="banner" x-data="{ mobileOpen: false }">
   <nav class="site-nav container" aria-label="Main navigation">
     <a href="{% url 'home' %}" class="site-nav__logo">{{ journal.name }}</a>
     <ul class="site-nav__links" role="list">
@@ -78,7 +78,23 @@
     {% else %}
     <a href="{% url 'account_login' %}" class="site-nav__sign-in">Sign in</a>
     {% endif %}
+
+    <!-- Hamburger (mobile only) -->
+    <button class="site-nav__hamburger" @click="mobileOpen = !mobileOpen"
+            :aria-expanded="mobileOpen.toString()" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
   </nav>
+
+  <!-- Mobile nav drawer -->
+  <div class="site-nav__mobile-menu" x-show="mobileOpen" x-cloak x-transition>
+    <ul>
+      <li><a href="{% if current_issue %}{% url 'issue_detail' current_issue.number %}{% else %}{% url 'home' %}{% endif %}">Current Issue</a></li>
+      <li><a href="{% url 'archive' %}">Archive</a></li>
+      <li><a href="{% url 'about' %}">About</a></li>
+      <li><a href="{% url 'submit_info' %}" class="site-nav__cta-mobile">Submit</a></li>
+    </ul>
+  </div>
 </header>
 
 <script>

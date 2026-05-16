@@ -67,6 +67,7 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -77,6 +78,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 img { max-width: 100%; height: auto; display: block; }
@@ -294,7 +296,7 @@ p:last-child { margin-bottom: 0; }
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
-  width: 360px;
+  width: min(360px, calc(100vw - 1rem));
   background: var(--color-bg);
   border: 1px solid rgba(0,0,0,0.12);
   border-top: 3px solid var(--color-accent);
@@ -1232,10 +1234,74 @@ p:last-child { margin-bottom: 0; }
 
 @media (max-width: 600px) {
   :root { --size-4xl: 2.25rem; --size-3xl: 1.75rem; --size-5xl: 2.5rem; }
+  .site-nav { gap: var(--spacing-4); }
   .site-nav__links { display: none; }
+  .site-nav__hamburger { display: flex; }
+  .site-nav__notif { margin-left: auto; }
+  .site-nav__sign-in { margin-left: auto; }
   .archive-strip__grid { grid-template-columns: 1fr; }
   .archive-grid { grid-template-columns: 1fr; }
   .browse-section__paths { grid-template-columns: 1fr; }
   .archive-search__field { flex-direction: column; }
   .archive-search__input { min-width: 0; width: 100%; }
+}
+
+/* ── Table overflow utility ───────────────────────────────────── */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Mobile hamburger ─────────────────────────────────────────── */
+.site-nav__hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 22px;
+  height: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.site-nav__hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-text);
+  border-radius: 2px;
+}
+
+/* ── Mobile nav drawer ────────────────────────────────────────── */
+.site-nav__mobile-menu {
+  background: var(--color-bg);
+  border-bottom: 2px solid var(--color-accent);
+  padding: var(--spacing-2) 0 var(--spacing-4);
+}
+
+.site-nav__mobile-menu ul {
+  list-style: none;
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 var(--spacing-6);
+}
+
+.site-nav__mobile-menu li a {
+  display: block;
+  padding: var(--spacing-3) 0;
+  font-size: var(--size-base);
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-sans);
+}
+
+.site-nav__mobile-menu li:last-child a { border-bottom: none; }
+
+.site-nav__mobile-menu .site-nav__cta-mobile {
+  color: var(--color-accent);
+  font-weight: 500;
 }

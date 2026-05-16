@@ -34,6 +34,7 @@
 
 <div class="jadmin-card">
   <div class="jadmin-card__title">Users by role</div>
+  <div class="table-responsive">
   <table class="jadmin-table">
     <thead><tr><th>Role</th><th>Count</th></tr></thead>
     <tbody>
@@ -47,6 +48,7 @@
     {% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
 
 <div class="jadmin-card">
@@ -54,6 +56,7 @@
     <span>Recent registrations</span>
     <a href="{% url 'journal_admin_users' %}" class="btn btn-primary btn-sm">All users</a>
   </div>
+  <div class="table-responsive">
   <table class="jadmin-table">
     <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Joined</th><th></th></tr></thead>
     <tbody>
@@ -68,5 +71,6 @@
     {% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
 {% endblock %}

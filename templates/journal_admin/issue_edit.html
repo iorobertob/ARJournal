@@ -5,7 +5,7 @@
 {% block jadmin_content %}
 
 {# ── Header ───────────────────────────────────────────────────── #}
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-4);">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:var(--spacing-4);margin-bottom:var(--spacing-4);">
   <div>
     <a href="{% url 'journal_admin_issues' %}" style="font-size:var(--size-sm);color:var(--color-muted);text-decoration:none;">← All Issues</a>
     <h1 class="jadmin-page-title" style="margin-top:var(--spacing-2);">
@@ -104,7 +104,7 @@
 </div>
 
 {# ── Article Assembly ─────────────────────────────────────────── #}
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-6);">
+<div class="issue-assembly-grid">
 
   {# Assigned Articles #}
   <div class="jadmin-card">
@@ -329,6 +329,25 @@
   .jadmin-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   .section-row { transition: opacity 0.2s; }
+
+  /* ── Assembly grid layout ────────────────────────────────── */
+  .issue-assembly-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-6);
+  }
+
+  @media (max-width: 860px) {
+    .issue-assembly-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .issue-assembly-item { flex-wrap: wrap; align-items: flex-start; }
+    .issue-assembly-item__title { white-space: normal; overflow: visible; text-overflow: clip; }
+    .issue-assembly-item__section { width: 100%; }
+    .section-picker { max-width: 100%; }
+    .issue-assembly-item__actions { margin-left: auto; }
+  }
 </style>
 
 {# ── Script ───────────────────────────────────────────────────── #}

@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="workspace-layout">
+<div class="workspace-layout" x-data="{ mobilePanel: false }">
 
   <!-- Left nav -->
   <aside class="workspace-nav" aria-label="Manuscript navigation">
@@ -42,7 +42,10 @@
   <main class="workspace-main" id="manuscript-pane">
     <div class="workspace-main__toolbar">
       <span class="workspace-main__article-type">{{ submission.get_article_type_display }}</span>
-      <button class="btn btn--small btn--secondary" id="annotate-toggle">+ Annotate</button>
+      <div style="display:flex;gap:var(--spacing-2);align-items:center;">
+        <button class="btn btn--small btn--secondary" id="annotate-toggle">+ Annotate</button>
+        <button class="workspace-mobile-btn" @click="mobilePanel = !mobilePanel" aria-label="Open review form">Review Form</button>
+      </div>
     </div>
     <div class="workspace-article article-body-content" id="article-content" data-review-id="{{ review.pk }}">
       {% if article_html %}
@@ -82,7 +85,8 @@
   </main>
 
   <!-- Right panel: annotations + review form -->
-  <aside class="workspace-panel" x-data="{ tab: 'form' }">
+  <aside class="workspace-panel" :class="{ 'workspace-panel--open': mobilePanel }" x-data="{ tab: 'form' }">
+    <button class="workspace-panel__mobile-close" @click="mobilePanel = false">✕ Close</button>
     <div class="workspace-panel__tabs">
       <button class="workspace-panel__tab" :class="{ active: tab === 'form' }" @click="tab = 'form'">Review Form</button>
       <button class="workspace-panel__tab" :class="{ active: tab === 'annotations' }" @click="tab = 'annotations'">Annotations</button>

@@ -695,8 +695,26 @@ def parse_latex(tex_source: str, submission_metadata: dict | None = None) -> dic
     email = _extract_macro(tex_source, 'ARJemail') or ''
     orcid = _extract_macro(tex_source, 'ARJORCID') or ''
     article_type = _extract_macro(tex_source, 'ARJarticleType') or meta.get('article_type', '')
-    raw_keywords = _extract_macro(tex_source, 'ARJkeywords') or ''
-    keywords = [k.strip() for k in raw_keywords.split(';') if k.strip()]
+    # Submission form keywords are authoritative; \ARJkeywords is a fallback
+    # for the case where a manuscript was ingested without form metadata.
+    meta_keywords = meta.get('keywords', [])
+    if isinstance(meta_keywords, str):
+        meta_keywords = [k.strip() for k in meta_keywords.replace(';', ',').split(',') if k.strip()]
+    elif isinstance(meta_keywords, list):
+        # Normalize list items that contain comma-separated values into individual keywords
+        normalized = []
+        for k in meta_keywords:
+            if ',' in k:
+                normalized.extend(x.strip() for x in k.split(',') if x.strip())
+            else:
+                s = k.strip()
+                if s:
+                    normalized.append(s)
+        meta_keywords = normalized
+    if not meta_keywords:
+        raw_keywords = _extract_macro(tex_source, 'ARJkeywords') or ''
+        meta_keywords = [k.strip() for k in raw_keywords.split(';') if k.strip()]
+    keywords = meta_keywords
     funding = _extract_macro(tex_source, 'ARJfunding') or ''
     conflicts = _extract_macro(tex_source, 'ARJconflicts') or 'None declared.'
     license_pref = _extract_macro(tex_source, 'ARJlicense') or 'CC-BY'

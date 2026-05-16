@@ -382,11 +382,10 @@ def notify_reviewer_invited(invitation_pk):
         url=f'/review/invitation/{inv.magic_token}/',
     )
 
-    # ── In-app badge for assigned editors ────────────────────────────────────
+    # ── In-app badge for all editorial users ─────────────────────────────────
     try:
-        editors = _assigned_editors(inv.submission) or _editorial_users()
         _notify_editors_inapp(
-            editors,
+            _editorial_users(),
             'reviewer_invited',
             f'Invitation sent to {inv.reviewer.display_name} ({inv.reviewer.email}) for "{inv.submission.title[:50]}".',
             f'/editorial/submission/{inv.submission.pk}/',
@@ -438,10 +437,10 @@ def notify_review_submitted(review_pk):
         except Exception as exc:
             _log_email(editor.email, subject_editors, 'failed', str(exc))
 
-    # ── In-app badge for assigned editors ────────────────────────────────────
+    # ── In-app badge for all editorial users ─────────────────────────────────
     try:
         _notify_editors_inapp(
-            _assigned_editors(submission),
+            _editorial_users(),
             'review_submitted',
             f'Peer review submitted for "{submission.title[:55]}".',
             f'/editorial/submission/{submission.pk}/',
@@ -552,7 +551,7 @@ def notify_decision_sent(decision_pk):
             _log_email(editor.email, editor_subject, 'failed', str(exc))
     try:
         _notify_editors_inapp(
-            editors,
+            _editorial_users(),
             'decision_sent',
             f'Decision \u201c{decision_label}\u201d recorded for \u201c{submission.title[:50]}\u201d.',
             f'/editorial/submission/{submission.pk}/',
@@ -608,11 +607,10 @@ def notify_revision_submitted(revision_pk):
         except Exception as exc:
             _log_email(email, subject, 'failed', str(exc))
 
-    # In-app badge for assigned editors
+    # In-app badge for all editorial users
     try:
-        editors = _assigned_editors(submission)
         _notify_editors_inapp(
-            editors,
+            _editorial_users(),
             'revision_submitted',
             f'Revised manuscript received for "{submission.title[:55]}".',
             f'/editorial/submission/{submission.pk}/',
@@ -837,7 +835,7 @@ def notify_returned_to_author(submission_pk):
     # ── In-app badge for all editors ─────────────────────────────────────────
     try:
         _notify_editors_inapp(
-            _assigned_editors(sub) or _editorial_users(),
+            _editorial_users(),
             'returned_to_author',
             f'Submission returned for correction: "{sub.title[:55]}".',
             f'/editorial/submission/{sub.pk}/',
@@ -893,7 +891,7 @@ def notify_review_released(review_pk):
     # ── In-app badge for assigned editors ────────────────────────────────────
     try:
         _notify_editors_inapp(
-            _assigned_editors(submission) or _editorial_users(),
+            _editorial_users(),
             'review_released',
             f'Review released to author for "{submission.title[:55]}".',
             f'/editorial/submission/{submission.pk}/',
@@ -1148,7 +1146,7 @@ def notify_editors_reviewer_response(invitation_pk):
 
     try:
         _notify_editors_inapp(
-            editors or _editorial_users(),
+            _editorial_users(),
             notif_type,
             f'{reviewer_name} ({reviewer_email}) {verb} the review invitation for "{submission.title[:45]}".',
             f'/editorial/submission/{submission.pk}/',
@@ -1189,7 +1187,7 @@ def notify_editors_article_published(submission_pk):
 
     try:
         _notify_editors_inapp(
-            editors,
+            _editorial_users(),
             'published',
             f'"{sub.title[:60]}" is now live on the journal site.',
             f'/articles/{sub.slug}/',

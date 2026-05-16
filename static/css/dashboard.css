@@ -281,7 +281,33 @@
 }
 
 .form__textarea { resize: vertical; line-height: var(--leading-normal); }
-.form__file { font-size: var(--size-sm); }
+.form__file {
+  font-size: var(--size-sm);
+  font-family: var(--font-sans);
+  color: var(--color-muted);
+  width: 100%;
+  cursor: pointer;
+}
+
+.form__file::file-selector-button {
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--size-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  margin-right: var(--spacing-3);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.form__file::file-selector-button:hover {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
 
 .form__checkboxes {
   display: flex;

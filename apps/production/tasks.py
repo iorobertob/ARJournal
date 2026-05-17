@@ -35,7 +35,7 @@ def _pdf_url_fetcher(url):
     return default_url_fetcher(url)
 
 
-def _preprocess_html_for_pdf(html_content, interactive):
+def _preprocess_html_for_pdf(html_content, interactive, site_url=''):
     """
     Replace <video> and <audio> figures with PDF-safe markup and collect
     media metadata for the Screen-annotation post-processor.
@@ -53,11 +53,13 @@ def _preprocess_html_for_pdf(html_content, interactive):
                  audio in the background when clicked in Acrobat.
 
     Flat mode
-      <video> and <audio> → static labelled placeholder boxes, no links.
+      <video> and <audio> → styled placeholder boxes with active hyperlinks.
     """
     import mimetypes as _mt
+    from urllib.parse import urljoin as _urljoin
 
     media_items = []
+    _base = (site_url or '').rstrip('/')
 
     def _attr(html, name):
         m = re.search(rf'\b{name}="([^"]*)"', html)
@@ -66,6 +68,16 @@ def _preprocess_html_for_pdf(html_content, interactive):
     def _source_src(html):
         m = re.search(r'<source\s[^>]*src="([^"]*)"', html)
         return m.group(1) if m else ''
+
+    def _abs(src):
+        """Make a server-relative URL absolute so PDF links work when downloaded."""
+        if not src:
+            return src
+        if src.startswith(('http://', 'https://')):
+            return src
+        if _base:
+            return _urljoin(_base + '/', src.lstrip('/'))
+        return src
 
     def _figcaption(html):
         m = re.search(r'<figcaption[^>]*>(.*?)</figcaption>', html, re.DOTALL)
@@ -97,7 +109,7 @@ def _preprocess_html_for_pdf(html_content, interactive):
         html = m.group(0)
         fig_id = _attr(html, 'id')
         caption = _figcaption(html)
-        src = _source_src(html)
+        src = _abs(_source_src(html))
         poster = _attr(html, 'poster')
         cap_html = f'<figcaption>{caption}</figcaption>' if caption else ''
 
@@ -131,13 +143,15 @@ def _preprocess_html_for_pdf(html_content, interactive):
                 f'</div>{cap_html}</figure>{fallback}'
             )
 
-        # Flat mode: embed a clickable link directly in the placeholder box.
+        # Flat mode: styled placeholder with active hyperlink.
         if src:
+            fname = src.rstrip('/').rsplit('/', 1)[-1]
             return (
                 f'<figure id="{fig_id}" class="pdf-media-placeholder">'
                 f'<div class="pdf-media-box">'
                 f'<span class="pdf-media-icon">&#9654;</span>'
-                f' <a href="{src}" class="pdf-media-label" style="color:#E86B1F;">Video — open file</a>'
+                f'<span class="pdf-media-label">Video</span>'
+                f'<a href="{src}" class="pdf-media-filelink">{fname}</a>'
                 f'</div>{cap_html}</figure>'
             )
         return _placeholder_box(fig_id, '▶', 'Video', caption)
@@ -146,7 +160,7 @@ def _preprocess_html_for_pdf(html_content, interactive):
         html = m.group(0)
         fig_id = _attr(html, 'id')
         caption = _figcaption(html)
-        src = _source_src(html)
+        src = _abs(_source_src(html))
         cap_html = f'<figcaption>{caption}</figcaption>' if caption else ''
 
         if interactive:
@@ -165,13 +179,15 @@ def _preprocess_html_for_pdf(html_content, interactive):
                 f'</div>{cap_html}</figure>{fallback}'
             )
 
-        # Flat mode: embed a clickable link directly in the placeholder box.
+        # Flat mode: styled placeholder with active hyperlink.
         if src:
+            fname = src.rstrip('/').rsplit('/', 1)[-1]
             return (
                 f'<figure id="{fig_id}" class="pdf-media-placeholder">'
                 f'<div class="pdf-media-box">'
                 f'<span class="pdf-media-icon">&#9835;</span>'
-                f' <a href="{src}" class="pdf-media-label" style="color:#E86B1F;">Audio — open file</a>'
+                f'<span class="pdf-media-label">Audio</span>'
+                f'<a href="{src}" class="pdf-media-filelink">{fname}</a>'
                 f'</div>{cap_html}</figure>'
             )
         return _placeholder_box(fig_id, '&#9835;', 'Audio', caption)
@@ -674,18 +690,121 @@ def generate_pdf(export_pk):
     submission = export.document.revision.submission
     interactive = (export.mode == 'interactive')
 
-    # CSS variables and base typography (no web fonts — WeasyPrint can't fetch them)
-    base_css = """
-    :root {
-      --color-text: #1A1A1A;
-      --color-muted: #6B6B6B;
-      --color-accent: #E86B1F;
-      --color-border: #E5E5E5;
-    }
-    @page {
-      margin: 2.5cm 2cm 2.5cm 2cm;
-      @bottom-center { content: counter(page); font-size: 9pt; color: #999; }
-    }
+    # ── Gather metadata ──────────────────────────────────────────
+    from apps.journal.models import JournalConfig as _JC
+    _journal  = _JC.objects.first()
+    _jname    = _journal.name    if _journal else 'Trans/Act'
+    _issn_p   = _journal.issn_print   if _journal else ''
+    _issn_o   = _journal.issn_online  if _journal else ''
+
+    _doi = ''
+    try:
+        _doi = export.document.doi_deposit.doi or ''
+    except Exception:
+        pass
+
+    _author      = submission.author
+    _author_name = html_lib.escape(_author.display_name)
+    _orcid       = html_lib.escape(_author.orcid_id or '')
+    _institution = _dept = _country = ''
+    try:
+        _prof = _author.profile
+        _institution = html_lib.escape(_prof.institution or '')
+        _dept        = html_lib.escape(_prof.department  or '')
+        _country     = html_lib.escape(_prof.country     or '')
+    except Exception:
+        pass
+
+    _issue      = submission.issue
+    _vol        = str(_issue.volume) if _issue else ''
+    _num        = str(_issue.number) if _issue else ''
+    _year       = str(_issue.year)   if _issue else ''
+    _issue_title = html_lib.escape(_issue.title or '') if _issue else ''
+
+    _article_type = ''
+    if hasattr(submission, 'get_article_type_display'):
+        _article_type = submission.get_article_type_display()
+
+    _abstract = html_lib.escape(submission.abstract or '')
+    _keywords = ' · '.join(submission.keywords or [])
+
+    # Running-header short strings for page margins
+    _name_parts = _author.display_name.split()
+    _short_auth = _name_parts[-1] if len(_name_parts) > 1 else _author.display_name
+    _ttl_max    = 52
+    _short_ttl  = submission.title[:_ttl_max] + ('…' if len(submission.title) > _ttl_max else '')
+
+    # Footer left: prefer DOI → online ISSN → print ISSN → journal name
+    if _doi:
+        _footer_l = f'https://doi.org/{_doi}'
+    elif _issn_o:
+        _footer_l = f'e-ISSN {_issn_o}'
+    elif _issn_p:
+        _footer_l = f'ISSN {_issn_p}'
+    else:
+        _footer_l = _jname
+
+    _copyright = f'© {_year} {_short_auth}' if _year else f'© {_short_auth}'
+
+    def _css_str(s):
+        """Escape a value for use inside a CSS single-quoted content: string."""
+        return s.replace('\\', '\\\\').replace("'", "\\'")
+
+    # ── @page rules — running header + footer on all pages ───────
+    _page_css = f"""
+    @page {{
+      margin: 2.5cm 2cm 2.8cm 2cm;
+
+      @top-left {{
+        content: '{_css_str(_jname)}';
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 7.5pt; color: #999;
+        border-bottom: 0.5pt solid #D0D0D0;
+        padding-bottom: 5pt; vertical-align: bottom;
+        width: 52%;
+      }}
+      @top-right {{
+        content: '{_css_str(_short_auth)} — “{_css_str(_short_ttl)}”';
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 7.5pt; color: #999; font-style: italic;
+        border-bottom: 0.5pt solid #D0D0D0;
+        padding-bottom: 5pt; vertical-align: bottom;
+        text-align: right; width: 48%;
+      }}
+      @bottom-left {{
+        content: '{_css_str(_footer_l)}';
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 7pt; color: #aaa;
+        border-top: 0.5pt solid #D0D0D0;
+        padding-top: 5pt; vertical-align: top;
+        width: 42%;
+      }}
+      @bottom-center {{
+        content: counter(page) " / " counter(pages);
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 8.5pt; color: #888;
+        border-top: 0.5pt solid #D0D0D0;
+        padding-top: 5pt; vertical-align: top;
+        text-align: center; width: 16%;
+      }}
+      @bottom-right {{
+        content: '{_css_str(_copyright)}';
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 7pt; color: #aaa;
+        border-top: 0.5pt solid #D0D0D0;
+        padding-top: 5pt; vertical-align: top;
+        text-align: right; width: 42%;
+      }}
+    }}
+    /* First page: title block replaces running header */
+    @page :first {{
+      @top-left  {{ content: ''; border: none; padding: 0; }}
+      @top-right {{ content: ''; border: none; padding: 0; }}
+    }}
+    """
+
+    # ── Body / element styles (static — no f-string) ─────────────
+    _body_css = """
     * { box-sizing: border-box; }
     body {
       font-family: Georgia, 'Times New Roman', serif;
@@ -695,52 +814,124 @@ def generate_pdf(export_pk):
       margin: 0;
       text-align: justify;
     }
-    .pdf-header {
-      border-bottom: 2px solid #E86B1F;
-      padding-bottom: 1.5rem;
-      margin-bottom: 2rem;
+
+    /* ── Cover / title page ──────────────────────────── */
+    .pdf-cover { margin-bottom: 2.2rem; }
+    .pdf-cover__journal-bar {
+      padding-bottom: 0.4rem;
+      border-bottom: 2pt solid #E86B1F;
+      margin-bottom: 1.4rem;
+      overflow: hidden;
     }
-    .pdf-issue { font-size: 9pt; color: #6B6B6B; margin-bottom: 0.4rem; }
-    .pdf-title { font-size: 22pt; line-height: 1.2; margin-bottom: 0.5rem; font-weight: bold; }
-    .pdf-subtitle { font-size: 13pt; color: #555; margin-bottom: 0.5rem; font-style: italic; }
-    .pdf-author { font-size: 11pt; color: #444; font-family: Helvetica, Arial, sans-serif; }
-    /* Article body */
+    .pdf-cover__journal-name {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 9pt; font-weight: bold;
+      color: #E86B1F; letter-spacing: 0.03em;
+      float: left;
+    }
+    .pdf-cover__issue-ref {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 8.5pt; color: #888;
+      float: right;
+    }
+    .pdf-cover__article-type {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 7.5pt; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: #E86B1F; margin: 0 0 0.8rem;
+    }
+    .pdf-cover__title {
+      font-size: 22pt; font-weight: bold;
+      line-height: 1.18; color: #111;
+      margin: 0 0 0.5rem; text-align: left;
+    }
+    .pdf-cover__subtitle {
+      font-size: 13.5pt; font-style: italic;
+      color: #555; margin: 0 0 1.2rem; text-align: left;
+    }
+    .pdf-cover__author-name {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 11pt; font-weight: 600;
+      color: #222; margin: 0 0 0.18rem;
+    }
+    .pdf-cover__author-affil {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 9.5pt; font-style: italic;
+      color: #666; margin: 0 0 0.12rem;
+    }
+    .pdf-cover__author-orcid {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 8.5pt; color: #999; margin: 0 0 0.8rem;
+    }
+    .pdf-cover__author-orcid a { color: #999; text-decoration: none; }
+    .pdf-cover__ids {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 9pt; color: #666;
+      margin: 0.2rem 0 0;
+    }
+    .pdf-cover__ids span { margin-right: 1.6rem; }
+    .pdf-cover__ids a { color: #E86B1F; text-decoration: none; }
+    .pdf-cover__rule {
+      border: none; border-top: 0.75pt solid #D0D0D0;
+      margin: 1.1rem 0 1rem;
+    }
+    .pdf-cover__abs-label {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 7.5pt; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: #999; margin: 0 0 0.3rem;
+    }
+    .pdf-cover__abstract {
+      border-left: 2.5pt solid #E86B1F;
+      padding-left: 0.9rem;
+      font-size: 10pt; line-height: 1.6;
+      color: #333; margin-bottom: 0.65rem;
+      text-align: justify;
+    }
+    .pdf-cover__keywords {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 9pt; color: #555; margin: 0;
+    }
+    .pdf-cover__keywords strong { color: #333; }
+    .pdf-cover__bottom-rule {
+      border: none; border-top: 2pt solid #E86B1F;
+      margin: 1.4rem 0 0;
+    }
+
+    /* ── Article body ────────────────────────────────── */
     .article-body { margin: 0; }
-    .article-abstract { border-left: 3px solid #E86B1F; padding-left: 1rem; margin: 1.5rem 0; }
-    .article-abstract h2 { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.05em; color: #6B6B6B; margin-bottom: 0.4rem; }
-    .article-abstract p { font-size: 10pt; color: #444; }
-    .article-authors { font-size: 10pt; color: #6B6B6B; margin-bottom: 1rem; }
+    /* Suppress rendered abstract/keywords/authors in body —
+       they are already displayed in the cover block above  */
+    .article-abstract { display: none; }
+    .article-keywords { display: none; }
+    .article-authors  { display: none; }
     h1 { font-size: 16pt; margin: 2rem 0 0.8rem; text-align: left; }
     h2 { font-size: 13pt; margin: 1.6rem 0 0.6rem; text-align: left; }
     h3 { font-size: 11pt; margin: 1.2rem 0 0.4rem; text-align: left; }
     p { margin: 0 0 0.8rem; }
     figure { margin: 1.5rem 0; text-align: center; }
-    figcaption { font-size: 9pt; color: #6B6B6B; margin-top: 0.4rem; font-style: italic; text-align: center; }
+    figcaption { font-size: 9pt; color: #6B6B6B; margin-top: 0.4rem;
+                 font-style: italic; text-align: center; }
     img { max-width: 100%; height: auto; }
     table { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: 10pt; }
-    th { background: #f5f5f5; border-bottom: 2px solid #E5E5E5; padding: 0.4rem 0.6rem; text-align: left; }
+    th { background: #f5f5f5; border-bottom: 2px solid #E5E5E5;
+         padding: 0.4rem 0.6rem; text-align: left; }
     td { border-bottom: 1px solid #E5E5E5; padding: 0.4rem 0.6rem; text-align: left; }
     a { color: #E86B1F; text-decoration: none; }
-    /* Blockquotes — 0.5 inch indent both sides, no quotation marks */
     .article-blockquote {
-      margin-left: 36pt;
-      margin-right: 36pt;
-      font-style: italic;
-      color: #444;
+      margin-left: 36pt; margin-right: 36pt;
+      font-style: italic; color: #444;
     }
     .article-blockquote p { margin: 0; }
-    /* Inline citations */
     .article-cite { color: #1A1A1A; text-decoration: none; }
     /* Footnotes — WeasyPrint float: footnote places them at page bottom */
     .fn-wrap { display: inline; }
-    .fn-ref-num { font-size: 0.7em; vertical-align: super; color: #E86B1F; font-weight: bold; line-height: 0; }
+    .fn-ref-num { font-size: 0.7em; vertical-align: super;
+                  color: #E86B1F; font-weight: bold; line-height: 0; }
     .fn-note { float: footnote; font-size: 9pt; color: #444; line-height: 1.4; }
     .fn-note__num { font-weight: bold; color: #E86B1F; margin-right: 0.2em; }
-    /* Hide the bottom footnotes section in PDF (WeasyPrint handles via float: footnote) */
     .article-footnotes { display: none; }
-    /* Hide paragraph anchor numbers — used for reviewer targeting, not visible in PDF */
     .para-num { display: none; }
-    /* Verbatim / inline code */
     pre.article-verbatim {
       background: #f5f5f5; border: 1px solid #E5E5E5; border-radius: 3px;
       padding: 0.5rem 0.7rem; margin: 0.8rem 0;
@@ -749,21 +940,25 @@ def generate_pdf(export_pk):
     pre.article-verbatim code { background: none; padding: 0; font-size: inherit; }
     code { font-family: Courier, 'Courier New', monospace; font-size: 0.88em;
            background: #f5f5f5; padding: 0.1em 0.2em; border-radius: 2px; }
-    /* Lists */
     .article-list { margin: 0.5rem 0 0.8rem 1.4rem; padding: 0; }
     .article-list li { margin-bottom: 0.25rem; line-height: 1.55; }
-    /* Description lists */
     .article-dl { margin: 0.5rem 0 0.8rem; }
     .article-dl dt { font-weight: bold; margin-top: 0.4rem; }
     .article-dl dd { margin-left: 1.5rem; margin-bottom: 0.2rem; }
-    /* Bibliography */
-    .article-bibliography { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #E5E5E5; }
-    .article-bibliography h2 { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.05em; color: #6B6B6B; margin-bottom: 0.6rem; }
+    .article-bibliography { margin-top: 2rem; padding-top: 1rem;
+                             border-top: 1px solid #E5E5E5; }
+    .article-bibliography h2 { font-size: 10pt; text-transform: uppercase;
+                                letter-spacing: 0.05em; color: #6B6B6B;
+                                margin-bottom: 0.6rem; }
     .article-bibliography__list { list-style: none; padding: 0; margin: 0; }
-    .bibliography-item { font-size: 9pt; margin-bottom: 0.5rem; padding-left: 1.2em; text-indent: -1.2em; line-height: 1.45; }
+    .bibliography-item { font-size: 9pt; margin-bottom: 0.5rem;
+                         padding-left: 1.2em; text-indent: -1.2em;
+                         line-height: 1.45; }
     .bib-title { font-style: italic; }
     .article-bibliography__note { font-size: 9pt; color: #6B6B6B; font-style: italic; }
     """
+
+    base_css = _page_css + _body_css
 
     bookmark_css = """
     h1 { bookmark-level: 1; bookmark-label: content(); }
@@ -774,7 +969,6 @@ def generate_pdf(export_pk):
     """ if interactive else ""
 
     media_placeholder_css = """
-    /* Video / audio placeholder boxes */
     .pdf-media-placeholder { margin: 1.5rem 0 0.25rem; }
     .pdf-media-box {
       display: block;
@@ -783,40 +977,105 @@ def generate_pdf(export_pk):
       background: #FAFAFA;
       padding: 0.6rem 1rem;
       font-family: Helvetica, Arial, sans-serif;
-      font-size: 10pt;
-      color: #6B6B6B;
+      font-size: 10pt; color: #6B6B6B;
     }
     .pdf-media-icon { font-size: 11pt; margin-right: 0.3em; }
-    .pdf-media-label { font-style: italic; }
-    /* Fallback link rendered outside the figure (below Screen annotation rect) */
+    .pdf-media-label { font-style: italic; margin-right: 0.4em; }
+    .pdf-media-filelink {
+      color: #E86B1F;
+      font-style: normal;
+      font-size: 9pt;
+      word-break: break-all;
+    }
     .pdf-media-link {
       font-family: Helvetica, Arial, sans-serif;
-      font-size: 8pt;
-      color: #999;
-      margin: 0 0 1.2rem 0;
+      font-size: 8pt; color: #999; margin: 0 0 1.2rem 0;
     }
     .pdf-media-link a { color: #E86B1F; }
     """
 
     # Pre-process HTML: replace <video>/<audio> with PDF-safe equivalents
-    # and collect media metadata for Screen annotation post-processing.
-    article_html, media_items = _preprocess_html_for_pdf(build.html_content, interactive)
+    from django.conf import settings as _djsettings
+    article_html, media_items = _preprocess_html_for_pdf(
+        build.html_content, interactive, site_url=_djsettings.SITE_URL
+    )
 
-    # Fallback: if the HTML-based extraction found no media (happens when
-    # original_filename in the DB doesn't match originalFilename in canonical
-    # JSON — e.g. test data uploaded before the filename-preservation fix),
-    # reconstruct media_items directly from canonical JSON + SubmissionAssets.
     if interactive and not media_items:
         media_items = _collect_media_items_from_assets(export.document, submission)
 
-    # Metadata header
-    issue_line = ''
-    if submission.issue:
-        issue_line = f'<p class="pdf-issue">Issue #{submission.issue.number} · Vol. {submission.issue.volume} · {submission.issue.year}</p>'
+    # ── Build cover / title-page block ───────────────────────────
+    # Issue / volume / year bar
+    _issue_parts = []
+    if _vol:
+        _issue_parts.append(f'Vol.&#8239;{html_lib.escape(_vol)}')
+    if _num:
+        _issue_parts.append(f'No.&#8239;{html_lib.escape(_num)}')
+    if _year:
+        _issue_parts.append(html_lib.escape(_year))
+    _issue_ref = ' &middot; '.join(_issue_parts)
+    if _issue_title:
+        _issue_ref += f' &mdash; {_issue_title}'
 
-    subtitle_line = ''
-    if submission.subtitle:
-        subtitle_line = f'<p class="pdf-subtitle">{html_lib.escape(submission.subtitle)}</p>'
+    # Affiliation line: Institution [, Department] [, Country]
+    _affil_parts = [p for p in (_institution, _dept, _country) if p]
+    _affil_line  = (
+        f'<p class="pdf-cover__author-affil">{", ".join(_affil_parts)}</p>'
+        if _affil_parts else ''
+    )
+    _orcid_line = (
+        f'<p class="pdf-cover__author-orcid">ORCID:&#8239;'
+        f'<a href="https://orcid.org/{_orcid}">{_orcid}</a></p>'
+        if _orcid else ''
+    )
+
+    # Identifiers row: DOI, ISSNs
+    _id_spans = []
+    if _doi:
+        _id_spans.append(
+            f'<span class="pdf-cover__doi">'
+            f'DOI:&#8239;<a href="https://doi.org/{html_lib.escape(_doi)}">'
+            f'{html_lib.escape(_doi)}</a></span>'
+        )
+    if _issn_p:
+        _id_spans.append(f'<span>ISSN&#8239;{html_lib.escape(_issn_p)} (print)</span>')
+    if _issn_o:
+        _id_spans.append(f'<span>ISSN&#8239;{html_lib.escape(_issn_o)} (online)</span>')
+    _ids_html = (
+        f'<p class="pdf-cover__ids">{"".join(_id_spans)}</p>'
+        if _id_spans else ''
+    )
+
+    # Abstract + keywords block (only if abstract text is available)
+    if _abstract:
+        _abs_block = (
+            f'<hr class="pdf-cover__rule">'
+            f'<p class="pdf-cover__abs-label">Abstract</p>'
+            f'<div class="pdf-cover__abstract"><p>{_abstract}</p></div>'
+        )
+        _kw_line = (
+            f'<p class="pdf-cover__keywords">'
+            f'<strong>Keywords:</strong>&#8239;{html_lib.escape(_keywords)}</p>'
+            if _keywords else ''
+        )
+    else:
+        _abs_block = _kw_line = ''
+
+    _cover_html = f"""<div class="pdf-cover">
+  <div class="pdf-cover__journal-bar">
+    <span class="pdf-cover__journal-name">{html_lib.escape(_jname)}</span>
+    {'<span class="pdf-cover__issue-ref">' + _issue_ref + '</span>' if _issue_ref else ''}
+  </div>
+  {'<p class="pdf-cover__article-type">' + html_lib.escape(_article_type) + '</p>' if _article_type else ''}
+  <h1 class="pdf-cover__title">{html_lib.escape(submission.title)}</h1>
+  {'<p class="pdf-cover__subtitle">' + html_lib.escape(submission.subtitle) + '</p>' if submission.subtitle else ''}
+  <p class="pdf-cover__author-name">{_author_name}</p>
+  {_affil_line}
+  {_orcid_line}
+  {_ids_html}
+  {_abs_block}
+  {_kw_line}
+  <hr class="pdf-cover__bottom-rule">
+</div>"""
 
     html_doc = f"""<!DOCTYPE html>
 <html lang="{html_lib.escape(submission.language)}">
@@ -826,12 +1085,7 @@ def generate_pdf(export_pk):
 <style>{base_css}{bookmark_css}{media_placeholder_css}</style>
 </head>
 <body>
-<div class="pdf-header">
-  {issue_line}
-  <h1 class="pdf-title">{html_lib.escape(submission.title)}</h1>
-  {subtitle_line}
-  <p class="pdf-author">{html_lib.escape(submission.author.display_name)}</p>
-</div>
+{_cover_html}
 {article_html}
 </body>
 </html>"""

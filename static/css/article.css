@@ -443,7 +443,7 @@ p.article-meta-sidebar__label {
   font-weight: 600;
   line-height: 0;
   vertical-align: super;
-  cursor: default;
+  cursor: pointer;
 }
 
 /* Default (narrow): hide inline sidenotes */

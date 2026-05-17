@@ -441,5 +441,23 @@ function doCopy(fmt, btn) {
   }
   window.addEventListener('hashchange', flash);
 })();
+
+// Footnote number click → scroll to the matching entry in the Notes section.
+// The inline .fn-note sidenote shares id="fn-{n}" with the list item, so we
+// query within .article-footnotes specifically to skip the hidden sidenote span.
+(function () {
+  document.querySelectorAll('.fn-ref-num').forEach(function (sup) {
+    sup.addEventListener('click', function () {
+      var num = (this.id || '').replace('fnref-', '');
+      if (!num) return;
+      var footnotes = document.querySelector('.article-footnotes');
+      var target = footnotes && footnotes.querySelector('#fn-' + num);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target.classList.add('anchor-highlight');
+      setTimeout(function () { target.classList.remove('anchor-highlight'); }, 2200);
+    });
+  });
+})();
 </script>
 {% endblock %}

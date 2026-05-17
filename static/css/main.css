@@ -1244,6 +1244,20 @@ p:last-child { margin-bottom: 0; }
   .browse-section__paths { grid-template-columns: 1fr; }
   .archive-search__field { flex-direction: column; }
   .archive-search__input { min-width: 0; width: 100%; }
+
+  /* Notification dropdown: anchor to viewport right edge, not the bell button */
+  .notif-dropdown {
+    position: fixed;
+    top: 57px;
+    right: 0.5rem;
+    left: auto;
+    width: calc(100vw - 1rem);
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .notif-dropdown__list {
+    max-height: none;
+  }
 }
 
 /* ── Table overflow utility ───────────────────────────────────── */

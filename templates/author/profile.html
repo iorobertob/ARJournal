@@ -125,7 +125,26 @@
       </div>
       <div style="text-align:center;">
         <div style="font-size:1.4rem;font-family:var(--font-serif);font-weight:600;color:var(--color-text);">{{ reviewer_profile.quality_score|floatformat:1 }}</div>
-        <div style="font-size:0.72rem;color:var(--color-muted);text-transform:uppercase;letter-spacing:0.06em;">Quality score</div>
+        <div style="font-size:0.72rem;color:var(--color-muted);text-transform:uppercase;letter-spacing:0.06em;display:flex;align-items:center;justify-content:center;gap:3px;">
+          Quality score
+          <span x-data="{ open: false }" style="position:relative;display:inline-flex;align-items:center;">
+            <button @mouseenter="open=true" @mouseleave="open=false" @focus="open=true" @blur="open=false"
+                    type="button"
+                    style="background:none;border:none;padding:0;cursor:pointer;line-height:1;color:var(--color-muted);font-size:0.75rem;display:flex;align-items:center;">ⓘ</button>
+            <span x-show="open" x-cloak
+                  style="position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+                         background:#1e1e1e;color:#e8e8e8;
+                         font-size:0.72rem;font-weight:400;font-family:var(--font-sans);
+                         text-transform:none;letter-spacing:0;line-height:1.5;
+                         padding:var(--spacing-3) var(--spacing-4);border-radius:var(--radius);
+                         width:210px;white-space:normal;text-align:left;
+                         box-shadow:0 4px 16px rgba(0,0,0,0.25);z-index:200;pointer-events:none;">
+              Average self-reported expertise rating across completed reviews (1–5 scale, normalised to 0–1). A higher score reflects greater subject-matter expertise. Updates automatically after each review.
+              <span style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);
+                           width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid #1e1e1e;"></span>
+            </span>
+          </span>
+        </div>
       </div>
     </div>
   </div>

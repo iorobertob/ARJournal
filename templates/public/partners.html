@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Partners — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<section class="container about">
+  <h1 class="page-title">Partners</h1>
+  <div class="prose">
+    {% if journal.footer_partners %}
+    {{ journal.footer_partners|linebreaks }}
+    {% else %}
+    <p style="color: var(--color-muted);">Partner information will be published here soon.</p>
+    {% endif %}
+    {% if journal.publisher %}<p>Published by {{ journal.publisher }}.</p>{% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Imprint — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<section class="container about">
+  <h1 class="page-title">Imprint</h1>
+  <div class="prose">
+    {% if journal.imprint %}
+    {{ journal.imprint|linebreaks }}
+    {% else %}
+    <p style="color: var(--color-muted);">Imprint information will be published here soon.</p>
+    {% endif %}
+    {% if journal.issn_online %}<p>ISSN (online): {{ journal.issn_online }}</p>{% endif %}
+    {% if journal.issn_print %}<p>ISSN (print): {{ journal.issn_print }}</p>{% endif %}
+    {% if journal.publisher %}<p>Publisher: {{ journal.publisher }}</p>{% endif %}
+  </div>
+</section>
+{% endblock %}

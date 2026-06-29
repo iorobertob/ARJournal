@@ -1,9 +1,12 @@
+import random
+
 from django.db import models
+from django.utils import timezone
 
 
 class JournalConfig(models.Model):
     """Singleton model — journal-wide configuration, editable from admin dashboard."""
-    name = models.CharField(max_length=255, default='Trans/Act')
+    name = models.CharField(max_length=255, default='IN/ACT')
     tagline = models.CharField(max_length=500, blank=True, default='')
     description = models.TextField(blank=True, default='')
     issn_print = models.CharField(max_length=20, blank=True, default='')
@@ -34,6 +37,23 @@ class JournalConfig(models.Model):
     about_text = models.TextField(blank=True, default='')
     mission_text = models.TextField(blank=True, default='')
     methodology_text = models.TextField(blank=True, default='')
+    news_text = models.TextField(blank=True, default='', help_text='Content of the public News page')
+
+    # ── Homepage (admin-managed content) ───────────────────────
+    home_hero_image = models.ImageField(
+        upload_to='homepage/', blank=True, null=True,
+        help_text='Large image shown top-right on the homepage (falls back to the current issue cover)')
+    home_hero_caption = models.CharField(max_length=500, blank=True, default='')
+    contribute_image = models.ImageField(
+        upload_to='homepage/', blank=True, null=True,
+        help_text='Image shown in the "Contribute" section of the homepage')
+    contribute_caption = models.CharField(max_length=500, blank=True, default='')
+    contribute_text = models.TextField(
+        blank=True, default='',
+        help_text='Text of the "Contribute" section on the homepage')
+    featured_rotation_months = models.PositiveSmallIntegerField(
+        default=6,
+        help_text='How long a homepage "Across the archive" selection stays before rotating (months)')
 
     # ── Email ──────────────────────────────────────────────────
     email_from_name = models.CharField(max_length=255, blank=True, default='')
@@ -154,6 +174,75 @@ class Section(models.Model):
 
     def __str__(self):
         return f'{self.name}'
+
+
+class FeaturedSelection(models.Model):
+    """One period of featured articles for the homepage "Across the archive" section.
+
+    Editors pick articles manually for a period; when it expires, random
+    published articles are selected automatically for another period of the
+    same (configurable) length, repeating until a new manual selection is made.
+    """
+    KIND_MANUAL = 'manual'
+    KIND_AUTO = 'auto'
+    kind = models.CharField(
+        max_length=10,
+        choices=[(KIND_MANUAL, 'Manual'), (KIND_AUTO, 'Automatic')],
+        default=KIND_AUTO,
+    )
+    articles = models.ManyToManyField('production.HTMLBuild', blank=True, related_name='featured_in')
+    starts_at = models.DateTimeField(default=timezone.now)
+    ends_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    NUM_FEATURED = 4
+
+    class Meta:
+        ordering = ['-starts_at']
+
+    def __str__(self):
+        return f'{self.get_kind_display()} selection {self.starts_at:%Y-%m-%d} → {self.ends_at:%Y-%m-%d}'
+
+    @property
+    def is_active(self):
+        now = timezone.now()
+        return self.starts_at <= now < self.ends_at
+
+    @classmethod
+    def _period_end(cls, start):
+        months = JournalConfig.get().featured_rotation_months or 6
+        # add N months without external deps
+        month = start.month - 1 + months
+        year = start.year + month // 12
+        month = month % 12 + 1
+        import calendar
+        day = min(start.day, calendar.monthrange(year, month)[1])
+        return start.replace(year=year, month=month, day=day)
+
+    @classmethod
+    def start_manual(cls, builds):
+        """Replace the current selection with a manual one starting now."""
+        now = timezone.now()
+        cls.objects.filter(ends_at__gt=now).update(ends_at=now)
+        sel = cls.objects.create(kind=cls.KIND_MANUAL, starts_at=now, ends_at=cls._period_end(now))
+        sel.articles.set(builds)
+        return sel
+
+    @classmethod
+    def current(cls):
+        """Return the active selection, rotating in a random one if expired."""
+        from apps.production.models import HTMLBuild
+        now = timezone.now()
+        sel = cls.objects.filter(starts_at__lte=now, ends_at__gt=now).first()
+        if sel:
+            return sel
+        published = list(HTMLBuild.objects.filter(is_published=True).values_list('pk', flat=True))
+        if not published:
+            return None
+        picks = random.sample(published, min(cls.NUM_FEATURED, len(published)))
+        sel = cls.objects.create(kind=cls.KIND_AUTO, starts_at=now, ends_at=cls._period_end(now))
+        sel.articles.set(picks)
+        return sel
 
 
 class EditorialBoardMember(models.Model):

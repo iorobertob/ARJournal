@@ -10,7 +10,7 @@ def _sync_site(sender, **kwargs):
         domain = urlparse(getattr(settings, 'SITE_URL', '')).netloc or 'localhost'
         Site.objects.update_or_create(
             pk=getattr(settings, 'SITE_ID', 1),
-            defaults={'domain': domain, 'name': 'Trans/Act'},
+            defaults={'domain': domain, 'name': 'IN/ACT'},
         )
     except Exception:
         pass

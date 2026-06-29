@@ -64,7 +64,10 @@
     <!-- ── Main editing area ───────────────────────────────────────── -->
     <div class="editor-main">
       <div class="editor-header">
-        <h1 class="editor-header__title">{{ submission.title }}</h1>
+        <h1 class="editor-header__title" id="editor-title"
+            contenteditable="plaintext-only" spellcheck="true"
+            role="textbox" aria-label="Article title — click to edit"
+            title="Click to edit the article title">{{ submission.title }}</h1>
         <span id="editor-status" class="editor-status" data-status="ok">Saved</span>
       </div>
 
@@ -467,6 +470,7 @@ TransActEditor.init({
   const CSRF      = "{{ csrf_token }}";
   const statusEl  = document.getElementById('metadata-status');
   const titleEl   = document.getElementById('meta-title');
+  const headerEl  = document.getElementById('editor-title');
   let metaTimer   = null;
 
   function setMetaStatus(msg) {
@@ -512,6 +516,44 @@ TransActEditor.init({
       if (el) el.addEventListener('input', debounceMetaSave);
       if (el && el.tagName === 'SELECT') el.addEventListener('change', debounceMetaSave);
     });
+
+  // ── Inline-editable title above the editor canvas ──────────────────
+  // Two-way sync with the metadata panel's Title field; same auto-save.
+  if (headerEl && titleEl) {
+    headerEl.addEventListener('input', () => {
+      titleEl.value = headerEl.textContent.replace(/\n/g, ' ');
+      debounceMetaSave();
+    });
+
+    // Single-line behaviour: Enter commits instead of inserting a newline
+    headerEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); headerEl.blur(); }
+      if (e.key === 'Escape') { headerEl.textContent = titleEl.value; headerEl.blur(); }
+    });
+
+    // Paste as plain single-line text (covers browsers without plaintext-only)
+    headerEl.addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData)
+        .getData('text/plain').replace(/\s+/g, ' ');
+      document.execCommand('insertText', false, text);
+    });
+
+    // Don't allow committing an empty title — restore the last saved one
+    headerEl.addEventListener('blur', () => {
+      const text = headerEl.textContent.trim();
+      if (!text) {
+        headerEl.textContent = titleEl.value || 'Untitled';
+      } else if (headerEl.textContent !== text) {
+        headerEl.textContent = text;
+      }
+    });
+
+    // Editing the Title field in the panel updates the heading too
+    titleEl.addEventListener('input', () => {
+      if (document.activeElement !== headerEl) headerEl.textContent = titleEl.value;
+    });
+  }
 })();
 </script>
 {% endblock %}

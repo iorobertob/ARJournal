@@ -111,6 +111,33 @@
   font-family: var(--font-sans);
 }
 
+/* Inline-editable title (syncs with the metadata panel's Title field) */
+.editor-header__title[contenteditable] {
+  flex: 1;
+  min-width: 0;
+  cursor: text;
+  padding: var(--spacing-1) var(--spacing-2);
+  margin-left: calc(-1 * var(--spacing-2));
+  border-radius: var(--radius, 2px);
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.15s, background 0.15s;
+  outline: none;
+}
+
+.editor-header__title[contenteditable]:hover {
+  border-bottom-color: var(--color-border);
+}
+
+.editor-header__title[contenteditable]:focus {
+  background: var(--color-surface, #F4F2F7);
+  border-bottom-color: var(--color-accent);
+}
+
+.editor-header__title[contenteditable]:empty::before {
+  content: 'Untitled — click to add a title';
+  color: var(--color-light, #A9A1B4);
+}
+
 .editor-status {
   font-size: 0.75rem;
   font-family: var(--font-sans);

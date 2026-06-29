@@ -22,19 +22,19 @@ class Command(BaseCommand):
 
         # Ensure JournalConfig exists
         journal = JournalConfig.get()
-        if not journal.name or journal.name == 'Trans/Act':
-            journal.name = 'Trans/Act'
+        if not journal.name or journal.name == 'IN/ACT':
+            journal.name = 'IN/ACT'
             journal.tagline = 'A Journal for Artistic Research'
             journal.description = (
-                'Trans/Act publishes critical essays, visual projects, multimedia research, '
+                'IN/ACT publishes critical essays, visual projects, multimedia research, '
                 'and experimental contributions across artistic research practices.'
             )
-            journal.contact_email = 'editorial@trans-act-journal.org'
-            journal.editorial_email = 'editorial@trans-act-journal.org'
+            journal.contact_email = 'editorial@in-act-journal.org'
+            journal.editorial_email = 'editorial@in-act-journal.org'
             journal.institution = 'Lithuanian Academy of Music and Theatre'
             journal.country = 'Lithuania'
             journal.about_text = (
-                'Trans/Act is a peer-reviewed, open-access journal dedicated to artistic research. '
+                'IN/ACT is a peer-reviewed, open-access journal dedicated to artistic research. '
                 'We publish twice yearly, featuring essays, visual projects, multimedia research, '
                 'and experimental contributions that explore how knowledge can be made public '
                 'through artistic practice.\n\n'
@@ -48,13 +48,13 @@ class Command(BaseCommand):
                 'and challenge traditional academic inquiry.'
             )
             journal.submission_guidelines = (
-                'Trans/Act accepts submissions in the following categories:\n\n'
+                'IN/ACT accepts submissions in the following categories:\n\n'
                 '- Research Articles (4,000-8,000 words)\n'
                 '- Critical Essays (3,000-6,000 words)\n'
                 '- Reflective Papers (2,000-5,000 words)\n'
                 '- Hybrid Media Contributions\n'
                 '- Practice Documentation\n\n'
-                'All submissions must be prepared using the Trans/Act LaTeX template. '
+                'All submissions must be prepared using the IN/ACT LaTeX template. '
                 'Manuscripts are evaluated through double-blind peer review.'
             )
             journal.save()
@@ -62,7 +62,7 @@ class Command(BaseCommand):
 
         # ── Editor-in-Chief ──────────────────────────────────────
         editor, created = User.objects.get_or_create(
-            email='editor@trans-act-journal.org',
+            email='editor@in-act-journal.org',
             defaults={
                 'first_name': 'Elena',
                 'last_name': 'Voronova',
@@ -79,7 +79,7 @@ class Command(BaseCommand):
                     'institution': 'Lithuanian Academy of Music and Theatre',
                     'department': 'Department of Artistic Research',
                     'country': 'Lithuania',
-                    'bio': 'Editor-in-Chief of Trans/Act. Research interests: performance studies, embodied knowledge, artistic methodology.',
+                    'bio': 'Editor-in-Chief of IN/ACT. Research interests: performance studies, embodied knowledge, artistic methodology.',
                 }
             )
             self.stdout.write(self.style.SUCCESS(f'Created editor: {editor.email}'))
@@ -204,7 +204,7 @@ class Command(BaseCommand):
                 'year': 2026,
                 'title': 'Bodies in Practice: Embodied Knowledge and Artistic Research',
                 'editorial_note': (
-                    'This inaugural issue of Trans/Act explores how embodied knowledge '
+                    'This inaugural issue of IN/ACT explores how embodied knowledge '
                     'emerges through artistic practice. The contributions gathered here '
                     'examine the body as a site of research, investigating how physical '
                     'experience generates insights that resist conventional academic framing.'
@@ -239,7 +239,7 @@ class Command(BaseCommand):
                 'submission_date': timezone.now() - datetime.timedelta(days=14),
                 'cover_letter': (
                     'Dear Editors,\n\n'
-                    'I am pleased to submit this article for consideration in Trans/Act. '
+                    'I am pleased to submit this article for consideration in IN/ACT. '
                     'This work emerges from my ongoing research into choreographic documentation '
                     'at Stockholm University of the Arts. I believe it aligns well with the '
                     'journal\'s focus on practice-based artistic research.\n\n'
@@ -349,7 +349,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('=' * 60))
         self.stdout.write('')
         self.stdout.write('Login credentials (all passwords: devpassword):')
-        self.stdout.write(f'  Editor-in-Chief:  editor@trans-act-journal.org')
+        self.stdout.write(f'  Editor-in-Chief:  editor@in-act-journal.org')
         self.stdout.write(f'  Author:           author@researcher.org')
         self.stdout.write(f'  Reviewer 1:       reviewer1@university.edu')
         self.stdout.write(f'  Reviewer 2:       reviewer2@arts.ac.uk')

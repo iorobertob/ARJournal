@@ -4,114 +4,272 @@
 
 {% block content %}
 
-<!-- Hero -->
 {% if current_issue %}
-<section class="hero">
-  <div class="container hero__inner">
-    <div class="hero__text">
-      <p class="hero__issue-label">Current Issue</p>
-      <p class="hero__issue-number">Issue #{{ current_issue.number }}, Vol. {{ current_issue.volume }} &mdash; {{ current_issue.year }}</p>
-      <h1 class="hero__title">{{ current_issue.title|default:journal.name }}</h1>
-      {% if featured_articles %}
-      <p class="hero__bylines">
-        Featuring {% for a in featured_articles|slice:":4" %}<a href="{% url 'author_page' a.document.revision.submission.author.pk %}" style="color:inherit;">{{ a.document.revision.submission.author.display_name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}{% if featured_articles|length > 4 %} and others{% endif %}
-      </p>
-      {% endif %}
+<!-- Current Issue -->
+<section class="container home-current">
+  <div class="home-current__info">
+    <h2 class="section-heading home-current__heading">Current Issue</h2>
+    <div class="home-current__issue-meta">
+      <span class="meta-tag">Issue #{{ current_issue.number }}</span>
+      <span class="filter-tag">{{ current_issue.year }}</span>
     </div>
-    {% if current_issue.cover_image %}
-    <div class="hero__image">
-      <img src="{{ current_issue.cover_image.url }}" alt="{{ current_issue.title }}" loading="eager">
-      <a href="{% url 'issue_detail' current_issue.number %}" class="hero__read-btn">Read Issue &rarr;</a>
+    <a class="home-current__title" href="{% url 'issue_detail' current_issue.number %}">{{ current_issue.title|default:journal.name }}</a>
+    <div class="home-current__toc">
+      <div class="home-current__toc-col">
+        {% if toc_editorial %}
+        <p class="home-current__toc-label">Editorial</p>
+        {% for sub in toc_editorial %}
+        <a class="toc-entry" href="{% url 'issue_detail' current_issue.number %}">
+          <span class="toc-entry__title">{{ sub.title }}</span>
+          <span class="toc-entry__author">{{ sub.author.display_name }}</span>
+        </a>
+        {% endfor %}
+        {% endif %}
+        {% for sub in toc_articles|slice:":4" %}
+        <a class="toc-entry" href="{% url 'issue_detail' current_issue.number %}">
+          <span class="toc-entry__title">{{ sub.title }}</span>
+          <span class="toc-entry__author">{{ sub.author.display_name }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      <div class="home-current__toc-col">
+        {% for sub in toc_articles|slice:"4:9" %}
+        <a class="toc-entry" href="{% url 'issue_detail' current_issue.number %}">
+          <span class="toc-entry__title">{{ sub.title }}</span>
+          <span class="toc-entry__author">{{ sub.author.display_name }}</span>
+        </a>
+        {% endfor %}
+      </div>
     </div>
-    {% endif %}
   </div>
-</section>
-
-<!-- Current Issue Articles -->
-<section class="current-issue container">
-  <div class="current-issue__editorial">
-    {% if current_issue.editorial_note %}
-    <p class="current-issue__note">{{ current_issue.editorial_note|truncatewords:60 }}</p>
+  <div class="home-current__media">
+    {% if journal.home_hero_image %}
+    <img src="{{ journal.home_hero_image.url }}" alt="{{ journal.home_hero_caption|default:'' }}" loading="eager">
+    {% if journal.home_hero_caption %}<p class="media-caption">{{ journal.home_hero_caption }}</p>{% endif %}
+    {% elif current_issue.cover_image %}
+    <img src="{{ current_issue.cover_image.url }}" alt="{{ current_issue.title }}" loading="eager">
     {% endif %}
-    <a href="{% url 'issue_detail' current_issue.number %}" class="link-arrow" style="margin-top:var(--spacing-4);display:inline-block;">View full issue &rarr;</a>
-  </div>
-  <div class="current-issue__grid">
-    {% for build in featured_articles %}
-    {% with submission=build.document.revision.submission %}
-    <article class="issue-article-item">
-      <p class="issue-article-item__title">
-        <a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a>
-      </p>
-      <p class="issue-article-item__author"><a href="{% url 'author_page' submission.author.pk %}" style="color:inherit;text-decoration:none;">{{ submission.author.display_name }}</a></p>
-    </article>
-    {% endwith %}
-    {% endfor %}
   </div>
 </section>
 {% else %}
 <section class="hero hero--empty">
   <div class="container">
     <h1>{{ journal.name }}</h1>
-    <p>{{ journal.tagline|default:"A Journal for Artistic Research" }}</p>
+    <p>{{ journal.tagline|default:"A journal for artistic research" }}</p>
   </div>
 </section>
 {% endif %}
 
-<!-- Browse / Discovery -->
-<section class="browse-section">
-  <div class="container browse-section__inner">
-    <div class="browse-section__about">
-      <p>{{ journal.tagline|default:journal.name }} brings together critical writing, visual practice, and experimental forms of knowledge in artistic research.</p>
-      <a href="{% url 'about' %}" class="link-arrow">About the journal &rarr;</a>
-    </div>
-    <div class="browse-section__paths">
-      <div class="browse-path">
-        <h3 class="browse-path__label">Authors</h3>
-        <p style="font-size:var(--size-sm);color:var(--color-muted);">Browse by researcher</p>
-      </div>
-      <div class="browse-path">
-        <h3 class="browse-path__label">Categories</h3>
-        <ul class="browse-path__categories">
-          <li>Aesthetics</li><li>Anthropology</li><li>Art and Theory</li>
-          <li>Avant-garde</li><li>Bodies</li><li>Performance</li>
-          <li>Sound</li><li>Visual Practice</li>
-        </ul>
-      </div>
-      <div class="browse-path">
-        <h3 class="browse-path__label">Years</h3>
-        {% for issue in recent_issues %}<p style="font-size:var(--size-sm);color:var(--color-muted);">{{ issue.year }}</p>{% endfor %}
-      </div>
-    </div>
-  </div>
+<!-- Mission bar -->
+<section class="mission-bar">
+  <p class="mission-bar__text">
+    {% if journal.mission_text %}{{ journal.mission_text }}{% else %}{{ journal.name }} is a journal for artistic research, bringing together <span class="hl">critical writing</span>, <span class="hl">visual practice</span>, and <span class="hl">experimental forms of knowledge</span>.{% endif %}
+  </p>
+  <a href="{% url 'about' %}" class="btn btn--inverse">Find out more ⟶</a>
 </section>
 
-<!-- Archive Strip -->
-{% if recent_issues %}
-<section class="archive-strip container">
-  <h2 class="archive-strip__heading">Read by Issue</h2>
-  <div class="archive-strip__grid">
-    {% for issue in recent_issues %}
-    <a href="{% url 'issue_detail' issue.number %}" class="issue-card">
-      {% if issue.cover_image %}<img src="{{ issue.cover_image.url }}" alt="Issue #{{ issue.number }}" loading="lazy">{% endif %}
-      <div class="issue-card__text">
-        <p class="issue-card__number">Issue #{{ issue.number }} &mdash; {{ issue.year }}</p>
-        <p class="issue-card__title">{{ issue.title }}</p>
+{% if current_issue and issue_builds %}
+<!-- Filters + current issue articles -->
+<section class="container home-browse">
+  <aside class="filter-panel">
+    <div class="filter-group">
+      <div class="filter-group__head">
+        <span class="filter-group__label">Keywords</span>
+        <a class="filter-group__expand" id="kw-search-link" href="{% url 'archive' %}"
+           aria-label="Search the active keywords">↗</a>
       </div>
-      <span class="issue-card__arrow">&nearr;</span>
-    </a>
+      <form class="filter-group__search" id="kw-form" action="{% url 'archive' %}" method="get">
+        <input type="text" name="q" placeholder="Add keywords…"
+               aria-label="Search by keywords (comma separated)" autocomplete="off">
+        <button type="submit" aria-label="Search" style="display:inline-flex;color:var(--color-text);">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/>
+          </svg>
+        </button>
+      </form>
+      <div class="filter-tags" id="kw-tags"></div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-group__head">
+        <span class="filter-group__label">Categories</span>
+        <a class="filter-group__expand" href="{% url 'archive' %}" aria-label="Browse categories">↗</a>
+      </div>
+      <form class="filter-group__search" action="{% url 'archive' %}" method="get">
+        <input type="text" name="q" placeholder="Search" aria-label="Search the archive">
+        <button type="submit" aria-label="Search" style="display:inline-flex;color:var(--color-text);">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/>
+          </svg>
+        </button>
+      </form>
+      <ul class="filter-group__list">
+        {% for value, label in filter_categories %}
+        <li><a href="{% url 'archive' %}?q={{ label|urlencode }}">{{ label }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="filter-group">
+      <div class="filter-group__head">
+        <span class="filter-group__label">Years</span>
+        <a class="filter-group__expand" id="year-search-link" href="{% url 'archive' %}"
+           aria-label="Search the active years">↗</a>
+      </div>
+      <div class="filter-tags" id="year-tags"></div>
+    </div>
+  </aside>
+
+  <div class="article-strip" id="article-strip">
+    {% for build in issue_builds %}
+    {% with submission=build.document.revision.submission %}
+    <article class="article-card"
+             data-keywords="{{ submission.keywords|join:'||' }}"
+             data-year="{% if submission.issue %}{{ submission.issue.year }}{% endif %}">
+      <a href="{% url 'article_detail' build.slug %}" aria-label="{{ submission.title }}">
+        {% if build.card_image_url %}
+        <img class="article-card__image" src="{{ build.card_image_url }}" alt="" loading="lazy">
+        {% else %}<span class="article-card__image" role="presentation"></span>{% endif %}
+      </a>
+      <p class="article-card__meta">Issue #{{ submission.issue.number }}</p>
+      {% if submission.issue %}
+      <p class="article-card__tags"><a class="filter-tag" href="{% url 'archive' %}?q={{ submission.issue.year }}">{{ submission.issue.year }}</a></p>
+      {% endif %}
+      <h3 class="article-card__title"><a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a></h3>
+      <p class="article-card__authors">With <a href="{% url 'author_page' submission.author.pk %}">{{ submission.author.display_name }}</a></p>
+    </article>
+    {% endwith %}
     {% endfor %}
   </div>
-  <a href="{% url 'archive' %}" class="link-arrow">Discover more &rarr;</a>
 </section>
 {% endif %}
 
-<!-- Submit CTA -->
-<section class="submit-cta">
-  <div class="container submit-cta__inner">
-    <h2>Contribute to {{ journal.name }}</h2>
-    <p>We welcome contributions from artists, writers, and researchers working across critical, visual, and practice-based forms of artistic research. Submit essays, visual projects, or experimental formats.</p>
-    <a href="{% url 'submit_info' %}" class="btn btn--primary">Submit a contribution &rarr;</a>
+{% if featured_archive %}
+<!-- Across the archive -->
+<section class="container home-archive">
+  <h2 class="section-heading home-archive__heading">Across the archive</h2>
+  <div class="home-archive__grid">
+    {% for build in featured_archive %}
+    {% with submission=build.document.revision.submission %}
+    <article class="article-card">
+      <a href="{% url 'article_detail' build.slug %}" aria-label="{{ submission.title }}">
+        {% if build.card_image_url %}
+        <img class="article-card__image article-card__image--landscape" src="{{ build.card_image_url }}" alt="" loading="lazy">
+        {% else %}<span class="article-card__image article-card__image--landscape" role="presentation"></span>{% endif %}
+      </a>
+      <p class="article-card__meta">
+        {% if submission.issue %}<span>Vol. {{ submission.issue.volume }} {{ submission.issue.year }} #{{ submission.issue.number }}</span>{% endif %}
+        <span><a href="{% url 'author_page' submission.author.pk %}">{{ submission.author.display_name }}</a></span>
+      </p>
+      {% if submission.issue %}
+      <p class="article-card__tags"><a class="filter-tag" href="{% url 'archive' %}?q={{ submission.issue.year }}">{{ submission.issue.year }}</a></p>
+      {% endif %}
+      <h3 class="article-card__title"><a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a></h3>
+      <p class="article-card__type">{{ submission.get_article_type_display }}</p>
+    </article>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  <div class="home-archive__more">
+    <a href="{% url 'archive' %}" class="btn btn--outline">Discover more ⟶</a>
   </div>
 </section>
+{% endif %}
+
+<!-- Contribute -->
+<section class="container home-contribute">
+  <div class="home-contribute__info">
+    <h2 class="section-heading home-contribute__heading">Contribute to {{ journal.name }}</h2>
+    <p class="home-contribute__text">
+      {% if journal.contribute_text %}{{ journal.contribute_text }}{% else %}{{ journal.name }} welcomes contributions from artists, writers, and researchers working across critical, visual, and practice-based forms of artistic research. Submit essays, projects, or experimental formats that explore how knowledge can be made public through artistic practice.{% endif %}
+    </p>
+    <a href="{% url 'submit_info' %}" class="btn btn--outline">Submit ⟶</a>
+  </div>
+  <div class="home-contribute__media">
+    {% if journal.contribute_image %}
+    <img src="{{ journal.contribute_image.url }}" alt="{{ journal.contribute_caption|default:'' }}" loading="lazy">
+    {% if journal.contribute_caption %}<p class="media-caption">{{ journal.contribute_caption }}</p>{% endif %}
+    {% endif %}
+  </div>
+</section>
+
+<script>
+// ── Sidebar filters: keywords & years harvested from the article strip ────────
+(function () {
+  const strip = document.getElementById('article-strip');
+  if (!strip) return;
+  const ARCHIVE_URL = "{% url 'archive' %}";
+  const cards = Array.from(strip.querySelectorAll('.article-card'));
+
+  // Keywords may be stored as a list or as one comma-joined string — split on both
+  function kwsOf(card) {
+    return (card.dataset.keywords || '')
+      .split('||')
+      .flatMap(s => s.split(','))
+      .map(s => s.trim().toLowerCase())
+      .filter(Boolean);
+  }
+
+  const allKeywords = new Set();
+  const allYears = new Set();
+  cards.forEach(card => {
+    kwsOf(card).forEach(k => allKeywords.add(k));
+    if (card.dataset.year) allYears.add(card.dataset.year);
+  });
+
+  const activeKw = new Set(allKeywords);
+  const activeYears = new Set(allYears);
+
+  function searchUrl(terms) {
+    return terms.length ? ARCHIVE_URL + '?q=' + encodeURIComponent(terms.join(', ')) : ARCHIVE_URL;
+  }
+
+  // Tag click → search that single term; ✕ click → drop it and refilter the strip
+  function renderTags(containerId, activeSet) {
+    const box = document.getElementById(containerId);
+    if (!box) return;
+    box.innerHTML = '';
+    Array.from(activeSet).sort().forEach(value => {
+      const tag = document.createElement('a');
+      tag.className = 'filter-tag';
+      tag.href = searchUrl([value]);
+      tag.appendChild(document.createTextNode(value + ' '));
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'filter-tag__x';
+      x.setAttribute('aria-label', 'Remove ' + value);
+      x.textContent = '✕';
+      x.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        activeSet.delete(value);
+        refresh();
+      });
+      tag.appendChild(x);
+      box.appendChild(tag);
+    });
+  }
+
+  function updateMarquee() {
+    cards.forEach(card => {
+      const kws = kwsOf(card);
+      const year = card.dataset.year || '';
+      const kwOk = kws.length === 0 || kws.some(k => activeKw.has(k));
+      const yearOk = !year || activeYears.has(year);
+      card.style.display = (kwOk && yearOk) ? '' : 'none';
+    });
+  }
+
+  function refresh() {
+    renderTags('kw-tags', activeKw);
+    renderTags('year-tags', activeYears);
+    const kwLink = document.getElementById('kw-search-link');
+    if (kwLink) kwLink.href = searchUrl(Array.from(activeKw));
+    const yLink = document.getElementById('year-search-link');
+    if (yLink) yLink.href = searchUrl(Array.from(activeYears));
+    updateMarquee();
+  }
+
+  refresh();
+})();
+</script>
 
 {% endblock %}

@@ -22,6 +22,19 @@ class HTMLBuild(models.Model):
     def __str__(self):
         return f'HTMLBuild: {self.slug}'
 
+    @property
+    def card_image_url(self):
+        """Image used on homepage/archive cards: first image asset of the
+        revision, falling back to the issue cover."""
+        rev = self.document.revision
+        asset = rev.assets.filter(kind='image').order_by('created_at').first()
+        if asset and asset.file:
+            return asset.file.url
+        issue = rev.submission.issue
+        if issue and issue.cover_image:
+            return issue.cover_image.url
+        return None
+
     def save(self, *args, **kwargs):
         if not self.slug:
             submission = self.document.revision.submission

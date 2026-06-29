@@ -1,28 +1,87 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
-from .models import Issue, EditorialBoardMember, JournalConfig
+from .models import Issue, EditorialBoardMember, FeaturedSelection, JournalConfig, ArticleType
 
 
 def home(request):
+    from apps.production.models import HTMLBuild
+    from apps.submissions.models import Submission, SubmissionStatus
+
     current_issue = Issue.objects.filter(is_current=True, is_published=True).first()
     if not current_issue:
         current_issue = Issue.objects.filter(is_published=True).first()
-    recent_issues = Issue.objects.filter(is_published=True).exclude(
-        pk=current_issue.pk if current_issue else -1
-    )[:3]
-    from apps.production.models import HTMLBuild
-    featured_articles = []
+
+    # Current-issue table of contents (left column of the hero block)
+    toc_editorial, toc_articles = [], []
+    issue_builds = []
     if current_issue:
-        featured_articles = (
+        submissions = (
+            Submission.objects
+            .filter(
+                issue=current_issue,
+                status__in=[
+                    SubmissionStatus.ACCEPTED,
+                    SubmissionStatus.IN_PRODUCTION,
+                    SubmissionStatus.PUBLISHED,
+                ],
+            )
+            .select_related('author')
+            .order_by('issue_order')
+        )
+        for sub in submissions:
+            (toc_editorial if sub.article_type == ArticleType.EDITORIAL else toc_articles).append(sub)
+
+        issue_builds = list(
             HTMLBuild.objects
             .filter(is_published=True, document__revision__submission__issue=current_issue)
-            .select_related('document__revision__submission')[:8]
+            .select_related('document__revision__submission__author',
+                            'document__revision__submission__issue')
         )
+
+    # "Across the archive" — rotating featured selection
+    selection = FeaturedSelection.current()
+    featured_archive = (
+        selection.articles.select_related(
+            'document__revision__submission__author',
+            'document__revision__submission__issue',
+        )
+        if selection else []
+    )
+
+    # Filter panel data
+    years = (
+        Issue.objects.filter(is_published=True)
+        .values_list('year', flat=True).distinct().order_by('-year')
+    )
+    categories = ArticleType.choices
+
     return render(request, 'public/home.html', {
         'current_issue': current_issue,
-        'featured_articles': featured_articles,
-        'recent_issues': recent_issues,
+        'toc_editorial': toc_editorial,
+        'toc_articles': toc_articles,
+        'issue_builds': issue_builds,
+        'featured_archive': featured_archive,
+        'filter_years': years,
+        'filter_categories': categories,
     })
+
+
+def news(request):
+    return render(request, 'public/news.html', {
+        'issues': Issue.objects.filter(is_published=True).exclude(call_for_submissions='')[:10],
+    })
+
+
+def contact(request):
+    return render(request, 'public/contact.html', {})
+
+
+def partners(request):
+    return render(request, 'public/partners.html', {})
+
+
+def imprint(request):
+    return render(request, 'public/imprint.html', {})
 
 
 def issue_detail(request, number):
@@ -170,16 +229,24 @@ def archive(request):
     issues = Issue.objects.filter(is_published=True).order_by('-year', '-number')
     results = None
     if q:
+        # Comma-separated terms are OR'ed; a 4-digit term also matches the issue year
+        terms = [t.strip() for t in q.split(',') if t.strip()]
+        cond = Q()
+        for term in terms:
+            term_cond = (
+                Q(document__revision__submission__title__icontains=term) |
+                Q(document__revision__submission__subtitle__icontains=term) |
+                Q(document__revision__submission__author__first_name__icontains=term) |
+                Q(document__revision__submission__author__last_name__icontains=term) |
+                Q(document__revision__submission__keywords__icontains=term)
+            )
+            if term.isdigit() and len(term) == 4:
+                term_cond |= Q(document__revision__submission__issue__year=int(term))
+            cond |= term_cond
         results = (
             HTMLBuild.objects
             .filter(is_published=True)
-            .filter(
-                Q(document__revision__submission__title__icontains=q) |
-                Q(document__revision__submission__subtitle__icontains=q) |
-                Q(document__revision__submission__author__first_name__icontains=q) |
-                Q(document__revision__submission__author__last_name__icontains=q) |
-                Q(document__revision__submission__keywords__icontains=q)
-            )
+            .filter(cond)
             .select_related(
                 'document__revision__submission__author',
                 'document__revision__submission__issue',
@@ -232,5 +299,5 @@ def download_template(request):
                 zf.write(fpath, fname)
     buf.seek(0)
     response = HttpResponse(buf.read(), content_type='application/zip')
-    response['Content-Disposition'] = 'attachment; filename="transact_author_template.zip"'
+    response['Content-Disposition'] = 'attachment; filename="inact_author_template.zip"'
     return response

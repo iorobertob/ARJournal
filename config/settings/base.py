@@ -251,7 +251,7 @@ else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     ANYMAIL = {}
 
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@trans-act-journal.org')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@in-act-journal.org')
 SERVER_EMAIL = env('SERVER_EMAIL', default=DEFAULT_FROM_EMAIL)
 
 # Feature flags
@@ -262,7 +262,7 @@ AI_FEATURES_ENABLED = env('AI_FEATURES_ENABLED')
 # Crossref / DOI
 CROSSREF_LOGIN = env('CROSSREF_LOGIN', default='')
 CROSSREF_PASSWORD = env('CROSSREF_PASSWORD', default='')
-CROSSREF_DEPOSITOR_NAME = env('CROSSREF_DEPOSITOR_NAME', default='Trans/Act Journal')
+CROSSREF_DEPOSITOR_NAME = env('CROSSREF_DEPOSITOR_NAME', default='IN/ACT Journal')
 CROSSREF_DEPOSITOR_EMAIL = env('CROSSREF_DEPOSITOR_EMAIL', default='')
 
 # Turnitin

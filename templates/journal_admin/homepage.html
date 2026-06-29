@@ -1,0 +1,136 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Homepage — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);">
+  <h1 class="jadmin-page-title" style="margin:0;">Homepage</h1>
+  <button type="submit" form="homepage-form" class="btn btn-primary">Save Homepage</button>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="homepage-form">
+{% csrf_token %}
+<input type="hidden" name="action" value="content">
+
+<!-- ── Hero ────────────────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Top section — Current Issue</div>
+
+  <div class="form-row" style="align-items:flex-start;">
+    <div class="form-group">
+      <label for="id_home_hero_image">Hero image (top right of homepage)</label>
+      {% if journal.home_hero_image %}
+      <div style="margin-bottom:var(--spacing-2);">
+        <img src="{{ journal.home_hero_image.url }}" alt="Current hero image" style="max-height:120px;">
+      </div>
+      {% endif %}
+      <input type="file" name="home_hero_image" id="id_home_hero_image" accept="image/*" class="form-control">
+      <p style="margin:var(--spacing-2) 0 0;font-size:var(--size-xs);color:var(--color-text-muted);">Falls back to the current issue cover when empty.</p>
+    </div>
+    <div class="form-group">
+      <label for="id_home_hero_caption">Hero image caption</label>
+      <input type="text" name="home_hero_caption" id="id_home_hero_caption" value="{{ journal.home_hero_caption }}" class="form-control" placeholder="Detail of the installation …">
+    </div>
+  </div>
+</div>
+
+<!-- ── Mission bar ─────────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Orange mission bar</div>
+  <div class="form-group">
+    <label for="id_mission_text">Mission statement</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Shown in the full-width orange bar on the homepage. Leave empty for the default text.</p>
+    <textarea name="mission_text" id="id_mission_text" rows="3" class="form-control">{{ journal.mission_text }}</textarea>
+  </div>
+</div>
+
+<!-- ── Contribute section ──────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Contribute section</div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_contribute_text">Contribute text</label>
+    <textarea name="contribute_text" id="id_contribute_text" rows="4" class="form-control">{{ journal.contribute_text }}</textarea>
+  </div>
+
+  <div class="form-row" style="align-items:flex-start;">
+    <div class="form-group">
+      <label for="id_contribute_image">Contribute image</label>
+      {% if journal.contribute_image %}
+      <div style="margin-bottom:var(--spacing-2);">
+        <img src="{{ journal.contribute_image.url }}" alt="Current contribute image" style="max-height:120px;">
+      </div>
+      {% endif %}
+      <input type="file" name="contribute_image" id="id_contribute_image" accept="image/*" class="form-control">
+    </div>
+    <div class="form-group">
+      <label for="id_contribute_caption">Contribute image caption</label>
+      <input type="text" name="contribute_caption" id="id_contribute_caption" value="{{ journal.contribute_caption }}" class="form-control">
+    </div>
+  </div>
+</div>
+
+<!-- ── News page ───────────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">News page</div>
+  <div class="form-group">
+    <label for="id_news_text">News text</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Shown on the public News page (/news/), above any open calls for submissions.</p>
+    <textarea name="news_text" id="id_news_text" rows="5" class="form-control">{{ journal.news_text }}</textarea>
+  </div>
+</div>
+
+<!-- ── Rotation period ─────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">"Across the archive" rotation</div>
+  <div class="form-group" style="max-width:240px;">
+    <label for="id_featured_rotation_months">Rotation period (months)</label>
+    <input type="number" name="featured_rotation_months" id="id_featured_rotation_months" min="1" max="60" value="{{ journal.featured_rotation_months }}" class="form-control">
+    <p style="margin:var(--spacing-2) 0 0;font-size:var(--size-xs);color:var(--color-text-muted);">When a selection expires, random published articles take over for another period of this length, until you pick a new selection below.</p>
+  </div>
+</div>
+</form>
+
+<!-- ── Featured selection ──────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Featured articles — "Across the archive"</div>
+
+  {% if selection %}
+  <p style="font-size:var(--size-sm);margin-bottom:var(--spacing-4);">
+    Current selection: <strong>{{ selection.get_kind_display }}</strong>,
+    active until <strong>{{ selection.ends_at|date:"j N Y" }}</strong>.
+  </p>
+  {% else %}
+  <p style="font-size:var(--size-sm);color:var(--color-text-muted);margin-bottom:var(--spacing-4);">
+    No active selection — random published articles will be picked automatically when the homepage is visited.
+  </p>
+  {% endif %}
+
+  {% if published_builds %}
+  <form method="post"
+        data-confirm="Replace the current featured selection with the checked articles? The new period starts now."
+        data-confirm-ok="Feature">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="featured">
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-2);max-height:340px;overflow-y:auto;border:1px solid var(--color-border);border-radius:var(--radius);padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-4);">
+      {% for build in published_builds %}
+      {% with submission=build.document.revision.submission %}
+      <label style="display:flex;align-items:center;gap:var(--spacing-3);font-size:var(--size-sm);cursor:pointer;">
+        <input type="checkbox" name="featured_articles" value="{{ build.pk }}"
+               {% if build.pk in selected_pks %}checked{% endif %}
+               style="width:15px;height:15px;accent-color:var(--color-accent);flex-shrink:0;">
+        <span>
+          {{ submission.title|truncatechars:90 }}
+          <span style="color:var(--color-text-muted);">— {{ submission.author.display_name }}{% if submission.issue %}, Issue #{{ submission.issue.number }} ({{ submission.issue.year }}){% endif %}</span>
+        </span>
+      </label>
+      {% endwith %}
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-primary">Set featured articles</button>
+  </form>
+  {% else %}
+  <p style="font-size:var(--size-sm);color:var(--color-text-muted);">No published articles yet — publish articles to feature them here.</p>
+  {% endif %}
+</div>
+{% endblock %}

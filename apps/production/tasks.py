@@ -132,7 +132,7 @@ def _preprocess_html_for_pdf(html_content, interactive, site_url=''):
                     f'<figure id="{fig_id}" class="article-figure">'
                     f'<img src="{poster}" alt="" style="display:block;width:100%;">'
                     f'<figcaption>{caption}'
-                    f' <span style="font-size:8pt;color:#E86B1F;">&#9654; Click to play (Adobe Acrobat)</span>'
+                    f' <span style="font-size:8pt;color:#FF4500;">&#9654; Click to play (Adobe Acrobat)</span>'
                     f'</figcaption></figure>{fallback}'
                 )
             return (
@@ -693,7 +693,7 @@ def generate_pdf(export_pk):
     # ── Gather metadata ──────────────────────────────────────────
     from apps.journal.models import JournalConfig as _JC
     _journal  = _JC.objects.first()
-    _jname    = _journal.name    if _journal else 'Trans/Act'
+    _jname    = _journal.name    if _journal else 'IN/ACT'
     _issn_p   = _journal.issn_print   if _journal else ''
     _issn_o   = _journal.issn_online  if _journal else ''
 
@@ -807,10 +807,10 @@ def generate_pdf(export_pk):
     _body_css = """
     * { box-sizing: border-box; }
     body {
-      font-family: Georgia, 'Times New Roman', serif;
+      font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
       font-size: 11pt;
       line-height: 1.65;
-      color: #1A1A1A;
+      color: #21252B;
       margin: 0;
       text-align: justify;
     }
@@ -819,14 +819,14 @@ def generate_pdf(export_pk):
     .pdf-cover { margin-bottom: 2.2rem; }
     .pdf-cover__journal-bar {
       padding-bottom: 0.4rem;
-      border-bottom: 2pt solid #E86B1F;
+      border-bottom: 2pt solid #FF4500;
       margin-bottom: 1.4rem;
       overflow: hidden;
     }
     .pdf-cover__journal-name {
       font-family: Helvetica, Arial, sans-serif;
       font-size: 9pt; font-weight: bold;
-      color: #E86B1F; letter-spacing: 0.03em;
+      color: #FF4500; letter-spacing: 0.03em;
       float: left;
     }
     .pdf-cover__issue-ref {
@@ -838,7 +838,7 @@ def generate_pdf(export_pk):
       font-family: Helvetica, Arial, sans-serif;
       font-size: 7.5pt; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.12em;
-      color: #E86B1F; margin: 0 0 0.8rem;
+      color: #FF4500; margin: 0 0 0.8rem;
     }
     .pdf-cover__title {
       font-size: 22pt; font-weight: bold;
@@ -870,7 +870,7 @@ def generate_pdf(export_pk):
       margin: 0.2rem 0 0;
     }
     .pdf-cover__ids span { margin-right: 1.6rem; }
-    .pdf-cover__ids a { color: #E86B1F; text-decoration: none; }
+    .pdf-cover__ids a { color: #FF4500; text-decoration: none; }
     .pdf-cover__rule {
       border: none; border-top: 0.75pt solid #D0D0D0;
       margin: 1.1rem 0 1rem;
@@ -882,7 +882,7 @@ def generate_pdf(export_pk):
       color: #999; margin: 0 0 0.3rem;
     }
     .pdf-cover__abstract {
-      border-left: 2.5pt solid #E86B1F;
+      border-left: 2.5pt solid #FF4500;
       padding-left: 0.9rem;
       font-size: 10pt; line-height: 1.6;
       color: #333; margin-bottom: 0.65rem;
@@ -894,7 +894,7 @@ def generate_pdf(export_pk):
     }
     .pdf-cover__keywords strong { color: #333; }
     .pdf-cover__bottom-rule {
-      border: none; border-top: 2pt solid #E86B1F;
+      border: none; border-top: 2pt solid #FF4500;
       margin: 1.4rem 0 0;
     }
 
@@ -917,19 +917,19 @@ def generate_pdf(export_pk):
     th { background: #f5f5f5; border-bottom: 2px solid #E5E5E5;
          padding: 0.4rem 0.6rem; text-align: left; }
     td { border-bottom: 1px solid #E5E5E5; padding: 0.4rem 0.6rem; text-align: left; }
-    a { color: #E86B1F; text-decoration: none; }
+    a { color: #FF4500; text-decoration: none; }
     .article-blockquote {
       margin-left: 36pt; margin-right: 36pt;
       font-style: italic; color: #444;
     }
     .article-blockquote p { margin: 0; }
-    .article-cite { color: #1A1A1A; text-decoration: none; }
+    .article-cite { color: #21252B; text-decoration: none; }
     /* Footnotes — WeasyPrint float: footnote places them at page bottom */
     .fn-wrap { display: inline; }
     .fn-ref-num { font-size: 0.7em; vertical-align: super;
-                  color: #E86B1F; font-weight: bold; line-height: 0; }
+                  color: #FF4500; font-weight: bold; line-height: 0; }
     .fn-note { float: footnote; font-size: 9pt; color: #444; line-height: 1.4; }
-    .fn-note__num { font-weight: bold; color: #E86B1F; margin-right: 0.2em; }
+    .fn-note__num { font-weight: bold; color: #FF4500; margin-right: 0.2em; }
     .article-footnotes { display: none; }
     .para-num { display: none; }
     pre.article-verbatim {
@@ -964,7 +964,7 @@ def generate_pdf(export_pk):
     h1 { bookmark-level: 1; bookmark-label: content(); }
     h2 { bookmark-level: 2; bookmark-label: content(); }
     h3 { bookmark-level: 3; bookmark-label: content(); }
-    a { color: #E86B1F; text-decoration: underline; }
+    a { color: #FF4500; text-decoration: underline; }
     .article-cite { text-decoration: none; }
     """ if interactive else ""
 
@@ -973,7 +973,7 @@ def generate_pdf(export_pk):
     .pdf-media-box {
       display: block;
       border: 1px solid #D0D0D0;
-      border-left: 3px solid #E86B1F;
+      border-left: 3px solid #FF4500;
       background: #FAFAFA;
       padding: 0.6rem 1rem;
       font-family: Helvetica, Arial, sans-serif;
@@ -982,7 +982,7 @@ def generate_pdf(export_pk):
     .pdf-media-icon { font-size: 11pt; margin-right: 0.3em; }
     .pdf-media-label { font-style: italic; margin-right: 0.4em; }
     .pdf-media-filelink {
-      color: #E86B1F;
+      color: #FF4500;
       font-style: normal;
       font-size: 9pt;
       word-break: break-all;
@@ -991,7 +991,7 @@ def generate_pdf(export_pk):
       font-family: Helvetica, Arial, sans-serif;
       font-size: 8pt; color: #999; margin: 0 0 1.2rem 0;
     }
-    .pdf-media-link a { color: #E86B1F; }
+    .pdf-media-link a { color: #FF4500; }
     """
 
     # Pre-process HTML: replace <video>/<audio> with PDF-safe equivalents

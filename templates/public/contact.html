@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Contact — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<section class="container about">
+  <h1 class="page-title">Contact</h1>
+  <div class="prose">
+    {% if journal.editorial_email %}
+    <p>Editorial enquiries:<br>
+      <a href="mailto:{{ journal.editorial_email }}" class="dir-link" style="font-size: var(--size-base);">{{ journal.editorial_email }} </a></p>
+    {% endif %}
+    {% if journal.contact_email and journal.contact_email != journal.editorial_email %}
+    <p>General enquiries:<br>
+      <a href="mailto:{{ journal.contact_email }}" class="dir-link" style="font-size: var(--size-base);">{{ journal.contact_email }} </a></p>
+    {% endif %}
+    {% if journal.institution %}<p>{{ journal.institution }}{% if journal.country %}, {{ journal.country }}{% endif %}</p>{% endif %}
+    {% if journal.instagram_url %}<p><a href="{{ journal.instagram_url }}" target="_blank" rel="noopener" class="dir-link" style="font-size: var(--size-base);">Instagram </a></p>{% endif %}
+    {% if not journal.editorial_email and not journal.contact_email %}
+    <p style="color: var(--color-muted);">Contact details will be published here soon.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db.models import Count, Q
+from django.utils import timezone
 
 from .models import User, UserRole
 
@@ -134,6 +135,60 @@ def user_delete(request, pk):
     return render(request, 'journal_admin/user_delete_confirm.html', {
         'target': target,
         'submission_count': submission_count,
+    })
+
+
+@journal_admin_required
+def homepage_settings(request):
+    """Homepage content: hero & contribute images, mission text, and the
+    'Across the archive' featured selection with its rotation period."""
+    from apps.journal.models import JournalConfig, FeaturedSelection
+    from apps.production.models import HTMLBuild
+
+    journal = JournalConfig.get()
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'content')
+        if action == 'featured':
+            ids = request.POST.getlist('featured_articles')
+            builds = HTMLBuild.objects.filter(pk__in=ids, is_published=True)
+            if builds:
+                FeaturedSelection.start_manual(builds)
+                messages.success(request, 'Featured articles updated — the new selection is live.')
+            else:
+                messages.error(request, 'Select at least one published article to feature.')
+        else:
+            journal.home_hero_caption = request.POST.get('home_hero_caption', '')
+            journal.contribute_caption = request.POST.get('contribute_caption', '')
+            journal.contribute_text = request.POST.get('contribute_text', '')
+            journal.mission_text = request.POST.get('mission_text', '')
+            journal.news_text = request.POST.get('news_text', '')
+            try:
+                months = int(request.POST.get('featured_rotation_months') or journal.featured_rotation_months)
+                journal.featured_rotation_months = max(1, min(months, 60))
+            except (TypeError, ValueError):
+                pass
+            if request.FILES.get('home_hero_image'):
+                journal.home_hero_image = request.FILES['home_hero_image']
+            if request.FILES.get('contribute_image'):
+                journal.contribute_image = request.FILES['contribute_image']
+            journal.save()
+            messages.success(request, 'Homepage content saved.')
+        return redirect('journal_admin_homepage')
+
+    selection = FeaturedSelection.objects.filter(ends_at__gt=timezone.now()).first()
+    selected_pks = set(selection.articles.values_list('pk', flat=True)) if selection else set()
+    published = (
+        HTMLBuild.objects.filter(is_published=True)
+        .select_related('document__revision__submission__author',
+                        'document__revision__submission__issue')
+        .order_by('-published_at')
+    )
+    return render(request, 'journal_admin/homepage.html', {
+        'journal': journal,
+        'selection': selection,
+        'selected_pks': selected_pks,
+        'published_builds': published,
     })
 
 

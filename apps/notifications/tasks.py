@@ -25,9 +25,9 @@ def _e(text: str) -> str:
 
 def _btn(url: str, label: str, secondary: bool = False) -> str:
     """Render a CTA button compatible with most email clients."""
-    bg = '#ffffff' if secondary else '#E86B1F'
-    color = '#E86B1F' if secondary else '#ffffff'
-    border = 'border:2px solid #E86B1F;' if secondary else ''
+    bg = '#ffffff' if secondary else '#FF4500'
+    color = '#FF4500' if secondary else '#ffffff'
+    border = 'border:2px solid #FF4500;' if secondary else ''
     return (
         f'<table cellpadding="0" cellspacing="0" border="0" style="margin:8px 0;">'
         f'<tr><td style="background-color:{bg};{border}border-radius:6px;">'
@@ -46,16 +46,16 @@ def _detail_box(label: str, value: str) -> str:
         f'border:1px solid #e8e7e3;border-radius:6px;">'
         f'<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;'
         f'color:#888888;text-transform:uppercase;letter-spacing:0.08em;">{_e(label)}</p>'
-        f'<p style="margin:5px 0 0;font-family:Georgia,\'Times New Roman\',serif;'
-        f'font-size:15px;color:#1A1A1A;font-weight:bold;">{_e(value)}</p>'
+        f'<p style="margin:5px 0 0;font-family:Arial,Helvetica,sans-serif;'
+        f'font-size:15px;color:#21252B;font-weight:bold;">{_e(value)}</p>'
         f'</td></tr></table>'
     )
 
 
 def _p(text: str) -> str:
     return (
-        f'<p style="margin:0 0 16px;font-family:Georgia,\'Times New Roman\',serif;'
-        f'font-size:15px;color:#1A1A1A;line-height:1.75;">{text}</p>'
+        f'<p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;'
+        f'font-size:15px;color:#21252B;line-height:1.75;">{text}</p>'
     )
 
 
@@ -65,10 +65,10 @@ def _greeting(name: str) -> str:
 
 def _signature() -> str:
     return (
-        '<p style="margin:24px 0 0;font-family:Georgia,\'Times New Roman\',serif;'
+        '<p style="margin:24px 0 0;font-family:Arial,Helvetica,sans-serif;'
         'font-size:14px;color:#6B6B6B;line-height:1.6;">'
         'Warm regards,<br>'
-        '<strong style="color:#1A1A1A;">The Trans/Act Editorial Office</strong>'
+        '<strong style="color:#21252B;">The IN/ACT Editorial Office</strong>'
         '</p>'
     )
 
@@ -78,27 +78,27 @@ def _quoted_block(text: str) -> str:
     return (
         '<div style="margin:20px 0;padding:20px 24px;background-color:#f9f8f5;'
         'border-left:3px solid #e8e7e3;border-radius:0 4px 4px 0;">'
-        '<p style="margin:0;font-family:Georgia,\'Times New Roman\',serif;font-size:14px;'
+        '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;'
         f'color:#444444;line-height:1.75;white-space:pre-line;">{_e(text)}</p>'
         '</div>'
     )
 
 
-def _decision_badge(label: str, color: str = '#1A1A1A', bg: str = '#f4f3ef') -> str:
+def _decision_badge(label: str, color: str = '#21252B', bg: str = '#F4F2F7') -> str:
     return (
         f'<table cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;">'
-        f'<tr><td style="background-color:{bg};border-left:3px solid #E86B1F;'
+        f'<tr><td style="background-color:{bg};border-left:3px solid #FF4500;'
         f'padding:10px 16px;border-radius:0 4px 4px 0;">'
         f'<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;'
         f'color:#888888;text-transform:uppercase;letter-spacing:0.08em;">Editorial decision</p>'
-        f'<p style="margin:5px 0 0;font-family:Georgia,\'Times New Roman\',serif;'
+        f'<p style="margin:5px 0 0;font-family:Arial,Helvetica,sans-serif;'
         f'font-size:17px;color:{color};font-weight:bold;">{_e(label)}</p>'
         f'</td></tr></table>'
     )
 
 
 def _html_wrapper(body_html: str) -> str:
-    """Wrap the email body content in the full branded Trans/Act email shell."""
+    """Wrap the email body content in the full branded IN/ACT email shell."""
     site_url = _site_url()
     domain = site_url.replace('https://', '').replace('http://', '')
     return f"""<!DOCTYPE html>
@@ -107,11 +107,11 @@ def _html_wrapper(body_html: str) -> str:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Trans/Act</title>
+  <title>IN/ACT</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f4f3ef;font-family:Georgia,'Times New Roman',serif;-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;background-color:#F4F2F7;font-family:Georgia,'Times New Roman',serif;-webkit-font-smoothing:antialiased;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0"
-         style="background-color:#f4f3ef;padding:40px 16px;">
+         style="background-color:#F4F2F7;padding:40px 16px;">
     <tr>
       <td align="center">
         <!-- Email card -->
@@ -121,14 +121,14 @@ def _html_wrapper(body_html: str) -> str:
                       box-shadow:0 2px 12px rgba(0,0,0,0.08);">
           <!-- Orange accent bar -->
           <tr>
-            <td style="background-color:#E86B1F;height:4px;font-size:0;line-height:0;">&nbsp;</td>
+            <td style="background-color:#FF4500;height:4px;font-size:0;line-height:0;">&nbsp;</td>
           </tr>
           <!-- Journal header -->
           <tr>
             <td style="padding:32px 40px 20px;">
               <p style="margin:0;font-family:Georgia,'Times New Roman',serif;
-                         font-size:20px;font-weight:bold;color:#1A1A1A;
-                         letter-spacing:-0.02em;">Trans/Act</p>
+                         font-size:20px;font-weight:bold;color:#21252B;
+                         letter-spacing:-0.02em;">IN/ACT</p>
               <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;
                          font-size:10px;color:#999999;text-transform:uppercase;
                          letter-spacing:0.14em;">Journal of Artistic Research</p>
@@ -151,8 +151,8 @@ def _html_wrapper(body_html: str) -> str:
             <td style="padding:20px 40px 32px;border-top:1px solid #e8e7e3;">
               <p style="margin:0;font-family:Arial,Helvetica,sans-serif;
                          font-size:11px;color:#999999;line-height:1.65;">
-                Trans/Act: Journal of Artistic Research &mdash;
-                <a href="{site_url}" style="color:#E86B1F;text-decoration:none;">{domain}</a><br>
+                IN/ACT: Journal of Artistic Research &mdash;
+                <a href="{site_url}" style="color:#FF4500;text-decoration:none;">{domain}</a><br>
                 This is an automated message. Please do not reply to this email.
               </p>
             </td>
@@ -316,7 +316,7 @@ def notify_submission_received(submission_pk):
     # ── HTML ─────────────────────────────────────────────────────────────────
     html_body = (
         _greeting(sub.author.display_name)
-        + _p('Thank you for submitting your work to <strong>Trans/Act: Journal of '
+        + _p('Thank you for submitting your work to <strong>IN/ACT: Journal of '
              'Artistic Research</strong>. We have successfully received your submission.')
         + _detail_box('Submission title', sub.title)
         + _p('Our editorial team will carry out a technical check to ensure your '
@@ -331,12 +331,12 @@ def notify_submission_received(submission_pk):
     # ── Plain text ────────────────────────────────────────────────────────────
     plain = (
         f'Dear {sub.author.display_name},\n\n'
-        f'Thank you for submitting your work to Trans/Act: Journal of Artistic Research. '
+        f'Thank you for submitting your work to IN/ACT: Journal of Artistic Research. '
         f'We have successfully received your submission.\n\n'
         f'Submission: {sub.title}\n\n'
         f'Our editorial team will carry out a technical check and notify you of next steps. '
         f'You can track your submission status at any time:\n{dashboard_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial Office'
+        f'Warm regards,\nThe IN/ACT Editorial Office'
     )
 
     try:
@@ -366,7 +366,7 @@ def notify_reviewer_invited(invitation_pk):
     # ── HTML ─────────────────────────────────────────────────────────────────
     html_body = (
         _greeting(inv.reviewer.display_name)
-        + _p('The editorial board of <strong>Trans/Act: Journal of Artistic Research</strong> '
+        + _p('The editorial board of <strong>IN/ACT: Journal of Artistic Research</strong> '
              'would like to invite you to serve as a peer reviewer for the following submission.')
         + _detail_box('Submission title', inv.submission.title)
         + _detail_box('Review deadline', deadline_str)
@@ -384,13 +384,13 @@ def notify_reviewer_invited(invitation_pk):
     # ── Plain text ────────────────────────────────────────────────────────────
     plain = (
         f'Dear {inv.reviewer.display_name},\n\n'
-        f'The editorial board of Trans/Act: Journal of Artistic Research invites you '
+        f'The editorial board of IN/ACT: Journal of Artistic Research invites you '
         f'to review the following submission.\n\n'
         f'Title: {inv.submission.title}\n'
         f'Review deadline: {deadline_str}\n\n'
         f'Please visit the link below to accept or decline:\n{invitation_url}\n\n'
         f'All reviews are conducted under double-blind conditions.\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial Office'
+        f'Warm regards,\nThe IN/ACT Editorial Office'
     )
 
     try:
@@ -454,7 +454,7 @@ def notify_review_submitted(review_pk):
             f'A peer review has been submitted for "{submission.title}" '
             f'and is available in the editorial dashboard.\n\n'
             f'{dashboard_url}\n\n'
-            f'Warm regards,\nThe Trans/Act Editorial Office'
+            f'Warm regards,\nThe IN/ACT Editorial Office'
         )
         try:
             _send(editor.email, subject_editors, plain, html_body)
@@ -507,12 +507,12 @@ def notify_decision_sent(decision_pk):
     elif any(kw in decision_label for kw in _neutral):
         badge_color, badge_bg = '#92400e', '#fffbeb'
     else:
-        badge_color, badge_bg = '#1A1A1A', '#f4f3ef'
+        badge_color, badge_bg = '#21252B', '#F4F2F7'
 
     # ── HTML ─────────────────────────────────────────────────────────────────
     html_body = (
         _greeting(submission.author.display_name)
-        + _p(f'The editorial board of <strong>Trans/Act: Journal of Artistic Research</strong> '
+        + _p(f'The editorial board of <strong>IN/ACT: Journal of Artistic Research</strong> '
              f'has reached a decision regarding your submission.')
         + _detail_box('Submission title', submission.title)
         + _decision_badge(decision_label, color=badge_color, bg=badge_bg)
@@ -527,12 +527,12 @@ def notify_decision_sent(decision_pk):
     # ── Plain text ────────────────────────────────────────────────────────────
     plain = (
         f'Dear {submission.author.display_name},\n\n'
-        f'The editorial board of Trans/Act: Journal of Artistic Research has reached '
+        f'The editorial board of IN/ACT: Journal of Artistic Research has reached '
         f'a decision regarding your submission "{submission.title}".\n\n'
         f'Decision: {decision_label}\n\n'
         f'{decision.letter}\n\n'
         f'Please visit your author dashboard for full details:\n{dashboard_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial Office'
+        f'Warm regards,\nThe IN/ACT Editorial Office'
     )
 
     try:
@@ -567,7 +567,7 @@ def notify_decision_sent(decision_pk):
             f'Submission: {submission.title}\n'
             f'Decision: {decision_label}\n\n'
             f'{editorial_url}\n\n'
-            f'Warm regards,\nThe Trans/Act Editorial System'
+            f'Warm regards,\nThe IN/ACT Editorial System'
         )
         try:
             _send(editor.email, editor_subject, editor_plain, editor_html)
@@ -610,7 +610,7 @@ def notify_revision_submitted(revision_pk):
         f'Submission: {submission.title}\n'
         f'Author: {submission.author.display_name}\n\n'
         f'Review it here:\n{editorial_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial System'
+        f'Warm regards,\nThe IN/ACT Editorial System'
     )
 
     # Email assigned active editors who have email notifications enabled.
@@ -672,7 +672,7 @@ def notify_revision_submitted(revision_pk):
             f'Submission: {submission.title}\n\n'
             f'The editorial team will be in touch if a further round of review is required.\n\n'
             f'Your reviewer dashboard:\n{reviewer_url}\n\n'
-            f'Warm regards,\nThe Trans/Act Editorial Office'
+            f'Warm regards,\nThe IN/ACT Editorial Office'
         )
         try:
             _send(reviewer.email, reviewer_subject, reviewer_plain, reviewer_html)
@@ -733,7 +733,7 @@ def notify_screening_resubmission(revision_pk):
         f'Submission: {submission.title}\n\n'
         f'Our editorial team will carry out a fresh technical check and notify you of the outcome.\n\n'
         f'Track your submission status at any time:\n{dashboard_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial Office'
+        f'Warm regards,\nThe IN/ACT Editorial Office'
     )
     try:
         _send(submission.author.email, author_subject, author_plain, author_html)
@@ -769,7 +769,7 @@ def notify_screening_resubmission(revision_pk):
         f'Submission: {submission.title}\n'
         f'Author: {submission.author.display_name}\n\n'
         f'Review it here:\n{editorial_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial System'
+        f'Warm regards,\nThe IN/ACT Editorial System'
     )
     editorial_email = getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)
     try:
@@ -825,7 +825,7 @@ def notify_returned_to_author(submission_pk):
 
     html_body = (
         _greeting(sub.author.display_name)
-        + _p('Thank you for your submission to <strong>Trans/Act: Journal of Artistic '
+        + _p('Thank you for your submission to <strong>IN/ACT: Journal of Artistic '
              'Research</strong>. Our editorial team has reviewed your manuscript and '
              'is returning it for correction before it can proceed to peer review.')
         + _detail_box('Submission title', sub.title)
@@ -841,7 +841,7 @@ def notify_returned_to_author(submission_pk):
         f'Your submission "{sub.title}" has been returned for correction.\n\n'
         + (f'Notes from the editorial team:\n{notes}\n\n' if notes else '')
         + f'Please log in and upload a corrected version:\n{dashboard_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial Office'
+        f'Warm regards,\nThe IN/ACT Editorial Office'
     )
 
     try:
@@ -897,7 +897,7 @@ def notify_review_released(review_pk):
         f'Dear {author.display_name},\n\n'
         f'Reviewer feedback for your submission "{submission.title}" is now available.\n\n'
         f'Log in to read the reviewer comments:\n{dashboard_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial Office'
+        f'Warm regards,\nThe IN/ACT Editorial Office'
     )
 
     try:
@@ -941,7 +941,7 @@ def notify_article_published(submission_pk):
     html_body = (
         _greeting(author.display_name)
         + _p('Congratulations — your article has been published in '
-             '<strong>Trans/Act: Journal of Artistic Research</strong>.')
+             '<strong>IN/ACT: Journal of Artistic Research</strong>.')
         + _detail_box('Article title', sub.title)
         + _p('Your work is now accessible to readers online.')
         + _btn(article_url, 'View published article')
@@ -952,9 +952,9 @@ def notify_article_published(submission_pk):
     plain = (
         f'Dear {author.display_name},\n\n'
         f'Congratulations — your article "{sub.title}" has been published in '
-        f'Trans/Act: Journal of Artistic Research.\n\n'
+        f'IN/ACT: Journal of Artistic Research.\n\n'
         f'Read it here:\n{article_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial Office'
+        f'Warm regards,\nThe IN/ACT Editorial Office'
     )
 
     try:
@@ -1007,7 +1007,7 @@ def send_review_reminders():
         subject = f'Review reminder — deadline {deadline_str}'
         workspace_url = f'{_site_url()}/review/invitation/{inv.magic_token}/'
 
-        urgency_color = '#dc2626' if days_left <= 2 else '#92400e' if days_left <= 4 else '#1A1A1A'
+        urgency_color = '#dc2626' if days_left <= 2 else '#92400e' if days_left <= 4 else '#21252B'
 
         # ── HTML ──────────────────────────────────────────────────────────────
         days_label = '1 day' if days_left == 1 else f'{days_left} days'
@@ -1023,7 +1023,7 @@ def send_review_reminders():
                 f'border:1px solid #e8e7e3;border-radius:6px;">'
                 f'<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;'
                 f'color:#888888;text-transform:uppercase;letter-spacing:0.08em;">Deadline</p>'
-                f'<p style="margin:5px 0 0;font-family:Georgia,\'Times New Roman\',serif;'
+                f'<p style="margin:5px 0 0;font-family:Arial,Helvetica,sans-serif;'
                 f'font-size:15px;font-weight:bold;color:{urgency_color};">'
                 f'{_e(deadline_str)}'
                 f'<span style="font-size:12px;font-weight:normal;color:#888888;margin-left:8px;">'
@@ -1045,7 +1045,7 @@ def send_review_reminders():
             f'is due on {deadline_str} ({days_label} remaining).\n\n'
             f'Review workspace:\n{workspace_url}\n\n'
             f'If you are unable to complete this review, please contact us as soon as possible.\n\n'
-            f'Warm regards,\nThe Trans/Act Editorial Office'
+            f'Warm regards,\nThe IN/ACT Editorial Office'
         )
 
         try:
@@ -1080,7 +1080,7 @@ def notify_editors_new_submission(submission_pk):
         f'Author: {sub.author.display_name}\n'
         f'Type: {sub.get_article_type_display()}\n\n'
         f'Open in editorial dashboard:\n{editorial_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial System'
+        f'Warm regards,\nThe IN/ACT Editorial System'
     )
 
     editorial_email = getattr(settings, 'EDITORIAL_EMAIL', settings.DEFAULT_FROM_EMAIL)
@@ -1155,7 +1155,7 @@ def notify_editors_reviewer_response(invitation_pk):
         f'Reviewer: {reviewer_name} ({reviewer_email})\n\n'
         + (f'Decline reason: {inv.decline_reason}\n\n' if not accepted and inv.decline_reason else '')
         + f'View submission:\n{editorial_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial System'
+        f'Warm regards,\nThe IN/ACT Editorial System'
     )
 
     editors = _assigned_editors(submission)
@@ -1202,7 +1202,7 @@ def notify_editors_article_published(submission_pk):
             f'The following article has just been published.\n\n'
             f'Title: {sub.title}\n\n'
             f'Read it here:\n{article_url}\n\n'
-            f'Warm regards,\nThe Trans/Act Editorial System'
+            f'Warm regards,\nThe IN/ACT Editorial System'
         )
         try:
             _send(editor.email, subject, plain, html_body)
@@ -1233,13 +1233,13 @@ def notify_editors_issue_published(issue_pk):
         f'Issue #{issue.number}{vol_str} published — '
         f'{article_count} article{"s" if article_count != 1 else ""}.'
     )
-    subject = f'Issue #{issue.number}{vol_str} published — Trans/Act'
+    subject = f'Issue #{issue.number}{vol_str} published — IN/ACT'
     all_editors = _editorial_users()
 
     for editor in _editors_email_opted_in(all_editors):
         html_body = (
             _greeting(editor.display_name)
-            + _p(f'Issue #{_e(str(issue.number))}{_e(vol_str)} of <strong>Trans/Act: Journal of '
+            + _p(f'Issue #{_e(str(issue.number))}{_e(vol_str)} of <strong>IN/ACT: Journal of '
                  f'Artistic Research</strong> has been published with '
                  f'{article_count} article{"s" if article_count != 1 else ""}.')
             + _btn(issue_url, 'View published issue')
@@ -1247,10 +1247,10 @@ def notify_editors_issue_published(issue_pk):
         )
         plain = (
             f'Dear {editor.display_name},\n\n'
-            f'Issue #{issue.number}{vol_str} of Trans/Act has been published '
+            f'Issue #{issue.number}{vol_str} of IN/ACT has been published '
             f'with {article_count} article{"s" if article_count != 1 else ""}.\n\n'
             f'View it here:\n{issue_url}\n\n'
-            f'Warm regards,\nThe Trans/Act Editorial System'
+            f'Warm regards,\nThe IN/ACT Editorial System'
         )
         try:
             _send(editor.email, subject, plain, html_body)
@@ -1291,7 +1291,7 @@ def notify_editors_submission_withdrawn(submission_title, author_name, author_em
         f'Title: {submission_title}\n'
         f'Author: {author_name} ({author_email})\n\n'
         f'Editorial queue:\n{editorial_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial System'
+        f'Warm regards,\nThe IN/ACT Editorial System'
     )
 
     # Email the generic editorial inbox.
@@ -1365,7 +1365,7 @@ def notify_editor_assigned(assignment_pk):
         f'Title: {submission.title}\n'
         f'Author: {submission.author.display_name}\n\n'
         f'Open in editorial dashboard:\n{editorial_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial Office'
+        f'Warm regards,\nThe IN/ACT Editorial Office'
     )
 
     try:
@@ -1413,7 +1413,7 @@ def notify_editor_removed(editor_pk, submission_title, role_label):
         f'Dear {editor.display_name},\n\n'
         f'You have been removed as {role_label} for "{submission_title}".\n\n'
         f'Editorial dashboard:\n{editorial_url}\n\n'
-        f'Warm regards,\nThe Trans/Act Editorial Office'
+        f'Warm regards,\nThe IN/ACT Editorial Office'
     )
 
     try:

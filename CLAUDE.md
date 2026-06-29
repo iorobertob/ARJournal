@@ -79,13 +79,28 @@ Two PDF modes: **flat** (plain print layout) and **interactive** (adds PDF bookm
 - `apps/journal/context_processors.py` — injects `journal` into all templates
 - `config/settings/base.py` — all settings with django-environ
 
-## Design System
-- CSS variables in `static/css/main.css`
-- Accent color: `--color-accent: #E86B1F` (orange from Figma)
-- Serif font: Source Serif 4
-- Sans font: Inter
+## Design System — IN/ACT identity (Figma "TRANS/ACT", 2026)
+- CSS variables in `static/css/main.css`; @font-face in `static/css/fonts.css`
+- Palette: Orange `#FF4500` (accent), Shadow `#21252B` (text), White `#FBFAFC` (bg),
+  Ghost `#F4F2F7`, Silver `#E4E2E7` (borders), Ash `#6E667A`, lavender `#A9A1B4` (captions),
+  Clay `#764D40` + Amber `#FFBD6D` (alt button / footer labels)
+- Single typeface identity: **FK Grotesk Neue** (commercial, not bundled). Interim:
+  **Space Grotesk** (bundled, `static/fonts/space-grotesk/`). Drop purchased FK Grotesk
+  Neue woff2 files into `static/fonts/fk-grotesk-neue/` (see README.txt there) — they
+  activate automatically via @font-face, no code changes.
+- Logotype: dotted IN/ACT SVGs in `static/img/brand/` (header/footer/orange/white).
+  Logotype typeface **G.B. Jones** by Nat Pyper (free: librarystack.org/g-b-jones) goes
+  into `static/fonts/gb-jones/` if ever needed as a text font.
+- Type scale (Desktop-18): H1 36/40 · H2 28/34 · H3 22/28 · body 16/20 ·
+  directional links 12/16 (orange, trailing ⟶, class `dir-link`/`link-arrow`) ·
+  filter tags 10/14 (white-on-orange, radius 2, class `filter-tag`)
+- Buttons: radius 2; `.btn--primary` solid orange, `.btn--outline`/`.btn--secondary`
+  outlined orange, `.btn--inverse` white outline for orange surfaces, `.btn--clay`
+  Clay/Amber variant
+- Section headings on public pages are orange (`.section-heading`)
 - Article reading CSS: `static/css/article.css`
 - Dashboard CSS: `static/css/dashboard.css`
+- Figma reference exports: `design/figma_reference/`
 
 ### Spacing tokens — valid values only
 The scale is **1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24** — there is no `--spacing-5`, `--spacing-7`, `--spacing-9`, etc. Using an undefined token resolves to nothing and collapses the dimension to zero. Always use a token from this list.
@@ -97,8 +112,8 @@ Every new UI element — cards, info boxes, warning panels, form groups, confirm
 ```
 templates/
 ├── base.html               — site shell
-├── partials/nav.html       — sticky header nav
-├── partials/footer.html    — dark footer
+├── partials/nav.html       — sticky header nav (dotted IN/ACT logo + search)
+├── partials/footer.html    — full-width orange footer
 ├── public/                 — homepage, issue, article, archive, about, submit
 ├── author/                 — dashboard, 4-step submission wizard
 ├── editorial/              — screening queue, detail, moderation

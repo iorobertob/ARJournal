@@ -1,13 +1,25 @@
 {% load static %}
 <header class="site-header" role="banner" x-data="{ mobileOpen: false }">
   <nav class="site-nav container" aria-label="Main navigation">
-    <a href="{% url 'home' %}" class="site-nav__logo">{{ journal.name }}</a>
+    <a href="{% url 'home' %}" class="site-nav__logo" aria-label="{{ journal.name }} — home">
+      {% if journal.logo %}<img src="{{ journal.logo.url }}" alt="{{ journal.name }}">
+      {% else %}<img src="{% static 'img/brand/logo-inact-header.svg' %}" alt="{{ journal.name }}">{% endif %}
+    </a>
     <ul class="site-nav__links" role="list">
-      <li><a href="{% if current_issue %}{% url 'issue_detail' current_issue.number %}{% else %}{% url 'home' %}{% endif %}" {% if request.resolver_match.url_name == 'issue_detail' or request.resolver_match.url_name == 'home' %}aria-current="page"{% endif %}>Current Issue</a></li>
+      <li><a href="{% if current_issue %}{% url 'issue_detail' current_issue.number %}{% else %}{% url 'home' %}{% endif %}" {% if request.resolver_match.url_name == 'issue_detail' %}aria-current="page"{% endif %}>Current Issue</a></li>
       <li><a href="{% url 'archive' %}" {% if request.resolver_match.url_name == 'archive' %}aria-current="page"{% endif %}>Archive</a></li>
+      <li><a href="{% url 'news' %}" {% if request.resolver_match.url_name == 'news' %}aria-current="page"{% endif %}>News</a></li>
       <li><a href="{% url 'about' %}" {% if request.resolver_match.url_name == 'about' %}aria-current="page"{% endif %}>About</a></li>
-      <li><a href="{% url 'submit_info' %}" class="site-nav__cta">Submit</a></li>
+      <li><a href="{% url 'submit_info' %}" {% if request.resolver_match.url_name == 'submit_info' %}aria-current="page"{% endif %}>Submit</a></li>
     </ul>
+
+    <a href="{% url 'archive' %}#search" class="site-nav__search" aria-label="Search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/>
+        <line x1="16.5" y1="16.5" x2="21" y2="21"/>
+      </svg>
+    </a>
 
     {% if user.is_authenticated %}
 
@@ -91,6 +103,7 @@
     <ul>
       <li><a href="{% if current_issue %}{% url 'issue_detail' current_issue.number %}{% else %}{% url 'home' %}{% endif %}">Current Issue</a></li>
       <li><a href="{% url 'archive' %}">Archive</a></li>
+      <li><a href="{% url 'news' %}">News</a></li>
       <li><a href="{% url 'about' %}">About</a></li>
       <li><a href="{% url 'submit_info' %}" class="site-nav__cta-mobile">Submit</a></li>
     </ul>

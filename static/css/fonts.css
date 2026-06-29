@@ -1,0 +1,105 @@
+/* ============================================================
+   IN/ACT — Brand fonts
+   ------------------------------------------------------------
+   1. FK Grotesk Neue (Florian Karsten) — the licensed site face.
+      NOT bundled (commercial, ~240 EUR desktop+web).
+      Once purchased, drop the files into:
+        static/fonts/fk-grotesk-neue/
+          FKGroteskNeue-Regular.woff2
+          FKGroteskNeue-Italic.woff2
+          FKGroteskNeue-Bold.woff2
+          FKGroteskNeue-BoldItalic.woff2
+      No code changes needed — the @font-face rules below pick
+      them up automatically; until then browsers silently fall
+      back to Space Grotesk (same foundry, open source).
+
+   2. Space Grotesk — free interim substitute, bundled in
+      static/fonts/space-grotesk/.
+
+   3. G.B. Jones (Nat Pyper) — logotype face. Free download:
+      https://www.librarystack.org/g-b-jones/
+      Drop the file into:
+        static/fonts/gb-jones/
+          GBJones.woff2  (preferred)  and/or  GBJones.otf
+      The dotted IN/ACT logo is rendered from SVG
+      (static/img/brand/), so this font is only needed when the
+      journal name is changed in the dashboard and the logotype
+      must be re-rendered as text.
+   ============================================================ */
+
+/* ── FK Grotesk Neue (drop-in, licensed) ──────────────────── */
+@font-face {
+  font-family: 'FK Grotesk Neue';
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'FK Grotesk Neue';
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'FK Grotesk Neue';
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'FK Grotesk Neue';
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* ── Space Grotesk (bundled interim) ──────────────────────── */
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../fonts/space-grotesk/space-grotesk-v22-latin_latin-ext-300.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../fonts/space-grotesk/space-grotesk-v22-latin_latin-ext-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../fonts/space-grotesk/space-grotesk-v22-latin_latin-ext-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../fonts/space-grotesk/space-grotesk-v22-latin_latin-ext-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../fonts/space-grotesk/space-grotesk-v22-latin_latin-ext-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── G.B. Jones (logotype, drop-in) ───────────────────────── */
+@font-face {
+  font-family: 'GB Jones';
+  src: url('../fonts/gb-jones/GBJones.woff2') format('woff2'),
+       url('../fonts/gb-jones/GBJones.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

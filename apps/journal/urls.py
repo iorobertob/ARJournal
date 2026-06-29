@@ -10,5 +10,9 @@ urlpatterns = [
     path('submit/', views.submit_info, name='submit_info'),
     path('authors/<int:pk>/', views.author_page, name='author_page'),
     path('terms/', views.terms, name='terms'),
+    path('news/', views.news, name='news'),
+    path('contact/', views.contact, name='contact'),
+    path('partners/', views.partners, name='partners'),
+    path('imprint/', views.imprint, name='imprint'),
     path('download/template/', views.download_template, name='download_template'),
 ]

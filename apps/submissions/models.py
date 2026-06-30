@@ -40,6 +40,10 @@ class Submission(models.Model):
     subtitle = models.CharField(max_length=500, blank=True, default='')
     article_type = models.CharField(max_length=50, choices=ArticleType.choices, default=ArticleType.RESEARCH_ARTICLE)
     abstract = models.TextField(blank=True, default='')
+    cover_image = models.ImageField(
+        upload_to='covers/', blank=True, null=True,
+        help_text='Cover image shown at the top of the article page (falls back to the issue cover image)')
+    cover_caption = models.CharField(max_length=500, blank=True, default='')
     keywords = models.JSONField(default=list, blank=True)
     disciplines = models.JSONField(default=list, blank=True)
     artistic_mediums = models.JSONField(default=list, blank=True)
@@ -77,6 +81,16 @@ class Submission(models.Model):
 
     def get_current_revision(self):
         return self.revisions.order_by('-version').first()
+
+    @property
+    def cover_url(self):
+        """Cover image for the article page: the uploaded cover, else the
+        issue's cover image, else None."""
+        if self.cover_image:
+            return self.cover_image.url
+        if self.issue and self.issue.cover_image:
+            return self.issue.cover_image.url
+        return None
 
     @property
     def is_returned_to_author(self):

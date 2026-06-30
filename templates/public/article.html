@@ -5,6 +5,27 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/article.css' %}">{% endblock %}
 
 {% block content %}
+
+<!-- ── Centered article header ───────────────────────────────── -->
+<header class="article-hero container">
+  {% if submission.issue %}
+  <p class="article-hero__issue"><a href="{% url 'issue_detail' submission.issue.number %}">Issue #{{ submission.issue.number }}</a></p>
+  <span class="filter-tag article-hero__year">{{ submission.issue.year }}</span>
+  {% endif %}
+  <h1 class="article-hero__title">{{ submission.title }}</h1>
+  {% if submission.subtitle %}<p class="article-hero__subtitle">{{ submission.subtitle }}</p>{% endif %}
+  <p class="article-hero__byline"><a href="{% url 'author_page' submission.author.pk %}">{{ submission.author.display_name }}</a></p>
+</header>
+
+<!-- ── Full-width cover image ────────────────────────────────── -->
+{% if submission.cover_url %}
+<figure class="article-cover container">
+  <img src="{{ submission.cover_url }}" alt="{{ submission.title }}" loading="eager">
+  {% if submission.cover_caption %}<figcaption class="article-cover__caption">{{ submission.cover_caption }}</figcaption>{% endif %}
+</figure>
+{% endif %}
+<hr class="article-cover__divider container">
+
 <div class="article-layout container">
 
   <!-- ── Sidebar ──────────────────────────────────────────────── -->
@@ -33,31 +54,36 @@
     <div class="article-meta-sidebar">
 
       <p class="article-meta-sidebar__label">Author</p>
-      <a href="{% url 'author_page' submission.author.pk %}">{{ submission.author.display_name }}</a>
+      <div class="article-meta-sidebar__tags">
+        <a class="filter-tag" href="{% url 'author_page' submission.author.pk %}">{{ submission.author.display_name }}</a>
+      </div>
 
       <p class="article-meta-sidebar__label">Category</p>
-      <p>{{ submission.get_article_type_display }}</p>
+      <div class="article-meta-sidebar__tags">
+        <a class="filter-tag" href="{% url 'archive' %}?q={{ submission.get_article_type_display|urlencode }}">{{ submission.get_article_type_display }}</a>
+      </div>
 
       {% if submission.disciplines %}
       <p class="article-meta-sidebar__label">Subject</p>
-      {% for d in submission.disciplines %}<p>{{ d }}</p>{% endfor %}
+      <div class="article-meta-sidebar__tags">
+        {% for d in submission.disciplines %}<a class="filter-tag" href="{% url 'archive' %}?q={{ d|urlencode }}">{{ d }}</a>{% endfor %}
+      </div>
       {% endif %}
 
       {% if submission.keywords %}
       <p class="article-meta-sidebar__label">Keywords</p>
-      <p style="display:flex;flex-wrap:wrap;gap:var(--spacing-1);margin:0;">
+      <div class="article-meta-sidebar__tags">
         {% for kw in submission.keywords %}
-        <a href="{% url 'archive' %}?q={{ kw|urlencode }}"
-           style="display:inline-block;font-size:0.72rem;color:var(--color-muted);background:var(--color-surface);border:1px solid var(--color-border);border-radius:100px;padding:1px var(--spacing-3);text-decoration:none;transition:border-color 0.15s,color 0.15s;"
-           onmouseover="this.style.borderColor='var(--color-accent)';this.style.color='var(--color-accent)'"
-           onmouseout="this.style.borderColor='var(--color-border)';this.style.color='var(--color-muted)'">{{ kw }}</a>
+        <a class="filter-tag" href="{% url 'archive' %}?q={{ kw|urlencode }}">{{ kw }}</a>
         {% endfor %}
-      </p>
+      </div>
       {% endif %}
 
       {% if submission.issue %}
       <p class="article-meta-sidebar__label">Year</p>
-      <p>{{ submission.issue.year }}</p>
+      <div class="article-meta-sidebar__tags">
+        <a class="filter-tag" href="{% url 'archive' %}?q={{ submission.issue.year }}">{{ submission.issue.year }}</a>
+      </div>
       {% endif %}
 
       {% if doi %}
@@ -85,20 +111,6 @@
 
   <!-- ── Main content ─────────────────────────────────────────── -->
   <main class="article-main" id="article-content">
-    {% if submission.issue %}
-    <p class="article-issue-label">Issue #{{ submission.issue.number }} &mdash; {{ submission.issue.year }}</p>
-    {% endif %}
-
-    <h1 class="article-title">{{ submission.title }}</h1>
-    {% if submission.subtitle %}<p class="article-subtitle">{{ submission.subtitle }}</p>{% endif %}
-    <p class="article-byline"><a href="{% url 'author_page' submission.author.pk %}" style="color:inherit;text-decoration:none;">{{ submission.author.display_name }}</a></p>
-
-    {% if build and build.document.revision.submission.issue.cover_image %}
-    <figure class="article-hero-image">
-      <img src="{{ build.document.revision.submission.issue.cover_image.url }}" alt="{{ submission.title }}">
-    </figure>
-    {% endif %}
-
     <div class="article-body-content">
       {% if article_html %}{{ article_html|safe }}{% elif build %}{{ build.html_content|safe }}{% endif %}
     </div>

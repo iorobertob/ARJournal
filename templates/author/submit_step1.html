@@ -18,7 +18,7 @@
     Changes are saved immediately. Your manuscript and uploaded files are unaffected.
   </p>
   {% endif %}
-  <form method="post" class="form">
+  <form method="post" class="form" enctype="multipart/form-data">
     {% csrf_token %}
     {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
     <div class="form__group">
@@ -48,6 +48,23 @@
       <input class="form__input" type="text" id="keywords" name="keywords"
              placeholder="e.g. artistic research; performance; sound"
              value="{{ submission.keywords|join:'; '|default:'' }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="cover_image">Cover image
+        <i class="tooltip-icon" tabindex="0" aria-label="Cover image guidance" data-tooltip="Shown at the top of your published article page. If left empty, the issue's cover image is used.">i</i>
+      </label>
+      {% if submission.cover_image %}
+      <div style="margin-bottom:var(--spacing-2);">
+        <img src="{{ submission.cover_image.url }}" alt="Current cover" style="max-height:120px;border:1px solid var(--color-border);">
+      </div>
+      {% endif %}
+      <input class="form__input" type="file" id="cover_image" name="cover_image" accept="image/*">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="cover_caption">Cover image caption</label>
+      <input class="form__input" type="text" id="cover_caption" name="cover_caption" maxlength="500"
+             placeholder="e.g. Detail of the installation …"
+             value="{{ submission.cover_caption|default:'' }}">
     </div>
     <div class="form__group">
       <label class="form__label" for="cover_letter">Cover Letter <i class="tooltip-icon" tabindex="0" aria-label="Cover letter guidance" data-tooltip="Address the editors directly. Explain why your work suits this journal, any relevant context, and confirm it is not under review elsewhere.">i</i></label>

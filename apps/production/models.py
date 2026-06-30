@@ -24,15 +24,17 @@ class HTMLBuild(models.Model):
 
     @property
     def card_image_url(self):
-        """Image used on homepage/archive cards: first image asset of the
-        revision, falling back to the issue cover."""
+        """Image used on homepage/archive cards: the article's uploaded cover,
+        else the first image asset of the revision, else the issue cover."""
         rev = self.document.revision
+        sub = rev.submission
+        if sub.cover_image:
+            return sub.cover_image.url
         asset = rev.assets.filter(kind='image').order_by('created_at').first()
         if asset and asset.file:
             return asset.file.url
-        issue = rev.submission.issue
-        if issue and issue.cover_image:
-            return issue.cover_image.url
+        if sub.issue and sub.issue.cover_image:
+            return sub.issue.cover_image.url
         return None
 
     def save(self, *args, **kwargs):

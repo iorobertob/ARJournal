@@ -33,6 +33,9 @@ def new_submission_step1(request):
         )
         kw = request.POST.get('keywords', '')
         sub.keywords = [k.strip() for k in kw.replace(';', ',').split(',') if k.strip()]
+        sub.cover_caption = request.POST.get('cover_caption', '')
+        if request.FILES.get('cover_image'):
+            sub.cover_image = request.FILES['cover_image']
         sub.save()
         return redirect('submission_step2', pk=sub.pk)
     from apps.journal.models import ArticleType
@@ -54,7 +57,11 @@ def edit_submission_metadata(request, pk):
         kw = request.POST.get('keywords', '')
         sub.keywords = [k.strip() for k in kw.replace(';', ',').split(',') if k.strip()]
         sub.cover_letter = request.POST.get('cover_letter', sub.cover_letter)
-        sub.save(update_fields=['title', 'subtitle', 'article_type', 'abstract', 'keywords', 'cover_letter', 'updated_at'])
+        sub.cover_caption = request.POST.get('cover_caption', sub.cover_caption)
+        if request.FILES.get('cover_image'):
+            sub.cover_image = request.FILES['cover_image']
+        sub.save(update_fields=['title', 'subtitle', 'article_type', 'abstract', 'keywords',
+                                'cover_letter', 'cover_image', 'cover_caption', 'updated_at'])
         if next_url:
             return redirect(next_url)
         return redirect('submission_step2', pk=sub.pk)

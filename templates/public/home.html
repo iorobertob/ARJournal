@@ -68,8 +68,9 @@
   <a href="{% url 'about' %}" class="btn btn--inverse">Find out more ⟶</a>
 </section>
 
-{% if current_issue and issue_builds %}
-<!-- Filters + current issue articles -->
+{% if journal.show_filtered_section and marquee_articles %}
+<!-- Filtered marquee -->
+{{ marquee_articles|json_script:"marquee-data" }}
 <section class="container home-browse">
   <aside class="filter-panel">
     <div class="filter-group">
@@ -78,12 +79,12 @@
         <a class="filter-group__expand" id="kw-search-link" href="{% url 'archive' %}"
            aria-label="Search the active keywords">↗</a>
       </div>
-      <form class="filter-group__search" id="kw-form" action="{% url 'archive' %}" method="get">
-        <input type="text" name="q" placeholder="Add keywords…"
-               aria-label="Search by keywords (comma separated)" autocomplete="off">
-        <button type="submit" aria-label="Search" style="display:inline-flex;color:var(--color-text);">
+      <form class="filter-group__search" id="kw-form" autocomplete="off">
+        <input type="text" id="kw-input" placeholder="Add keyword…"
+               aria-label="Add a keyword to the filter (comma separated)">
+        <button type="submit" aria-label="Add keyword" style="display:inline-flex;color:var(--color-text);">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/>
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
         </button>
       </form>
@@ -92,10 +93,10 @@
     <div class="filter-group">
       <div class="filter-group__head">
         <span class="filter-group__label">Categories</span>
-        <a class="filter-group__expand" href="{% url 'archive' %}" aria-label="Browse categories">↗</a>
+        <a class="filter-group__expand" id="cat-search-link" href="{% url 'archive' %}" aria-label="Search categories">↗</a>
       </div>
       <form class="filter-group__search" action="{% url 'archive' %}" method="get">
-        <input type="text" name="q" placeholder="Search" aria-label="Search the archive">
+        <input type="text" id="cat-input" name="q" placeholder="Search" aria-label="Search the archive">
         <button type="submit" aria-label="Search" style="display:inline-flex;color:var(--color-text);">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
             <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/>
@@ -118,31 +119,14 @@
     </div>
   </aside>
 
-  <div class="article-strip" id="article-strip">
-    {% for build in issue_builds %}
-    {% with submission=build.document.revision.submission %}
-    <article class="article-card"
-             data-keywords="{{ submission.keywords|join:'||' }}"
-             data-year="{% if submission.issue %}{{ submission.issue.year }}{% endif %}">
-      <a href="{% url 'article_detail' build.slug %}" aria-label="{{ submission.title }}">
-        {% if build.card_image_url %}
-        <img class="article-card__image" src="{{ build.card_image_url }}" alt="" loading="lazy">
-        {% else %}<span class="article-card__image" role="presentation"></span>{% endif %}
-      </a>
-      <p class="article-card__meta">Issue #{{ submission.issue.number }}</p>
-      {% if submission.issue %}
-      <p class="article-card__tags"><a class="filter-tag" href="{% url 'archive' %}?q={{ submission.issue.year }}">{{ submission.issue.year }}</a></p>
-      {% endif %}
-      <h3 class="article-card__title"><a href="{% url 'article_detail' build.slug %}">{{ submission.title }}</a></h3>
-      <p class="article-card__authors">With <a href="{% url 'author_page' submission.author.pk %}">{{ submission.author.display_name }}</a></p>
-    </article>
-    {% endwith %}
-    {% endfor %}
+  <div class="marquee" id="marquee" tabindex="0" aria-label="Filtered articles">
+    <div class="marquee__track" id="marquee-track"></div>
+    <p class="marquee__empty" id="marquee-empty" hidden>No articles match these filters.</p>
   </div>
 </section>
 {% endif %}
 
-{% if featured_archive %}
+{% if journal.show_archive_section and featured_archive %}
 <!-- Across the archive -->
 <section class="container home-archive">
   <h2 class="section-heading home-archive__heading">Across the archive</h2>
@@ -174,6 +158,7 @@
 </section>
 {% endif %}
 
+{% if journal.show_contribute_section %}
 <!-- Contribute -->
 <section class="container home-contribute">
   <div class="home-contribute__info">
@@ -190,82 +175,152 @@
     {% endif %}
   </div>
 </section>
+{% endif %}
 
 <script>
-// ── Sidebar filters: keywords & years harvested from the article strip ────────
+// ── Filtered marquee: 5 random keywords + client-side filtering (no AJAX) ──────
 (function () {
-  const strip = document.getElementById('article-strip');
-  if (!strip) return;
+  const dataEl = document.getElementById('marquee-data');
+  const track  = document.getElementById('marquee-track');
+  const marquee = document.getElementById('marquee');
+  if (!dataEl || !track || !marquee) return;
+
   const ARCHIVE_URL = "{% url 'archive' %}";
-  const cards = Array.from(strip.querySelectorAll('.article-card'));
+  const emptyEl = document.getElementById('marquee-empty');
 
-  // Keywords may be stored as a list or as one comma-joined string — split on both
-  function kwsOf(card) {
-    return (card.dataset.keywords || '')
-      .split('||')
-      .flatMap(s => s.split(','))
-      .map(s => s.trim().toLowerCase())
-      .filter(Boolean);
+  let articles = [];
+  try { articles = JSON.parse(dataEl.textContent) || []; } catch (e) { articles = []; }
+  articles.forEach(a => { a._kws = (a.keywords || []).map(k => String(k).toLowerCase()); });
+
+  // Pools harvested from the WHOLE article database
+  const kwPool = [];
+  const seen = new Set();
+  articles.forEach(a => a._kws.forEach(k => { if (!seen.has(k)) { seen.add(k); kwPool.push(k); } }));
+  const yearPool = Array.from(new Set(articles.map(a => a.year).filter(Boolean)));
+
+  function sample(arr, n) {
+    const c = arr.slice();
+    for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [c[i], c[j]] = [c[j], c[i]]; }
+    return c.slice(0, n);
   }
 
-  const allKeywords = new Set();
-  const allYears = new Set();
-  cards.forEach(card => {
-    kwsOf(card).forEach(k => allKeywords.add(k));
-    if (card.dataset.year) allYears.add(card.dataset.year);
-  });
+  // Initial state: 5 random keywords, all years active
+  const activeKw = new Set(sample(kwPool, 5));
+  const activeYears = new Set(yearPool);
 
-  const activeKw = new Set(allKeywords);
-  const activeYears = new Set(allYears);
-
-  function searchUrl(terms) {
-    return terms.length ? ARCHIVE_URL + '?q=' + encodeURIComponent(terms.join(', ')) : ARCHIVE_URL;
+  function searchUrl(set) {
+    const list = Array.from(set);
+    return list.length ? ARCHIVE_URL + '?q=' + encodeURIComponent(list.join(', ')) : ARCHIVE_URL;
   }
 
-  // Tag click → search that single term; ✕ click → drop it and refilter the strip
-  function renderTags(containerId, activeSet) {
-    const box = document.getElementById(containerId);
+  function filtered() {
+    return articles.filter(a => {
+      const kwOk = activeKw.size === 0 || a._kws.some(k => activeKw.has(k));
+      const yrOk = activeYears.size === 0 || activeYears.has(a.year);
+      return kwOk && yrOk;
+    });
+  }
+
+  function buildCard(a) {
+    const card = document.createElement('article');
+    card.className = 'article-card';
+
+    const imgLink = document.createElement('a');
+    imgLink.href = a.url; imgLink.setAttribute('aria-label', a.title);
+    if (a.image) {
+      const img = document.createElement('img');
+      img.className = 'article-card__image'; img.src = a.image; img.alt = ''; img.loading = 'lazy';
+      imgLink.appendChild(img);
+    } else {
+      const ph = document.createElement('span');
+      ph.className = 'article-card__image'; ph.setAttribute('role', 'presentation');
+      imgLink.appendChild(ph);
+    }
+    card.appendChild(imgLink);
+
+    if (a.issue != null) {
+      const meta = document.createElement('p');
+      meta.className = 'article-card__meta'; meta.textContent = 'Issue #' + a.issue;
+      card.appendChild(meta);
+    }
+    if (a.year) {
+      const tags = document.createElement('p'); tags.className = 'article-card__tags';
+      const yt = document.createElement('a'); yt.className = 'filter-tag';
+      yt.href = searchUrl(new Set([a.year])); yt.textContent = a.year;  // indicative, no ✕
+      tags.appendChild(yt); card.appendChild(tags);
+    }
+    const h = document.createElement('h3'); h.className = 'article-card__title';
+    const tl = document.createElement('a'); tl.href = a.url; tl.textContent = a.title;
+    h.appendChild(tl); card.appendChild(h);
+
+    const au = document.createElement('p'); au.className = 'article-card__authors';
+    au.appendChild(document.createTextNode('With '));
+    const al = document.createElement('a'); al.href = a.author_url; al.textContent = a.author;
+    au.appendChild(al); card.appendChild(au);
+    return card;
+  }
+
+  // Removable filter tags (keyword / year) — tag links to that single term's
+  // search; the ✕ removes it and refreshes only the marquee.
+  function renderTags(boxId, activeSet) {
+    const box = document.getElementById(boxId);
     if (!box) return;
     box.innerHTML = '';
     Array.from(activeSet).sort().forEach(value => {
       const tag = document.createElement('a');
       tag.className = 'filter-tag';
-      tag.href = searchUrl([value]);
+      tag.href = searchUrl(new Set([value]));
       tag.appendChild(document.createTextNode(value + ' '));
       const x = document.createElement('button');
-      x.type = 'button';
-      x.className = 'filter-tag__x';
+      x.type = 'button'; x.className = 'filter-tag__x';
       x.setAttribute('aria-label', 'Remove ' + value);
       x.textContent = '✕';
       x.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        activeSet.delete(value);
-        refresh();
+        e.preventDefault(); e.stopPropagation();
+        activeSet.delete(value); refresh();
       });
       tag.appendChild(x);
       box.appendChild(tag);
     });
   }
 
-  function updateMarquee() {
-    cards.forEach(card => {
-      const kws = kwsOf(card);
-      const year = card.dataset.year || '';
-      const kwOk = kws.length === 0 || kws.some(k => activeKw.has(k));
-      const yearOk = !year || activeYears.has(year);
-      card.style.display = (kwOk && yearOk) ? '' : 'none';
-    });
+  function renderMarquee(list) {
+    track.innerHTML = '';
+    if (!list.length) { if (emptyEl) emptyEl.hidden = false; return; }
+    if (emptyEl) emptyEl.hidden = true;
+    // User-scrollable strip — render the matching cards once, no auto-motion.
+    list.forEach(a => track.appendChild(buildCard(a)));
   }
 
   function refresh() {
     renderTags('kw-tags', activeKw);
     renderTags('year-tags', activeYears);
     const kwLink = document.getElementById('kw-search-link');
-    if (kwLink) kwLink.href = searchUrl(Array.from(activeKw));
+    if (kwLink) kwLink.href = searchUrl(activeKw);
     const yLink = document.getElementById('year-search-link');
-    if (yLink) yLink.href = searchUrl(Array.from(activeYears));
-    updateMarquee();
+    if (yLink) yLink.href = searchUrl(activeYears);
+    renderMarquee(filtered());
+  }
+
+  // Keyword input: Enter ADDS keyword(s) to the filter (does not navigate)
+  const kwForm = document.getElementById('kw-form');
+  const kwInput = document.getElementById('kw-input');
+  if (kwForm && kwInput) {
+    kwForm.addEventListener('submit', e => {
+      e.preventDefault();
+      kwInput.value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+        .forEach(k => activeKw.add(k));
+      kwInput.value = '';
+      refresh();
+    });
+  }
+
+  // Categories arrow → archive search preloaded with the typed category text
+  const catInput = document.getElementById('cat-input');
+  const catLink  = document.getElementById('cat-search-link');
+  if (catInput && catLink) {
+    const sync = () => { catLink.href = catInput.value.trim() ? searchUrl(new Set([catInput.value.trim()])) : ARCHIVE_URL; };
+    catInput.addEventListener('input', sync);
   }
 
   refresh();

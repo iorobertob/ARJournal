@@ -48,6 +48,43 @@ def home(request):
         if selection else []
     )
 
+    # Filtered marquee — ALL published articles across every issue.
+    # The keyword/year filtering happens client-side (no AJAX), so we hand
+    # the browser the full set as JSON and let it render the marquee.
+    from django.urls import reverse
+
+    def _clean_keywords(raw):
+        out = []
+        if isinstance(raw, str):
+            raw = [raw]
+        for item in (raw or []):
+            for part in str(item).split(','):
+                p = part.strip()
+                if p:
+                    out.append(p)
+        return out
+
+    marquee_builds = (
+        HTMLBuild.objects
+        .filter(is_published=True)
+        .select_related('document__revision__submission__author',
+                        'document__revision__submission__issue')
+        .order_by('-published_at')
+    )
+    marquee_articles = []
+    for b in marquee_builds:
+        sub = b.document.revision.submission
+        marquee_articles.append({
+            'url': reverse('article_detail', args=[b.slug]),
+            'title': sub.title,
+            'author': sub.author.display_name,
+            'author_url': reverse('author_page', args=[sub.author.pk]),
+            'image': b.card_image_url or '',
+            'issue': sub.issue.number if sub.issue else None,
+            'year': str(sub.issue.year) if sub.issue else '',
+            'keywords': _clean_keywords(sub.keywords),
+        })
+
     # Filter panel data
     years = (
         Issue.objects.filter(is_published=True)
@@ -61,6 +98,7 @@ def home(request):
         'toc_articles': toc_articles,
         'issue_builds': issue_builds,
         'featured_archive': featured_archive,
+        'marquee_articles': marquee_articles,
         'filter_years': years,
         'filter_categories': categories,
     })

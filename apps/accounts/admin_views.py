@@ -163,6 +163,10 @@ def homepage_settings(request):
             journal.contribute_text = request.POST.get('contribute_text', '')
             journal.mission_text = request.POST.get('mission_text', '')
             journal.news_text = request.POST.get('news_text', '')
+            # Section visibility toggles (checkbox absent => unchecked => False)
+            journal.show_filtered_section = bool(request.POST.get('show_filtered_section'))
+            journal.show_archive_section = bool(request.POST.get('show_archive_section'))
+            journal.show_contribute_section = bool(request.POST.get('show_contribute_section'))
             try:
                 months = int(request.POST.get('featured_rotation_months') or journal.featured_rotation_months)
                 journal.featured_rotation_months = max(1, min(months, 60))
@@ -280,6 +284,9 @@ def issue_create(request):
             title=request.POST.get('title', ''),
             editorial_note=request.POST.get('editorial_note', ''),
             call_for_submissions=request.POST.get('call_for_submissions', ''),
+            # New issues become the current issue by default (the model's
+            # save() unsets is_current on all other issues).
+            is_current=True,
         )
         if request.FILES.get('cover_image'):
             issue.cover_image = request.FILES['cover_image']

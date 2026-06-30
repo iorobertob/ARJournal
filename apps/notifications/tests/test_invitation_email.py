@@ -29,7 +29,7 @@ class InvitationEmailTest(TestCase):
 
     def setUp(self):
         JournalConfig.objects.get_or_create(pk=1, defaults={
-            'name': 'IN/ACT', 'tagline': 'Test', 'submission_open': True,
+            'name': 'inAct', 'tagline': 'Test', 'submission_open': True,
         })
         self.editor = make_user('editor@test.com', [UserRole.HANDLING_EDITOR],
                                 first_name='Ed', last_name='Itor')

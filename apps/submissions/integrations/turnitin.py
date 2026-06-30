@@ -25,7 +25,7 @@ def _enabled():
 def _headers():
     cfg = _cfg()
     return {
-        'X-Turnitin-Integration-Name': 'IN/ACT Journal Platform',
+        'X-Turnitin-Integration-Name': 'inAct Journal Platform',
         'X-Turnitin-Integration-Version': '1.0',
         'Authorization': f'Bearer {cfg.turnitin_api_key}',
         'Content-Type': 'application/json',

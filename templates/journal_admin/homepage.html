@@ -12,6 +12,26 @@
 {% csrf_token %}
 <input type="hidden" name="action" value="content">
 
+<!-- ── Visible sections ────────────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Visible sections</div>
+  <p style="margin:0 0 var(--spacing-4);font-size:var(--size-xs);color:var(--color-text-muted);">Show or hide each scrolling section of the public homepage. The Current Issue block and mission bar are always shown.</p>
+  <div style="display:flex;flex-direction:column;gap:var(--spacing-3);">
+    <label style="display:flex;align-items:center;gap:var(--spacing-2);cursor:pointer;">
+      <input type="checkbox" name="show_filtered_section" {% if journal.show_filtered_section %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
+      Filtered articles section <span style="color:var(--color-text-muted);">(keywords / years marquee)</span>
+    </label>
+    <label style="display:flex;align-items:center;gap:var(--spacing-2);cursor:pointer;">
+      <input type="checkbox" name="show_archive_section" {% if journal.show_archive_section %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
+      "Across the archive" section
+    </label>
+    <label style="display:flex;align-items:center;gap:var(--spacing-2);cursor:pointer;">
+      <input type="checkbox" name="show_contribute_section" {% if journal.show_contribute_section %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
+      "Contribute to {{ journal.name }}" section
+    </label>
+  </div>
+</div>
+
 <!-- ── Hero ────────────────────────────────────────────────── -->
 <div class="jadmin-card">
   <div class="jadmin-card__title">Top section — Current Issue</div>

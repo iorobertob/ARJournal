@@ -1,6 +1,6 @@
 Hello,
 
-Please confirm this email address for your IN/ACT account by visiting the link below:
+Please confirm this email address for your inAct account by visiting the link below:
 
 {{ activate_url }}
 
@@ -8,5 +8,5 @@ This link will expire in {{ expiration_days }} day{{ expiration_days|pluralize }
 
 If you did not request this change, please contact us immediately.
 
-The IN/ACT Editorial Office
+The inAct Editorial Office
 https://in-act-journal.org

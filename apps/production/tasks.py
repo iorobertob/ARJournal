@@ -693,7 +693,7 @@ def generate_pdf(export_pk):
     # ── Gather metadata ──────────────────────────────────────────
     from apps.journal.models import JournalConfig as _JC
     _journal  = _JC.objects.first()
-    _jname    = _journal.name    if _journal else 'IN/ACT'
+    _jname    = _journal.name    if _journal else 'inAct'
     _issn_p   = _journal.issn_print   if _journal else ''
     _issn_o   = _journal.issn_online  if _journal else ''
 

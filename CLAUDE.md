@@ -79,7 +79,7 @@ Two PDF modes: **flat** (plain print layout) and **interactive** (adds PDF bookm
 - `apps/journal/context_processors.py` — injects `journal` into all templates
 - `config/settings/base.py` — all settings with django-environ
 
-## Design System — IN/ACT identity (Figma "TRANS/ACT", 2026)
+## Design System — inAct identity (Figma "TRANS/ACT", 2026)
 - CSS variables in `static/css/main.css`; @font-face in `static/css/fonts.css`
 - Palette: Orange `#FF4500` (accent), Shadow `#21252B` (text), White `#FBFAFC` (bg),
   Ghost `#F4F2F7`, Silver `#E4E2E7` (borders), Ash `#6E667A`, lavender `#A9A1B4` (captions),
@@ -88,7 +88,7 @@ Two PDF modes: **flat** (plain print layout) and **interactive** (adds PDF bookm
   **Space Grotesk** (bundled, `static/fonts/space-grotesk/`). Drop purchased FK Grotesk
   Neue woff2 files into `static/fonts/fk-grotesk-neue/` (see README.txt there) — they
   activate automatically via @font-face, no code changes.
-- Logotype: dotted IN/ACT SVGs in `static/img/brand/` (header/footer/orange/white).
+- Logotype: dotted inAct SVGs in `static/img/brand/` (header/footer/orange/white).
   Logotype typeface **G.B. Jones** by Nat Pyper (free: librarystack.org/g-b-jones) goes
   into `static/fonts/gb-jones/` if ever needed as a text font.
 - Type scale (Desktop-18): H1 36/40 · H2 28/34 · H3 22/28 · body 16/20 ·
@@ -112,7 +112,7 @@ Every new UI element — cards, info boxes, warning panels, form groups, confirm
 ```
 templates/
 ├── base.html               — site shell
-├── partials/nav.html       — sticky header nav (dotted IN/ACT logo + search)
+├── partials/nav.html       — sticky header nav (dotted inAct logo + search)
 ├── partials/footer.html    — full-width orange footer
 ├── public/                 — homepage, issue, article, archive, about, submit
 ├── author/                 — dashboard, 4-step submission wizard

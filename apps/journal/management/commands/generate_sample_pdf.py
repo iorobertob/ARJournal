@@ -5,7 +5,7 @@ Usage:
     python manage.py generate_sample_pdf
 
 Writes template_pack/transact_sample_article.pdf — a fully rendered sample
-article demonstrating every feature of the IN/ACT publication format:
+article demonstrating every feature of the inAct publication format:
 inline markup, block quotations, footnotes, citations, figures, tables,
 and bibliography.
 
@@ -283,7 +283,7 @@ def _build_pdf_html(html_content: str, site_url: str) -> str:
   <p class="sample-banner__label">Sample output &mdash; author template pack</p>
   <p class="sample-banner__title">This document shows how your submission will look after publication.</p>
   <p class="sample-banner__body">
-    It was generated from the IN/ACT production pipeline (HTML + WeasyPrint renderer).
+    It was generated from the inAct production pipeline (HTML + WeasyPrint renderer).
     Your submitted <code>.tex</code> file goes through the same process to produce the
     HTML article and this downloadable PDF. <strong>Note:</strong> the local PDF you
     compile from the same source in LaTeX (via pdflatex or VS&nbsp;Code) uses a
@@ -307,7 +307,7 @@ def _build_pdf_html(html_content: str, site_url: str) -> str:
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>IN/ACT &mdash; Sample Article</title>
+  <title>inAct &mdash; Sample Article</title>
   <style>{_PDF_CSS}</style>
 </head>
 <body>

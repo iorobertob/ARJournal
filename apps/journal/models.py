@@ -6,7 +6,7 @@ from django.utils import timezone
 
 class JournalConfig(models.Model):
     """Singleton model — journal-wide configuration, editable from admin dashboard."""
-    name = models.CharField(max_length=255, default='IN/ACT')
+    name = models.CharField(max_length=255, default='inAct')
     tagline = models.CharField(max_length=500, blank=True, default='')
     description = models.TextField(blank=True, default='')
     issn_print = models.CharField(max_length=20, blank=True, default='')
@@ -54,6 +54,14 @@ class JournalConfig(models.Model):
     featured_rotation_months = models.PositiveSmallIntegerField(
         default=6,
         help_text='How long a homepage "Across the archive" selection stays before rotating (months)')
+
+    # ── Homepage section visibility ────────────────────────────
+    show_filtered_section = models.BooleanField(
+        default=True, help_text='Show the keyword/year filtered articles section on the homepage')
+    show_archive_section = models.BooleanField(
+        default=True, help_text='Show the "Across the archive" section on the homepage')
+    show_contribute_section = models.BooleanField(
+        default=True, help_text='Show the "Contribute" section on the homepage')
 
     # ── Email ──────────────────────────────────────────────────
     email_from_name = models.CharField(max_length=255, blank=True, default='')

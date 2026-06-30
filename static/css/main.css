@@ -640,23 +640,22 @@ input[type="password"].form-input, textarea.form-input, select.form-input {
 
 .home-current__heading {
   margin-bottom: var(--spacing-8);
-  padding-left: var(--spacing-10);
+  text-align: center;
 }
 
 .home-current__issue-meta {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--spacing-1);
   margin-bottom: var(--spacing-4);
-  padding-left: var(--spacing-10);
 }
 
 .home-current__title {
   font-size: var(--size-xl);
   line-height: 1.27;
   margin-bottom: var(--spacing-10);
-  padding-left: var(--spacing-10);
+  text-align: center;
   text-decoration: none;
   display: block;
   color: var(--color-text);
@@ -803,6 +802,31 @@ a.home-current__title:hover { color: var(--color-accent); }
 }
 
 .article-strip > * { scroll-snap-align: start; }
+
+/* User-scrollable strip of filtered articles */
+.marquee {
+  overflow-x: auto;
+  min-width: 0;
+  scroll-snap-type: x proximity;
+  padding-bottom: var(--spacing-4);
+}
+
+.marquee__track {
+  display: flex;
+  width: max-content;
+}
+
+.marquee .article-card {
+  flex: 0 0 321px;
+  margin-right: var(--spacing-8);
+  scroll-snap-align: start;
+}
+
+.marquee__empty {
+  color: var(--color-lavender);
+  font-size: var(--size-sm);
+  padding: var(--spacing-6) 0;
+}
 
 /* ── Article card (homepage + archive) ──────────────────────── */
 .article-card {
@@ -1472,9 +1496,6 @@ a.home-current__title:hover { color: var(--color-accent); }
 @media (max-width: 900px) {
   .hero__inner { grid-template-columns: 1fr; }
   .home-current { grid-template-columns: 1fr; }
-  .home-current__heading,
-  .home-current__issue-meta,
-  .home-current__title { padding-left: 0; }
   .home-current__media { order: -1; }
   .home-browse { grid-template-columns: 1fr; }
   .home-contribute { grid-template-columns: 1fr; }
@@ -1497,6 +1518,7 @@ a.home-current__title:hover { color: var(--color-accent); }
   .home-archive__grid { grid-template-columns: 1fr; }
   .archive-grid { grid-template-columns: 1fr; }
   .article-strip { grid-auto-columns: 80vw; }
+  .marquee .article-card { flex-basis: 78vw; }
   .archive-search__field { flex-direction: column; }
   .archive-search__input { min-width: 0; width: 100%; }
   .site-footer__grid { grid-template-columns: 1fr; }

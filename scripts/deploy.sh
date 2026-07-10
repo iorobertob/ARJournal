@@ -65,6 +65,21 @@ run_django() {
     "$VENV_DIR/bin/python" "$APP_DIR/manage.py" "$@"
 }
 
+# Pick an interpreter >= 3.11 (project minimum). Honour $PYTHON_BIN if set,
+# else prefer the newest available: 3.13 → 3.12 → 3.11 → distro default python3.
+# Works across Debian 12 (3.11), Ubuntu 24.04 (3.12), Ubuntu 22.04 (+deadsnakes).
+pick_python() {
+  local cand
+  for cand in "${PYTHON_BIN:-}" python3.13 python3.12 python3.11 python3; do
+    [[ -n "$cand" ]] || continue
+    command -v "$cand" >/dev/null 2>&1 || continue
+    if "$cand" -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 11) else 1)' 2>/dev/null; then
+      echo "$cand"; return 0
+    fi
+  done
+  return 1
+}
+
 echo ""
 echo "${BOLD}inAct Journal — Deploy${RESET}  ($(date '+%Y-%m-%d %H:%M %Z'))"
 echo "  App dir  : $APP_DIR"
@@ -79,8 +94,9 @@ step "Verifying repository"
 if ! $UPDATE_ONLY; then
   step "Installing system packages"
   apt-get update -q --allow-releaseinfo-change
+  # Use the distro's default python3 (3.12 on Ubuntu 24.04, 3.11 on Debian 12).
   apt-get install -y --no-install-recommends \
-    python3.11 python3.11-venv python3.11-dev python3-pip \
+    python3 python3-venv python3-dev python3-pip \
     postgresql postgresql-contrib \
     redis-server \
     nginx \
@@ -90,6 +106,18 @@ if ! $UPDATE_ONLY; then
     libgdk-pixbuf2.0-0 libharfbuzz0b libffi-dev \
     shared-mime-info fonts-liberation fonts-dejavu-core \
     libmagic1
+
+  # Project needs Python >= 3.11. Ubuntu 22.04's default is 3.10, so fetch 3.11
+  # (from universe, or the deadsnakes PPA) when the default interpreter is older.
+  if ! python3 -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 11) else 1)'; then
+    warn "Default python3 is < 3.11 — installing python3.11."
+    apt-get install -y --no-install-recommends python3.11 python3.11-venv python3.11-dev 2>/dev/null \
+      || { apt-get install -y --no-install-recommends software-properties-common \
+           && add-apt-repository -y ppa:deadsnakes/ppa \
+           && apt-get update -q \
+           && apt-get install -y --no-install-recommends python3.11 python3.11-venv python3.11-dev; } \
+      || die "Need Python >= 3.11 but could not install it. Install python3.11 manually and re-run."
+  fi
 fi
 
 # ── 3. App user (production) ──────────────────────────────────────────────────
@@ -142,7 +170,9 @@ _env_val() { grep "^$1=" "$APP_DIR/.env" | cut -d= -f2- | tr -d ' "'"'" | head -
 # ── 5. Python virtual environment ─────────────────────────────────────────────
 step "Python virtual environment"
 if [[ ! -d "$VENV_DIR" ]]; then
-  sudo -u "$RUN_AS" python3.11 -m venv "$VENV_DIR"
+  PYBIN="$(pick_python)" || die "No Python >= 3.11 found. Install python3.11+ (or set PYTHON_BIN) and re-run."
+  echo "  Using $("$PYBIN" --version 2>&1) ($PYBIN)"
+  sudo -u "$RUN_AS" "$PYBIN" -m venv "$VENV_DIR"
 fi
 sudo -u "$RUN_AS" "$VENV_DIR/bin/pip" install -q --upgrade pip
 sudo -u "$RUN_AS" "$VENV_DIR/bin/pip" install -q -r "$APP_DIR/requirements/production.txt"
@@ -285,7 +315,7 @@ ExecStart=${VENV_DIR}/bin/celery \\
     -A config.celery beat \\
     --loglevel=info \\
     --logfile=${APP_DIR}/logs/celerybeat.log \\
-    --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    --schedule=${APP_DIR}/logs/celerybeat-schedule
 Restart=always
 RestartSec=10
 

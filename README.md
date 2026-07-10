@@ -315,7 +315,7 @@ sudo bash scripts/deploy.sh                 # or: GUNICORN_WORKERS=5 sudo bash s
 On first run the script copies `.env.example` to `.env` and pauses so you can fill it in (it prints a ready-to-paste template with a freshly generated `SECRET_KEY`).
 
 The script installs:
-- Python 3.11, PostgreSQL 16, Redis, Nginx, Certbot
+- Python ≥ 3.11 (the distro default: 3.12 on Ubuntu 24.04, 3.11 on Debian 12; on Ubuntu 22.04 it pulls python3.11), PostgreSQL 16, Redis, Nginx, Certbot
 - WeasyPrint native libs: `libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libharfbuzz0b libffi-dev shared-mime-info fonts-liberation fonts-dejavu-core`
 - `libmagic1` (python-magic file type detection)
 - All Python packages from `requirements/production.txt`, including **pikepdf** (binary wheel, no extra build deps on Ubuntu 22.04+)

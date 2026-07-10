@@ -17,8 +17,7 @@ A Django-based journal management platform supporting the full lifecycle of an a
 | Storage | Local filesystem (documented S3 upgrade path) |
 | Dev server | Port **5002** |
 | Staging | Nginx + Gunicorn + systemd — `misc.lmta.lt/journal` (subpath) |
-| Production | Nginx + Gunicorn + systemd — `journal.lmta.lt` (bare-metal) |
-| Production | Nginx + Docker Compose — `journal.lmta.lt` (containerised) |
+| Production | Nginx + Gunicorn + systemd — `inact.lmta.lt` (bare-metal, `/var/www/inact`) |
 
 ---
 
@@ -209,15 +208,14 @@ All integrations are feature-flagged and disabled by default:
 
 ## Deployment
 
-Three deployment stages, in order of progression:
+Two deployment stages, in order of progression:
 
 | Stage | URL | Method | Script |
 |---|---|---|---|
 | 1 — Staging | `https://misc.lmta.lt/journal` | Bare-metal, subpath | `scripts/deploy-staging.sh` |
-| 2 — Production | `https://journal.lmta.lt` | Bare-metal, subdomain | `scripts/deploy.sh` |
-| 3 — Production | `https://journal.lmta.lt` | Docker Compose | `scripts/deploy-docker.sh` |
+| 2 — Production | `https://inact.lmta.lt` | Bare-metal, subdomain (`/var/www/inact`) | `scripts/deploy.sh` |
 
-All scripts tested on **Ubuntu 22.04 LTS** and **Debian 12**. Each script accepts `--update` to skip system package installation and run only: git pull → pip install → migrate → collectstatic → service restart.
+Both scripts tested on **Ubuntu 22.04 LTS** and **Debian 12**. Each script accepts `--update` to skip system package installation and run only: git pull → pip install → migrate → collectstatic → service restart.
 
 ---
 
@@ -293,33 +291,28 @@ tail -f /opt/transact-staging/logs/gunicorn-error.log
 
 ---
 
-### Stage 2 — Production at `journal.lmta.lt` (bare-metal)
+### Stage 2 — Production at `inact.lmta.lt` (bare-metal)
 
-Full subdomain deployment, no Docker. The script installs all system packages, creates a dedicated `transact` system user, sets up the venv, writes systemd units, deploys Nginx, and obtains SSL via Let's Encrypt.
+Full subdomain deployment, no Docker. `scripts/deploy.sh` is **fully self-contained** — a first run does everything end-to-end with no manual steps beyond editing `.env`:
+
+> apt packages → dedicated `inact` system user → `.env` → venv + pip install → git pull → **PostgreSQL role + database (with schema ownership)** → media/static/log dirs → `collectstatic` → `migrate` → `check --deploy` → systemd units → Nginx site → Let's Encrypt SSL → start services → **Django superuser + admin roles** → JournalConfig seed.
 
 **Settings module:** `config.settings.production`
-**App directory:** `/opt/transact`
-**Gunicorn port:** `5002`
-**Systemd units:** `transact-gunicorn`, `transact-celery`, `transact-celerybeat`
-**Nginx config:** `nginx/nginx-production.conf`
+**App directory:** `/var/www/inact`
+**Gunicorn port:** `5002` (bound to `127.0.0.1`; Nginx proxies to it)
+**Systemd units:** `inact-gunicorn`, `inact-celery`, `inact-celerybeat`
+**Nginx site:** `nginx/nginx-production.conf` → `/etc/nginx/sites-available/inact`
 
-**1. Edit the script configuration:**
-
-```bash
-# scripts/deploy.sh — edit at the top
-REPO_URL="git@github.com:your-org/journal.git"
-DOMAIN="journal.lmta.lt"
-GUNICORN_WORKERS=3    # 2 × CPU cores + 1
-```
-
-**2. Run on the server:**
+**1. Clone and run — no script editing required.** `deploy.sh` reads everything from `.env` and derives its app directory from its own location. Optionally set `GUNICORN_WORKERS` (default 3 ≈ 2 × CPU cores + 1) as an env var:
 
 ```bash
-ssh root@journal.lmta.lt
-git clone <repo> /opt/transact
-cd /opt/transact
-sudo bash scripts/deploy.sh
+ssh root@inact.lmta.lt
+git clone <repo> /var/www/inact
+cd /var/www/inact
+sudo bash scripts/deploy.sh                 # or: GUNICORN_WORKERS=5 sudo bash scripts/deploy.sh
 ```
+
+On first run the script copies `.env.example` to `.env` and pauses so you can fill it in (it prints a ready-to-paste template with a freshly generated `SECRET_KEY`).
 
 The script installs:
 - Python 3.11, PostgreSQL 16, Redis, Nginx, Certbot
@@ -331,15 +324,16 @@ Required production `.env` values:
 
 ```bash
 DEBUG=False
-SECRET_KEY=<50+ random chars>
+SECRET_KEY=<50+ random chars>            # python -c "import secrets; print(secrets.token_hex(50))"
 DJANGO_SETTINGS_MODULE=config.settings.production
-ALLOWED_HOSTS=journal.lmta.lt,www.journal.lmta.lt
-CSRF_TRUSTED_ORIGINS=https://journal.lmta.lt,https://www.journal.lmta.lt
-SITE_URL=https://journal.lmta.lt
+ALLOWED_HOSTS=inact.lmta.lt,www.inact.lmta.lt
+CSRF_TRUSTED_ORIGINS=https://inact.lmta.lt,https://www.inact.lmta.lt
+SITE_URL=https://inact.lmta.lt
 
-DB_NAME=transact_journal
-DB_USER=transact
-DB_PASSWORD=<strong password>
+# PostgreSQL — deploy.sh creates this role + database automatically
+DB_NAME=inact_journal
+DB_USER=inact
+DB_PASSWORD=<strong password>            # openssl rand -base64 24
 DB_HOST=localhost
 
 CELERY_BROKER_URL=redis://localhost:6379/0
@@ -347,96 +341,46 @@ CELERY_TASK_ALWAYS_EAGER=False
 
 ANYMAIL_BACKEND=mailersend
 MAILERSEND_API_TOKEN=<token>
-DEFAULT_FROM_EMAIL=noreply@journal.lmta.lt
+DEFAULT_FROM_EMAIL=noreply@inact.lmta.lt
 
-DJANGO_SUPERUSER_EMAIL=admin@lmta.lt
-DJANGO_SUPERUSER_PASSWORD=<strong password>
+# Django superuser — deploy.sh creates this login automatically
+DJANGO_SUPERUSER_EMAIL=admin@inact.lmta.lt
+DJANGO_SUPERUSER_PASSWORD=<strong password>   # openssl rand -base64 24
 ```
 
-**Update:**
+> **DNS first.** Point `inact.lmta.lt` (and `www.inact.lmta.lt` if you list it in `ALLOWED_HOSTS`) at the server's IP **before** running the script — Certbot requests a cert for every host in `ALLOWED_HOSTS` and fails if any of them doesn't resolve.
+
+#### Database and superuser (created automatically)
+
+`deploy.sh` provisions both from your `.env` — you do **not** create them by hand:
+
+| What | Created from `.env` | Details |
+|---|---|---|
+| PostgreSQL role | `DB_USER` / `DB_PASSWORD` | `LOGIN` role; re-run syncs the password. UTF-8 / read-committed / UTC session defaults applied. |
+| PostgreSQL database | `DB_NAME` | Owned by `DB_USER`. On PG 15/16 the `public` schema is re-owned by `DB_USER` so migrations can create tables. |
+| Django superuser | `DJANGO_SUPERUSER_EMAIL` / `DJANGO_SUPERUSER_PASSWORD` | `is_staff` + `is_superuser`, and granted the `system_admin` + `journal_admin` journal roles — usable at `/admin/` **and** `/journal-admin/` immediately. Existing users are never password-reset. |
+
+The DB password lives only in `.env` (mode `640`, git-ignored). To rotate it, change `DB_PASSWORD` in `.env` and re-run `sudo bash scripts/deploy.sh --update`. To reset the superuser password: `sudo -u inact venv/bin/python manage.py changepassword <email>`. Additional users are managed through the UI at `/journal-admin/users/` (see [First Admin User](#first-admin-user--granting-roles)).
+
+**Update (subsequent deploys — skips packages, DB creation, SSL):**
 ```bash
-cd /opt/transact && git pull
+cd /var/www/inact && git pull
 sudo bash scripts/deploy.sh --update
 ```
 
 **Service management:**
 ```bash
-sudo systemctl status transact-gunicorn
-sudo systemctl restart transact-gunicorn
-sudo journalctl -u transact-gunicorn -f
-tail -f /opt/transact/logs/gunicorn-error.log
-tail -f /opt/transact/logs/celery.log
+sudo systemctl status inact-gunicorn
+sudo systemctl restart inact-gunicorn inact-celery inact-celerybeat
+sudo journalctl -u inact-gunicorn -f
+tail -f /var/www/inact/logs/gunicorn-error.log
+tail -f /var/www/inact/logs/celery.log
 ```
 
 **SSL renewal** (Certbot auto-renews via systemd timer, but to renew manually):
 ```bash
 sudo certbot renew --dry-run
 sudo certbot renew && sudo systemctl reload nginx
-```
-
----
-
-### Stage 3 — Production at `journal.lmta.lt` (Docker)
-
-PostgreSQL, Redis, Gunicorn, and Celery run inside Docker containers. Nginx and Certbot run on the host and proxy to the Docker app container on port 5002. Media files are bind-mounted from the container to `/opt/transact-docker/media/` so Nginx can serve them directly. Static files are served by WhiteNoise from inside the app container.
-
-**Docker Compose file:** `docker-compose.prod.yml`
-**Nginx config:** `nginx/nginx-docker.conf`
-**Script:** `scripts/deploy-docker.sh`
-
-**1. Clone the repo and run the script:**
-
-```bash
-ssh root@journal.lmta.lt
-git clone <repo> /opt/transact-docker
-cd /opt/transact-docker
-sudo bash scripts/deploy-docker.sh
-```
-
-The script installs Docker CE (official repo), Nginx, and Certbot on the host. It then builds the images, runs containers, runs migrations inside the app container, obtains SSL, and starts Nginx.
-
-Required `.env` values — **note `DB_HOST=db`** (Docker service name, not localhost):
-
-```bash
-DEBUG=False
-SECRET_KEY=<50+ random chars>
-DJANGO_SETTINGS_MODULE=config.settings.production
-ALLOWED_HOSTS=journal.lmta.lt,www.journal.lmta.lt
-CSRF_TRUSTED_ORIGINS=https://journal.lmta.lt,https://www.journal.lmta.lt
-SITE_URL=https://journal.lmta.lt
-
-DB_NAME=transact_journal
-DB_USER=transact
-DB_PASSWORD=<strong password>
-DB_HOST=db                          # ← Docker service name, NOT localhost
-DB_PORT=5432
-
-CELERY_BROKER_URL=redis://redis:6379/0   # ← 'redis' = Docker service name
-CELERY_TASK_ALWAYS_EAGER=False
-
-ANYMAIL_BACKEND=mailersend
-MAILERSEND_API_TOKEN=<token>
-DEFAULT_FROM_EMAIL=noreply@journal.lmta.lt
-
-DJANGO_SUPERUSER_EMAIL=admin@lmta.lt
-DJANGO_SUPERUSER_PASSWORD=<strong password>
-```
-
-**Update:**
-```bash
-cd /opt/transact-docker && git pull
-sudo bash scripts/deploy-docker.sh --update
-```
-
-**Docker management:**
-```bash
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs -f app
-docker compose -f docker-compose.prod.yml logs -f celery
-docker compose -f docker-compose.prod.yml restart app
-
-# Run a management command inside the container
-docker compose -f docker-compose.prod.yml exec app python manage.py <command>
 ```
 
 ---

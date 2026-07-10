@@ -1,15 +1,23 @@
 #!/usr/bin/env bash
-# Trans/Act Journal — bare-metal deploy (staging & production)
+# inAct Journal — bare-metal deploy (staging & production)
 #
+# Production target: https://inact.lmta.lt  ·  app dir: /var/www/inact
 # One script for both environments. All differences live in .env.
 #
+# What a first run does end-to-end (no manual steps besides editing .env):
+#   apt packages → app user → .env → venv + pip → git pull → PostgreSQL
+#   role+database → dirs → collectstatic → migrate → deploy checks →
+#   systemd units → Nginx site → Let's Encrypt SSL → start services →
+#   Django superuser + JournalConfig seed.
+#
 # First deploy:
+#   git clone <repo> /var/www/inact && cd /var/www/inact
 #   sudo bash scripts/deploy.sh
 #
 # Subsequent deploys (skip system packages, DB creation, SSL):
 #   sudo bash scripts/deploy.sh --update
 #
-# Service names default to transact-gunicorn / transact-celery / transact-celerybeat.
+# Service names default to inact-gunicorn / inact-celery / inact-celerybeat.
 # Override at the top or via env vars before calling:
 #   GUNICORN_SERVICE=my-service sudo bash scripts/deploy.sh --update
 #
@@ -21,9 +29,10 @@ DJANGO_SETTINGS="${DJANGO_SETTINGS_MODULE_OVERRIDE:-config.settings.production}"
 GUNICORN_PORT="${GUNICORN_PORT:-5002}"
 GUNICORN_WORKERS="${GUNICORN_WORKERS:-3}"
 
-GUNICORN_SERVICE="${GUNICORN_SERVICE:-transact-gunicorn}"
-CELERY_SERVICE="${CELERY_SERVICE:-transact-celery}"
-CELERY_BEAT_SERVICE="${CELERY_BEAT_SERVICE:-transact-celerybeat}"
+GUNICORN_SERVICE="${GUNICORN_SERVICE:-inact-gunicorn}"
+CELERY_SERVICE="${CELERY_SERVICE:-inact-celery}"
+CELERY_BEAT_SERVICE="${CELERY_BEAT_SERVICE:-inact-celerybeat}"
+NGINX_SITE="${NGINX_SITE:-inact}"
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -57,7 +66,7 @@ run_django() {
 }
 
 echo ""
-echo "${BOLD}Trans/Act Journal — Deploy${RESET}  ($(date '+%Y-%m-%d %H:%M %Z'))"
+echo "${BOLD}inAct Journal — Deploy${RESET}  ($(date '+%Y-%m-%d %H:%M %Z'))"
 echo "  App dir  : $APP_DIR"
 echo "  Run as   : $RUN_AS"
 echo "  Mode     : $( $UPDATE_ONLY && echo update || echo 'first deploy' )"
@@ -88,8 +97,8 @@ fi
 # On a shared server (staging) where RUN_AS is an existing user, skip this.
 if ! $UPDATE_ONLY; then
   if ! id "$RUN_AS" &>/dev/null || [[ "$RUN_AS" == "root" ]]; then
-    warn "No non-root owner detected — creating system user 'transact'."
-    RUN_AS="transact"
+    warn "No non-root owner detected — creating system user 'inact'."
+    RUN_AS="inact"
     id "$RUN_AS" &>/dev/null || useradd --system --home "$APP_DIR" --shell /bin/bash "$RUN_AS"
     mkdir -p "$APP_DIR"
     chown "$RUN_AS:$RUN_AS" "$APP_DIR"
@@ -108,20 +117,22 @@ if [[ ! -f "$APP_DIR/.env" ]]; then
   echo "    SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(50))')"
   echo "    DEBUG=False"
   echo "    DJANGO_SETTINGS_MODULE=config.settings.production"
-  echo "    ALLOWED_HOSTS=your-domain.com,www.your-domain.com"
-  echo "    CSRF_TRUSTED_ORIGINS=https://your-domain.com,https://www.your-domain.com"
-  echo "    SITE_URL=https://your-domain.com"
-  echo "    DB_NAME=transact_journal"
-  echo "    DB_USER=transact"
-  echo "    DB_PASSWORD=<strong password>"
+  echo "    ALLOWED_HOSTS=inact.lmta.lt,www.inact.lmta.lt"
+  echo "    CSRF_TRUSTED_ORIGINS=https://inact.lmta.lt,https://www.inact.lmta.lt"
+  echo "    SITE_URL=https://inact.lmta.lt"
+  echo "    # --- PostgreSQL (deploy.sh creates this role + database automatically) ---"
+  echo "    DB_NAME=inact_journal"
+  echo "    DB_USER=inact"
+  echo "    DB_PASSWORD=<strong password>   # generate: openssl rand -base64 24"
   echo "    DB_HOST=localhost"
   echo "    CELERY_BROKER_URL=redis://localhost:6379/0"
   echo "    CELERY_TASK_ALWAYS_EAGER=False"
   echo "    ANYMAIL_BACKEND=mailersend"
   echo "    MAILERSEND_API_TOKEN=<token>"
-  echo "    DEFAULT_FROM_EMAIL=noreply@your-domain.com"
-  echo "    DJANGO_SUPERUSER_EMAIL=admin@your-domain.com"
-  echo "    DJANGO_SUPERUSER_PASSWORD=<strong password>"
+  echo "    DEFAULT_FROM_EMAIL=noreply@inact.lmta.lt"
+  echo "    # --- Django superuser (deploy.sh creates this login automatically) ---"
+  echo "    DJANGO_SUPERUSER_EMAIL=admin@inact.lmta.lt"
+  echo "    DJANGO_SUPERUSER_PASSWORD=<strong password>   # generate: openssl rand -base64 24"
   echo ""
   read -rp "  Press Enter after editing .env to continue..." _
 fi
@@ -154,16 +165,26 @@ fi
 # ── 7. PostgreSQL ─────────────────────────────────────────────────────────────
 if ! $UPDATE_ONLY; then
   step "PostgreSQL setup"
-  DB_NAME=$(_env_val DB_NAME); DB_NAME="${DB_NAME:-transact_journal}"
-  DB_USER=$(_env_val DB_USER); DB_USER="${DB_USER:-transact}"
+  DB_NAME=$(_env_val DB_NAME); DB_NAME="${DB_NAME:-inact_journal}"
+  DB_USER=$(_env_val DB_USER); DB_USER="${DB_USER:-inact}"
   DB_PASS=$(_env_val DB_PASSWORD)
+  [[ -n "$DB_PASS" ]] || die "DB_PASSWORD is empty in .env — set it before first deploy."
 
   systemctl enable --now postgresql
 
-  sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" \
-    | grep -q 1 || sudo -u postgres psql -c \
-    "CREATE ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASS}';"
+  # Role (idempotent: create if missing, otherwise sync the password from .env)
+  if sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" | grep -q 1; then
+    sudo -u postgres psql -c "ALTER ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASS}';"
+  else
+    sudo -u postgres psql -c "CREATE ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASS}';"
+  fi
 
+  # Django-recommended per-role session defaults
+  sudo -u postgres psql -c "ALTER ROLE ${DB_USER} SET client_encoding TO 'utf8';" || true
+  sudo -u postgres psql -c "ALTER ROLE ${DB_USER} SET default_transaction_isolation TO 'read committed';" || true
+  sudo -u postgres psql -c "ALTER ROLE ${DB_USER} SET timezone TO 'UTC';" || true
+
+  # Database owned by the app role
   sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" \
     | grep -q 1 || sudo -u postgres psql -c \
     "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
@@ -171,7 +192,13 @@ if ! $UPDATE_ONLY; then
   sudo -u postgres psql -c \
     "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" || true
 
-  echo "  Database '${DB_NAME}' ready."
+  # PostgreSQL 15+ locks down the public schema — give the app role ownership so
+  # migrations can CREATE tables. Without this, `migrate` fails with "permission
+  # denied for schema public" on Postgres 15/16.
+  sudo -u postgres psql -d "${DB_NAME}" -c "ALTER SCHEMA public OWNER TO ${DB_USER};" || true
+  sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL ON SCHEMA public TO ${DB_USER};" || true
+
+  echo "  Database '${DB_NAME}' ready (owner: ${DB_USER})."
 fi
 
 # ── 8. Directories ────────────────────────────────────────────────────────────
@@ -197,7 +224,7 @@ step "Writing systemd units"
 
 cat > /etc/systemd/system/"${GUNICORN_SERVICE}.service" << EOF
 [Unit]
-Description=Trans/Act Journal — Gunicorn
+Description=inAct Journal — Gunicorn
 After=network.target postgresql.service
 
 [Service]
@@ -222,7 +249,7 @@ EOF
 
 cat > /etc/systemd/system/"${CELERY_SERVICE}.service" << EOF
 [Unit]
-Description=Trans/Act Journal — Celery worker
+Description=inAct Journal — Celery worker
 After=network.target redis.service
 
 [Service]
@@ -245,7 +272,7 @@ EOF
 
 cat > /etc/systemd/system/"${CELERY_BEAT_SERVICE}.service" << EOF
 [Unit]
-Description=Trans/Act Journal — Celery Beat scheduler
+Description=inAct Journal — Celery Beat scheduler
 After=network.target redis.service
 
 [Service]
@@ -271,8 +298,8 @@ echo "  Units written: ${GUNICORN_SERVICE}, ${CELERY_SERVICE}, ${CELERY_BEAT_SER
 # ── 13. Nginx ─────────────────────────────────────────────────────────────────
 if ! $UPDATE_ONLY; then
   step "Deploying Nginx config"
-  cp "$APP_DIR/nginx/nginx-production.conf" /etc/nginx/sites-available/transact
-  ln -sf /etc/nginx/sites-available/transact /etc/nginx/sites-enabled/transact
+  cp "$APP_DIR/nginx/nginx-production.conf" "/etc/nginx/sites-available/${NGINX_SITE}"
+  ln -sf "/etc/nginx/sites-available/${NGINX_SITE}" "/etc/nginx/sites-enabled/${NGINX_SITE}"
   rm -f /etc/nginx/sites-enabled/default
   nginx -t
 fi
@@ -282,10 +309,19 @@ if ! $UPDATE_ONLY; then
   step "SSL certificate (Let's Encrypt)"
   DOMAIN=$(_env_val ALLOWED_HOSTS | cut -d, -f1)
   SU_EMAIL=$(_env_val DJANGO_SUPERUSER_EMAIL)
+  # One -d flag per host in ALLOWED_HOSTS (e.g. inact.lmta.lt AND www.inact.lmta.lt),
+  # so the cert matches every name in the Nginx server_name. Every host must resolve
+  # in DNS or certbot will fail for the whole set.
+  CERT_DOMAINS=()
+  IFS=',' read -ra _hosts <<< "$(_env_val ALLOWED_HOSTS)"
+  for _h in "${_hosts[@]}"; do
+    _h="$(echo "$_h" | tr -d ' ')"
+    [[ -n "$_h" ]] && CERT_DOMAINS+=(-d "$_h")
+  done
   systemctl enable --now nginx
-  certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos \
-    --email "${SU_EMAIL:-admin@${DOMAIN}}" \
-    || warn "certbot failed — check DNS and re-run: sudo certbot --nginx -d ${DOMAIN}"
+  certbot --nginx "${CERT_DOMAINS[@]}" --non-interactive --agree-tos \
+    --redirect --email "${SU_EMAIL:-admin@${DOMAIN}}" \
+    || warn "certbot failed — check DNS for all of: $(_env_val ALLOWED_HOSTS) — then re-run: sudo certbot --nginx ${CERT_DOMAINS[*]}"
 fi
 
 # ── 15. Start / restart services ─────────────────────────────────────────────
@@ -297,25 +333,37 @@ systemctl restart "${GUNICORN_SERVICE}" "${CELERY_SERVICE}" "${CELERY_BEAT_SERVI
 $UPDATE_ONLY || systemctl reload nginx
 echo "  All services running."
 
-# ── 16. Superuser (first deploy only) ─────────────────────────────────────────
+# ── 16. Superuser + admin roles (first deploy only) ───────────────────────────
+# Credentials come from .env (DJANGO_SUPERUSER_EMAIL / DJANGO_SUPERUSER_PASSWORD).
+# The user is created as a Django superuser AND granted the SYSTEM_ADMIN +
+# JOURNAL_ADMIN journal roles, so it can log in to /admin/ and /journal-admin/
+# immediately — no manual shell bootstrap needed. Existing users are never
+# password-reset; only roles/flags are (idempotently) re-applied.
 if ! $UPDATE_ONLY; then
-  step "Creating superuser"
+  step "Creating superuser + granting admin roles"
   SU_EMAIL=$(_env_val DJANGO_SUPERUSER_EMAIL)
   SU_PASS=$(_env_val DJANGO_SUPERUSER_PASSWORD)
-  run_django shell -c "
-from apps.accounts.models import User
-if not User.objects.filter(email='${SU_EMAIL}').exists():
-    User.objects.create_superuser(email='${SU_EMAIL}', password='${SU_PASS}',
-                                  first_name='Admin', last_name='User')
-    print('Superuser created.')
-else:
-    print('Superuser already exists.')
+  if [[ -z "$SU_EMAIL" || -z "$SU_PASS" ]]; then
+    warn "DJANGO_SUPERUSER_EMAIL/PASSWORD not set in .env — skipping superuser creation."
+  else
+    run_django shell -c "
+from apps.accounts.models import User, UserRole
+u, created = User.objects.get_or_create(
+    email='${SU_EMAIL}', defaults={'first_name': 'Admin', 'last_name': 'User'})
+if created:
+    u.set_password('${SU_PASS}')
+u.is_staff = True
+u.is_superuser = True
+u.roles = [UserRole.SYSTEM_ADMIN, UserRole.JOURNAL_ADMIN]
+u.save()
+print('Superuser ' + ('created' if created else 'updated') + ':', u.email, '| roles:', u.roles)
 "
+  fi
   run_django shell -c "
 from apps.journal.models import JournalConfig
 j = JournalConfig.get()
 if not j.name:
-    j.name = 'Trans/Act'; j.submission_open = True; j.save()
+    j.name = 'inAct'; j.submission_open = True; j.save()
     print('Journal config seeded.')
 "
 fi
@@ -328,7 +376,10 @@ echo ""
 echo "${BOLD}${GREEN}✓ Deploy complete${RESET}  commit=${COMMIT}  $(date '+%Y-%m-%d %H:%M %Z')"
 echo ""
 echo "  Site:   ${SITE_URL}"
-echo "  Admin:  ${SITE_URL}/admin/"
+echo "  Admin:  ${SITE_URL}/admin/   ·   Journal admin: ${SITE_URL}/journal-admin/"
+echo ""
+echo "  Database:  $(_env_val DB_NAME) (owner $(_env_val DB_USER)) on localhost:5432"
+echo "  Superuser: $(_env_val DJANGO_SUPERUSER_EMAIL)  (password from .env; roles: system_admin, journal_admin)"
 echo ""
 echo "  Logs:"
 echo "    sudo journalctl -u ${GUNICORN_SERVICE} -f"

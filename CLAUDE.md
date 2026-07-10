@@ -45,7 +45,6 @@ PDFs are rendered from the stored `HTMLBuild.html_content` via WeasyPrint — no
 
 - **macOS**: `brew install pango cairo glib libffi` — then set `DYLD_LIBRARY_PATH=/opt/homebrew/lib` in `.env`. `setup_dev.sh` handles both steps automatically.
 - **Linux**: `apt-get install libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libharfbuzz0b libffi-dev shared-mime-info fonts-liberation`
-- **Docker**: the `Dockerfile` already includes all required packages.
 
 Two PDF modes: **flat** (plain print layout) and **interactive** (adds PDF bookmarks from headings). Both use a self-contained HTML document with inlined CSS — no external resources fetched at render time.
 
@@ -156,5 +155,5 @@ See `apps/api/urls.py` and `design/openapi.yaml` for full endpoint list.
 Set `USE_S3=True` in `.env` + bucket credentials. `django-storages` is already installed. See README.md §Phase 2.
 
 ## Deployment
-See `README.md` and `nginx/nginx.conf`. Uses Gunicorn (`config.wsgi`) behind Nginx.
-Production Docker: `docker-compose up -d --build` + `collectstatic` + `migrate`.
+See `README.md` and `nginx/nginx.conf`. Uses Gunicorn (`config.wsgi`) behind Nginx,
+deployed bare-metal via `scripts/deploy.sh` (systemd units, no Docker).

@@ -25,6 +25,8 @@ jobs:
     needs: guard
     environment: production       # add required reviewers in GitHub Settings for extra safety
 
+    # Set the repo variable PRODUCTION_PATH to /var/www/inact in
+    # GitHub → Settings → Secrets and variables → Actions → Variables.
     steps:
       - name: Pull latest code
         run: |
@@ -52,9 +54,9 @@ jobs:
 
       - name: Restart services
         run: |
-          sudo systemctl restart transact-gunicorn
-          sudo systemctl restart transact-celery
-          sudo systemctl restart transact-celerybeat
+          sudo systemctl restart inact-gunicorn
+          sudo systemctl restart inact-celery
+          sudo systemctl restart inact-celerybeat
 
       - name: Done
         run: |

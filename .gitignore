@@ -36,9 +36,6 @@ staticfiles/
 *.swp
 *.swo
 
-# Docker
-*.override.yml
-
 # Pytest
 .pytest_cache/
 htmlcov/

@@ -325,33 +325,62 @@ EOF
 
 echo "  Units written: ${GUNICORN_SERVICE}, ${CELERY_SERVICE}, ${CELERY_BEAT_SERVICE}"
 
-# ── 13. Nginx ─────────────────────────────────────────────────────────────────
+# ── 13. Nginx + TLS certificate ───────────────────────────────────────────────
+# The real config (nginx/nginx-production.conf) references Let's Encrypt certs that
+# do not exist on a first deploy, so `nginx -t` on it would fail before certbot can
+# run. Bootstrap solves the chicken-and-egg: serve HTTP-only first so nginx starts
+# and certbot can validate, obtain the cert, then swap in the real SSL config.
 if ! $UPDATE_ONLY; then
-  step "Deploying Nginx config"
-  cp "$APP_DIR/nginx/nginx-production.conf" "/etc/nginx/sites-available/${NGINX_SITE}"
-  ln -sf "/etc/nginx/sites-available/${NGINX_SITE}" "/etc/nginx/sites-enabled/${NGINX_SITE}"
-  rm -f /etc/nginx/sites-enabled/default
-  nginx -t
-fi
-
-# ── 14. SSL ───────────────────────────────────────────────────────────────────
-if ! $UPDATE_ONLY; then
-  step "SSL certificate (Let's Encrypt)"
-  DOMAIN=$(_env_val ALLOWED_HOSTS | cut -d, -f1)
+  step "Nginx + TLS certificate"
+  DOMAINS_CSV="$(_env_val ALLOWED_HOSTS)"
+  PRIMARY="$(echo "$DOMAINS_CSV" | cut -d, -f1)"
   SU_EMAIL=$(_env_val DJANGO_SUPERUSER_EMAIL)
-  # One -d flag per host in ALLOWED_HOSTS (e.g. inact.lmta.lt AND www.inact.lmta.lt),
-  # so the cert matches every name in the Nginx server_name. Every host must resolve
-  # in DNS or certbot will fail for the whole set.
+
+  # One -d flag per host in ALLOWED_HOSTS (e.g. apex AND www) so the cert matches
+  # every name in server_name. Every host must resolve in DNS or certbot fails.
   CERT_DOMAINS=()
-  IFS=',' read -ra _hosts <<< "$(_env_val ALLOWED_HOSTS)"
+  IFS=',' read -ra _hosts <<< "$DOMAINS_CSV"
   for _h in "${_hosts[@]}"; do
     _h="$(echo "$_h" | tr -d ' ')"
     [[ -n "$_h" ]] && CERT_DOMAINS+=(-d "$_h")
   done
-  systemctl enable --now nginx
-  certbot --nginx "${CERT_DOMAINS[@]}" --non-interactive --agree-tos \
-    --redirect --email "${SU_EMAIL:-admin@${DOMAIN}}" \
-    || warn "certbot failed — check DNS for all of: $(_env_val ALLOWED_HOSTS) — then re-run: sudo certbot --nginx ${CERT_DOMAINS[*]}"
+
+  install_ssl_conf() {
+    cp "$APP_DIR/nginx/nginx-production.conf" "/etc/nginx/sites-available/${NGINX_SITE}"
+    ln -sf "/etc/nginx/sites-available/${NGINX_SITE}" "/etc/nginx/sites-enabled/${NGINX_SITE}"
+    rm -f /etc/nginx/sites-enabled/default
+    nginx -t && systemctl reload nginx
+  }
+
+  if [[ -f "/etc/letsencrypt/live/${PRIMARY}/fullchain.pem" ]]; then
+    echo "  Certificate for ${PRIMARY} already present — installing SSL config."
+    install_ssl_conf
+  else
+    echo "  No certificate yet — starting HTTP-only, then requesting one via certbot."
+    cat > "/etc/nginx/sites-available/${NGINX_SITE}" <<NGINX
+server {
+    listen 80;
+    server_name ${DOMAINS_CSV//,/ };
+    location / { return 200 'inAct — awaiting TLS certificate'; add_header Content-Type text/plain; }
+}
+NGINX
+    ln -sf "/etc/nginx/sites-available/${NGINX_SITE}" "/etc/nginx/sites-enabled/${NGINX_SITE}"
+    rm -f /etc/nginx/sites-enabled/default
+    nginx -t
+    systemctl enable --now nginx
+    systemctl reload nginx
+
+    # certonly + nginx authenticator: obtains the cert without rewriting our config,
+    # and records the nginx authenticator so `certbot renew` works unattended later.
+    if certbot certonly --nginx "${CERT_DOMAINS[@]}" --non-interactive --agree-tos \
+         --email "${SU_EMAIL:-admin@${PRIMARY}}"; then
+      echo "  Certificate obtained — installing SSL config."
+      install_ssl_conf
+    else
+      warn "certbot failed — check DNS A/AAAA records for all of: ${DOMAINS_CSV}"
+      warn "Left HTTP-only config in place. Fix DNS, then re-run: sudo bash scripts/deploy.sh"
+    fi
+  fi
 fi
 
 # ── 15. Start / restart services ─────────────────────────────────────────────

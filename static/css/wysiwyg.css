@@ -1,0 +1,81 @@
+/* Lightweight WYSIWYG editor — pairs with static/js/wysiwyg.js.
+   Styled to match the inAct design system (see main.css tokens). */
+
+.wysiwyg {
+  border: 1px solid var(--color-silver, #E4E2E7);
+  border-radius: 2px;
+  background: var(--color-white, #FBFAFC);
+}
+
+.wysiwyg:focus-within {
+  border-color: var(--color-accent, #FF4500);
+}
+
+.wysiwyg__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1, 4px);
+  padding: var(--spacing-2, 8px) var(--spacing-3, 12px);
+  border-bottom: 1px solid var(--color-silver, #E4E2E7);
+  background: var(--color-ghost, #F4F2F7);
+}
+
+.wysiwyg__btn {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 var(--spacing-2, 8px);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--color-shadow, #21252B);
+  font: 500 13px/1 inherit;
+  cursor: pointer;
+}
+
+.wysiwyg__btn:hover {
+  background: var(--color-white, #FBFAFC);
+  border-color: var(--color-silver, #E4E2E7);
+}
+
+.wysiwyg__btn:active {
+  background: var(--color-accent, #FF4500);
+  border-color: var(--color-accent, #FF4500);
+  color: #fff;
+}
+
+.wysiwyg__sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px var(--spacing-1, 4px);
+  background: var(--color-silver, #E4E2E7);
+}
+
+.wysiwyg__area {
+  min-height: 140px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding: var(--spacing-4, 16px) var(--spacing-6, 24px);
+  outline: none;
+  color: var(--color-shadow, #21252B);
+  font-size: var(--size-base, 16px);
+  line-height: 1.5;
+}
+
+/* Content styling inside the editor mirrors the public prose look. */
+.wysiwyg__area > :first-child { margin-top: 0; }
+.wysiwyg__area > :last-child { margin-bottom: 0; }
+.wysiwyg__area p { margin: 0 0 var(--spacing-3, 12px); }
+.wysiwyg__area h2,
+.wysiwyg__area h3,
+.wysiwyg__area h4 { margin: var(--spacing-4, 16px) 0 var(--spacing-2, 8px); line-height: 1.2; }
+.wysiwyg__area ul,
+.wysiwyg__area ol { margin: 0 0 var(--spacing-3, 12px); padding-left: var(--spacing-6, 24px); }
+.wysiwyg__area li { margin-bottom: var(--spacing-1, 4px); }
+.wysiwyg__area a { color: var(--color-accent, #FF4500); text-decoration: underline; }
+.wysiwyg__area blockquote {
+  margin: 0 0 var(--spacing-3, 12px);
+  padding-left: var(--spacing-4, 16px);
+  border-left: 3px solid var(--color-accent, #FF4500);
+  color: var(--color-ash, #6E667A);
+}

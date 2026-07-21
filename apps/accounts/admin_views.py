@@ -158,10 +158,11 @@ def homepage_settings(request):
             else:
                 messages.error(request, 'Select at least one published article to feature.')
         else:
+            from apps.journal.sanitize import sanitize_html
             journal.home_hero_caption = request.POST.get('home_hero_caption', '')
             journal.contribute_caption = request.POST.get('contribute_caption', '')
             journal.contribute_text = request.POST.get('contribute_text', '')
-            journal.mission_text = request.POST.get('mission_text', '')
+            journal.mission_text = sanitize_html(request.POST.get('mission_text', ''))
             journal.news_text = request.POST.get('news_text', '')
             # Section visibility toggles (checkbox absent => unchecked => False)
             journal.show_filtered_section = bool(request.POST.get('show_filtered_section'))
@@ -212,11 +213,12 @@ def journal_settings(request):
         journal.submission_open = bool(request.POST.get('submission_open'))
         if request.FILES.get('logo'):
             journal.logo = request.FILES['logo']
-        # Editorial content
-        journal.about_text = request.POST.get('about_text', '')
-        journal.mission_text = request.POST.get('mission_text', '')
-        journal.methodology_text = request.POST.get('methodology_text', '')
-        journal.submission_guidelines = request.POST.get('submission_guidelines', '')
+        # Editorial content — WYSIWYG HTML, sanitized to an allowlist on save
+        from apps.journal.sanitize import sanitize_html
+        journal.about_text = sanitize_html(request.POST.get('about_text', ''))
+        journal.mission_text = sanitize_html(request.POST.get('mission_text', ''))
+        journal.methodology_text = sanitize_html(request.POST.get('methodology_text', ''))
+        journal.submission_guidelines = sanitize_html(request.POST.get('submission_guidelines', ''))
         journal.institution = request.POST.get('institution', journal.institution)
         journal.publisher = request.POST.get('publisher', journal.publisher)
         journal.imprint = request.POST.get('imprint', '')

@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
+{% load content_filters %}
 {% block title %}Submit — {{ journal.name }}{% endblock %}
 
 {% block content %}
 <section class="submit-page container">
   <h1 class="page-title">Submissions</h1>
   {% if journal.submission_guidelines %}
-  <div class="prose">{{ journal.submission_guidelines|linebreaks }}</div>
+  <div class="prose">{{ journal.submission_guidelines|richtext }}</div>
   {% else %}
   <p>{{ journal.name }} welcomes submissions from artists, writers, and researchers across critical, visual, and practice-based forms of artistic research.</p>
   {% endif %}

@@ -361,7 +361,7 @@ if ! $UPDATE_ONLY; then
 server {
     listen 80;
     server_name ${DOMAINS_CSV//,/ };
-    location / { return 200 'inAct — awaiting TLS certificate'; add_header Content-Type text/plain; }
+    location / { return 200 'inAct - awaiting TLS certificate'; add_header Content-Type "text/plain; charset=utf-8"; }
 }
 NGINX
     ln -sf "/etc/nginx/sites-available/${NGINX_SITE}" "/etc/nginx/sites-enabled/${NGINX_SITE}"

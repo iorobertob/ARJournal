@@ -63,7 +63,7 @@
 <!-- Mission bar -->
 <section class="mission-bar">
   <p class="mission-bar__text">
-    {% if journal.mission_text %}{{ journal.mission_text }}{% else %}{{ journal.name }} is a journal for artistic research, bringing together <span class="hl">critical writing</span>, <span class="hl">visual practice</span>, and <span class="hl">experimental forms of knowledge</span>.{% endif %}
+    {% if journal.mission_text %}{{ journal.mission_text|striptags }}{% else %}{{ journal.name }} is a journal for artistic research, bringing together <span class="hl">critical writing</span>, <span class="hl">visual practice</span>, and <span class="hl">experimental forms of knowledge</span>.{% endif %}
   </p>
   <a href="{% url 'about' %}" class="btn btn--inverse">Find out more ⟶</a>
 </section>

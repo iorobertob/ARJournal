@@ -1,6 +1,15 @@
 {% extends "journal_admin/base.html" %}
+{% load static %}
 
 {% block title %}Journal Settings — Journal Admin{% endblock %}
+
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/wysiwyg.css' %}">
+{% endblock %}
+
+{% block extra_js %}{{ block.super }}
+<script src="{% static 'js/wysiwyg.js' %}" defer></script>
+{% endblock %}
 
 {% block jadmin_content %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);">
@@ -74,25 +83,25 @@
   <div class="jadmin-card__title">Editorial Content</div>
 
   <div class="form-group" style="margin-bottom:var(--spacing-4);">
-    <label for="id_about_text">About text</label>
+    <label for="id_about_text" id="id_about_text_label">About text</label>
     <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Displayed on the About page (/about/).</p>
-    <textarea name="about_text" id="id_about_text" rows="8" class="form-control">{{ journal.about_text }}</textarea>
+    <textarea name="about_text" id="id_about_text" rows="8" class="form-control" data-wysiwyg>{{ journal.about_text }}</textarea>
   </div>
 
   <div class="form-group" style="margin-bottom:var(--spacing-4);">
-    <label for="id_mission_text">Mission text</label>
-    <textarea name="mission_text" id="id_mission_text" rows="4" class="form-control">{{ journal.mission_text }}</textarea>
+    <label for="id_mission_text" id="id_mission_text_label">Mission text</label>
+    <textarea name="mission_text" id="id_mission_text" rows="4" class="form-control" data-wysiwyg>{{ journal.mission_text }}</textarea>
   </div>
 
   <div class="form-group" style="margin-bottom:var(--spacing-4);">
-    <label for="id_methodology_text">Methodology text</label>
-    <textarea name="methodology_text" id="id_methodology_text" rows="4" class="form-control">{{ journal.methodology_text }}</textarea>
+    <label for="id_methodology_text" id="id_methodology_text_label">Methodology text</label>
+    <textarea name="methodology_text" id="id_methodology_text" rows="4" class="form-control" data-wysiwyg>{{ journal.methodology_text }}</textarea>
   </div>
 
   <div class="form-group" style="margin-bottom:var(--spacing-4);">
-    <label for="id_submission_guidelines">Submission guidelines</label>
+    <label for="id_submission_guidelines" id="id_submission_guidelines_label">Submission guidelines</label>
     <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Displayed on the Submit page (/submit/).</p>
-    <textarea name="submission_guidelines" id="id_submission_guidelines" rows="8" class="form-control">{{ journal.submission_guidelines }}</textarea>
+    <textarea name="submission_guidelines" id="id_submission_guidelines" rows="8" class="form-control" data-wysiwyg>{{ journal.submission_guidelines }}</textarea>
   </div>
 
   <div class="form-row">

@@ -161,9 +161,9 @@ def homepage_settings(request):
             from apps.journal.sanitize import sanitize_html
             journal.home_hero_caption = request.POST.get('home_hero_caption', '')
             journal.contribute_caption = request.POST.get('contribute_caption', '')
-            journal.contribute_text = request.POST.get('contribute_text', '')
+            journal.contribute_text = sanitize_html(request.POST.get('contribute_text', ''))
             journal.mission_text = sanitize_html(request.POST.get('mission_text', ''))
-            journal.news_text = request.POST.get('news_text', '')
+            journal.news_text = sanitize_html(request.POST.get('news_text', ''))
             # Section visibility toggles (checkbox absent => unchecked => False)
             journal.show_filtered_section = bool(request.POST.get('show_filtered_section'))
             journal.show_archive_section = bool(request.POST.get('show_archive_section'))

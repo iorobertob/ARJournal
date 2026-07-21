@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
+{% load content_filters %}
 {% block title %}News — {{ journal.name }}{% endblock %}
 
 {% block content %}
 <section class="container about">
   <h1 class="page-title">News</h1>
   {% if journal.news_text %}
-  <div class="prose">{{ journal.news_text|linebreaks }}</div>
+  <div class="prose">{{ journal.news_text|richtext }}</div>
   {% endif %}
 
   {% for issue in issues %}

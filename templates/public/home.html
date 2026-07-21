@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load content_filters %}
 {% block title %}{{ journal.name }} — Artistic Research Journal{% endblock %}
 
 {% block content %}
@@ -163,9 +164,11 @@
 <section class="container home-contribute">
   <div class="home-contribute__info">
     <h2 class="section-heading home-contribute__heading">Contribute to {{ journal.name }}</h2>
-    <p class="home-contribute__text">
-      {% if journal.contribute_text %}{{ journal.contribute_text }}{% else %}{{ journal.name }} welcomes contributions from artists, writers, and researchers working across critical, visual, and practice-based forms of artistic research. Submit essays, projects, or experimental formats that explore how knowledge can be made public through artistic practice.{% endif %}
-    </p>
+    {% if journal.contribute_text %}
+    <div class="home-contribute__text prose">{{ journal.contribute_text|richtext }}</div>
+    {% else %}
+    <p class="home-contribute__text">{{ journal.name }} welcomes contributions from artists, writers, and researchers working across critical, visual, and practice-based forms of artistic research. Submit essays, projects, or experimental formats that explore how knowledge can be made public through artistic practice.</p>
+    {% endif %}
     <a href="{% url 'submit_info' %}" class="btn btn--outline">Submit ⟶</a>
   </div>
   <div class="home-contribute__media">

@@ -1,6 +1,15 @@
 {% extends "journal_admin/base.html" %}
+{% load static %}
 
 {% block title %}Homepage — Journal Admin{% endblock %}
+
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/wysiwyg.css' %}">
+{% endblock %}
+
+{% block extra_js %}{{ block.super }}
+<script src="{% static 'js/wysiwyg.js' %}" defer></script>
+{% endblock %}
 
 {% block jadmin_content %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);">
@@ -58,9 +67,9 @@
 <div class="jadmin-card">
   <div class="jadmin-card__title">Orange mission bar</div>
   <div class="form-group">
-    <label for="id_mission_text">Mission statement</label>
-    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Shown in the full-width orange bar on the homepage. Leave empty for the default text.</p>
-    <textarea name="mission_text" id="id_mission_text" rows="3" class="form-control">{{ journal.mission_text }}</textarea>
+    <label for="id_mission_text" id="id_mission_text_label">Mission statement</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Shown in the full-width orange bar on the homepage (as plain text) and on the About page (with formatting). Leave empty for the default text.</p>
+    <textarea name="mission_text" id="id_mission_text" rows="3" class="form-control" data-wysiwyg>{{ journal.mission_text }}</textarea>
   </div>
 </div>
 
@@ -69,8 +78,8 @@
   <div class="jadmin-card__title">Contribute section</div>
 
   <div class="form-group" style="margin-bottom:var(--spacing-4);">
-    <label for="id_contribute_text">Contribute text</label>
-    <textarea name="contribute_text" id="id_contribute_text" rows="4" class="form-control">{{ journal.contribute_text }}</textarea>
+    <label for="id_contribute_text" id="id_contribute_text_label">Contribute text</label>
+    <textarea name="contribute_text" id="id_contribute_text" rows="4" class="form-control" data-wysiwyg>{{ journal.contribute_text }}</textarea>
   </div>
 
   <div class="form-row" style="align-items:flex-start;">
@@ -94,9 +103,9 @@
 <div class="jadmin-card">
   <div class="jadmin-card__title">News page</div>
   <div class="form-group">
-    <label for="id_news_text">News text</label>
+    <label for="id_news_text" id="id_news_text_label">News text</label>
     <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Shown on the public News page (/news/), above any open calls for submissions.</p>
-    <textarea name="news_text" id="id_news_text" rows="5" class="form-control">{{ journal.news_text }}</textarea>
+    <textarea name="news_text" id="id_news_text" rows="5" class="form-control" data-wysiwyg>{{ journal.news_text }}</textarea>
   </div>
 </div>
 

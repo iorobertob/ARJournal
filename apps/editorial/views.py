@@ -60,6 +60,58 @@ def editorial_dashboard(request):
 
 
 @editorial_required
+def article_preview(request, pk):
+    """Read-only rendering of a submission's manuscript for any editorial user.
+
+    Lets editors and administrators read a submitted article from the editorial
+    workbench without needing a reviewer invitation. The canonical document is
+    built on demand (works for both uploaded .tex and editor-authored WYSIWYG
+    submissions) if it does not exist yet.
+    """
+    submission = get_object_or_404(Submission, pk=pk)
+    revision = submission.get_current_revision()
+
+    canonical_doc_obj = None
+    preview_error = None
+    if revision:
+        try:
+            canonical_doc_obj = revision.canonical_document
+        except Exception:
+            canonical_doc_obj = None
+        if canonical_doc_obj is None:
+            # Build the canonical document on demand (handles .tex and WYSIWYG).
+            try:
+                from apps.production.tasks import ingest_submission
+                ingest_submission(revision.pk)
+                revision.refresh_from_db()
+                try:
+                    canonical_doc_obj = revision.canonical_document
+                except Exception:
+                    canonical_doc_obj = None
+            except Exception as e:
+                preview_error = str(e)
+
+    article_html = None
+    toc = []
+    if canonical_doc_obj:
+        from apps.documents.renderers.html_renderer import render_html, build_toc
+        try:
+            article_html = render_html(canonical_doc_obj.data, revision=revision,
+                                       reviewer_mode=False)
+            toc = build_toc(canonical_doc_obj.data)
+        except Exception as e:
+            preview_error = preview_error or str(e)
+
+    return render(request, 'editorial/article_preview.html', {
+        'submission': submission,
+        'revision': revision,
+        'article_html': article_html,
+        'toc': toc,
+        'preview_error': preview_error,
+    })
+
+
+@editorial_required
 def submission_detail(request, pk):
     submission = get_object_or_404(Submission, pk=pk)
     revision = submission.get_current_revision()

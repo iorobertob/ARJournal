@@ -37,6 +37,8 @@ def new_submission_step1(request):
         if request.FILES.get('cover_image'):
             sub.cover_image = request.FILES['cover_image']
         sub.save()
+        if request.FILES.get('cover_image'):
+            _generate_cover_derivatives(sub)
         return redirect('submission_step2', pk=sub.pk)
     from apps.journal.models import ArticleType
     return render(request, 'author/submit_step1.html', {'article_types': ArticleType.choices})
@@ -62,6 +64,8 @@ def edit_submission_metadata(request, pk):
             sub.cover_image = request.FILES['cover_image']
         sub.save(update_fields=['title', 'subtitle', 'article_type', 'abstract', 'keywords',
                                 'cover_letter', 'cover_image', 'cover_caption', 'updated_at'])
+        if request.FILES.get('cover_image'):
+            _generate_cover_derivatives(sub)
         if next_url:
             return redirect(next_url)
         return redirect('submission_step2', pk=sub.pk)
@@ -131,6 +135,19 @@ def _guess_kind(mime, filename=''):
     return 'supplementary'
 
 
+def _generate_cover_derivatives(sub):
+    """Generate hero-sized responsive derivatives for a submission's cover image."""
+    if not sub.cover_image:
+        return
+    try:
+        from apps.submissions.imaging import generate_derivatives
+        info = generate_derivatives(sub.cover_image, role_hint='hero')
+        sub.cover_derivatives = info.get('derivatives', {}) if info else {}
+        sub.save(update_fields=['cover_derivatives'])
+    except Exception:
+        pass
+
+
 def _upsert_asset(revision, f):
     """
     Create or replace a SubmissionAsset for an uploaded file.
@@ -160,6 +177,20 @@ def _upsert_asset(revision, f):
         asset.save(update_fields=['size_bytes'])
     except Exception:
         pass
+    # Generate responsive derivatives + record dimensions for image assets.
+    if asset.kind == 'image':
+        try:
+            from apps.submissions.imaging import generate_derivatives
+            info = generate_derivatives(asset.file)
+            if info:
+                asset.role = info.get('role', '')
+                asset.intrinsic_width = info.get('intrinsic_width')
+                asset.intrinsic_height = info.get('intrinsic_height')
+                asset.derivatives = info.get('derivatives', {})
+                asset.save(update_fields=['role', 'intrinsic_width',
+                                          'intrinsic_height', 'derivatives'])
+        except Exception:
+            pass
     return asset
 
 

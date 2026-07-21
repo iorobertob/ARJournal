@@ -200,6 +200,43 @@ def _preprocess_html_for_pdf(html_content, interactive, site_url=''):
         r'<figure\b[^>]*class="[^"]*article-audio[^"]*"[^>]*>.*?</figure>',
         replace_audio, html_content, flags=re.DOTALL,
     )
+
+    # Cap embedded image resolution: WeasyPrint ignores srcset, so pick a
+    # print-sized derivative from each <img>'s srcset and use it as src. This
+    # keeps 2500px originals out of the PDF. Images without a srcset (logos,
+    # or pre-derivative builds) are left untouched → embedded at natural size.
+    from apps.submissions.imaging import PRINT_CAP
+
+    def _pick_from_srcset(srcset, cap):
+        best_url, best_w = '', -1
+        smallest_url, smallest_w = '', 1 << 30
+        for part in srcset.split(','):
+            bits = part.strip().split()
+            if len(bits) != 2 or not bits[1].endswith('w'):
+                continue
+            try:
+                w = int(bits[1][:-1])
+            except ValueError:
+                continue
+            if w < smallest_w:
+                smallest_w, smallest_url = w, bits[0]
+            if cap >= w > best_w:
+                best_w, best_url = w, bits[0]
+        return best_url or smallest_url
+
+    def replace_img(m):
+        tag = m.group(0)
+        srcset = _attr(tag, 'srcset')
+        if not srcset:
+            return tag
+        capped = _pick_from_srcset(srcset, PRINT_CAP)
+        if not capped:
+            return tag
+        tag = re.sub(r'\bsrc="[^"]*"', f'src="{capped}"', tag, count=1)
+        tag = re.sub(r'\s(?:srcset|sizes)="[^"]*"', '', tag)
+        return tag
+
+    html_content = re.sub(r'<img\b[^>]*>', replace_img, html_content)
     return html_content, media_items
 
 
@@ -912,7 +949,10 @@ def generate_pdf(export_pk):
     figure { margin: 1.5rem 0; text-align: center; }
     figcaption { font-size: 9pt; color: #6B6B6B; margin-top: 0.4rem;
                  font-style: italic; text-align: center; }
-    img { max-width: 100%; height: auto; }
+    /* max-height caps portrait/vertical media so a phone photo can't tower
+       down the page; it scales to a landscape-like height and stays centred. */
+    img { max-width: 100%; height: auto; max-height: 15cm; }
+    figure.article-figure { text-align: center; }
     table { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: 10pt; }
     th { background: #f5f5f5; border-bottom: 2px solid #E5E5E5;
          padding: 0.4rem 0.6rem; text-align: left; }

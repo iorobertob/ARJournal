@@ -42,8 +42,11 @@ class Submission(models.Model):
     abstract = models.TextField(blank=True, default='')
     cover_image = models.ImageField(
         upload_to='covers/', blank=True, null=True,
-        help_text='Cover image shown at the top of the article page (falls back to the issue cover image)')
+        help_text='Cover image shown at the top of the article page (falls back to the issue cover image). '
+                  'Recommended 1920×1080 (16:9), up to 2500px wide.')
     cover_caption = models.CharField(max_length=500, blank=True, default='')
+    # Responsive WebP renditions of cover_image ({width: url}), generated on upload.
+    cover_derivatives = models.JSONField(default=dict, blank=True)
     keywords = models.JSONField(default=list, blank=True)
     disciplines = models.JSONField(default=list, blank=True)
     artistic_mediums = models.JSONField(default=list, blank=True)
@@ -91,6 +94,20 @@ class Submission(models.Model):
         if self.issue and self.issue.cover_image:
             return self.issue.cover_image.url
         return None
+
+    @property
+    def cover_srcset(self):
+        """`srcset` value for the uploaded cover's responsive derivatives, or ''.
+
+        Only applies to the article's own uploaded cover (not the issue fallback).
+        """
+        if self.cover_image and self.cover_derivatives:
+            return ', '.join(
+                f'{url} {w}w' for w, url in sorted(
+                    self.cover_derivatives.items(), key=lambda kv: int(kv[0])
+                )
+            )
+        return ''
 
     @property
     def is_returned_to_author(self):
@@ -167,10 +184,26 @@ class SubmissionAsset(models.Model):
     rights_notes = models.TextField(blank=True, default='')
     size_bytes = models.PositiveBigIntegerField(default=0)
     checksum_sha256 = models.CharField(max_length=64, blank=True)
+    # Image sizing metadata (populated for image assets on upload).
+    role = models.CharField(max_length=10, blank=True, default='')  # content | hero | logo
+    intrinsic_width = models.PositiveIntegerField(null=True, blank=True)
+    intrinsic_height = models.PositiveIntegerField(null=True, blank=True)
+    derivatives = models.JSONField(default=dict, blank=True)  # {width(str): url}
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'{self.get_kind_display()}: {self.original_filename}'
+
+    @property
+    def srcset(self):
+        """`srcset` string built from the image derivatives, or '' if none."""
+        if not self.derivatives:
+            return ''
+        return ', '.join(
+            f'{url} {w}w' for w, url in sorted(
+                self.derivatives.items(), key=lambda kv: int(kv[0])
+            )
+        )
 
 
 class SimilarityCheck(models.Model):

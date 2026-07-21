@@ -411,9 +411,27 @@ p.article-meta-sidebar__label {
 /* ── Figures, Media, Tables ─────────────────────────────────── */
 .article-figure {
   margin: var(--spacing-10) 0;
+  text-align: center;
 }
 
-.article-figure img { width: 100%; }
+/* Render at natural size up to the column width — never upscale small images
+   (matches the PDF's `img { max-width:100% }`). Larger images fill the column.
+   max-height caps portrait/vertical media (e.g. phone photos) so they can't
+   tower over the page — a tall image scales down to a landscape-like height and
+   centres, instead of filling the column width and becoming enormously tall. */
+.article-figure img {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: var(--media-max-height, 600px);
+  display: inline-block;
+}
+
+/* Logos / icons (≤300px source): keep small and centred, never stretched. */
+.article-figure--logo img { max-width: 300px; }
+
+/* Opt-in full-width figure (e.g. hero-role image placed in the body). */
+.article-figure--full img { width: 100%; }
 
 .figure-caption {
   font-size: var(--size-sm);
@@ -434,7 +452,19 @@ p.article-meta-sidebar__label {
   margin: var(--spacing-10) 0;
 }
 
-.article-video video,
+/* Video: fill the column when landscape, but cap portrait/vertical clips by
+   height (same rule as images) so a phone video doesn't dominate the page.
+   width:auto + max-width/max-height lets the browser preserve the aspect ratio. */
+.article-video video {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: var(--media-max-height, 600px);
+  display: block;
+  margin: 0 auto var(--spacing-3);
+}
+
+/* Audio stays a full-width control bar (height is fixed by the browser). */
 .article-audio audio {
   width: 100%;
   margin-bottom: var(--spacing-3);

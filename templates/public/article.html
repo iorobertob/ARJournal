@@ -20,7 +20,8 @@
 <!-- ── Full-width cover image ────────────────────────────────── -->
 {% if submission.cover_url %}
 <figure class="article-cover container">
-  <img src="{{ submission.cover_url }}" alt="{{ submission.title }}" loading="eager">
+  <img src="{{ submission.cover_url }}" alt="{{ submission.title }}" loading="eager"
+       {% if submission.cover_srcset %}srcset="{{ submission.cover_srcset }}" sizes="100vw"{% endif %}>
   {% if submission.cover_caption %}<figcaption class="article-cover__caption">{{ submission.cover_caption }}</figcaption>{% endif %}
 </figure>
 {% endif %}

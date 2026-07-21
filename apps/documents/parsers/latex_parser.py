@@ -321,7 +321,19 @@ def _parse_section_content(
         label = (m.group(1) or '').strip()
         fname = m.group(2)
         segments.append((m.start(), m.end(), 'figure',
-                         (fname, m.group(3) or '', m.group(4) or '', label)))
+                         (fname, m.group(3) or '', m.group(4) or '', label, '')))
+
+    # ── \ARJlogo[label]{file}{caption}{alt} — small, natural-size logo/icon ────
+    # Same shape as \ARJfigure but tagged role="logo" so it is never stretched
+    # to the column width (online or in the local PDF).
+    for m in re.finditer(
+        r'\\ARJlogo(?:\[([^\]]*)\])?\s*\{([^}]*)\}\s*(?:\{([^}]*)\})?\s*(?:\{([^}]*)\})?',
+        content,
+    ):
+        label = (m.group(1) or '').strip()
+        fname = m.group(2)
+        segments.append((m.start(), m.end(), 'figure',
+                         (fname, m.group(3) or '', m.group(4) or '', label, 'logo')))
 
     # ── \ARJvideo[label]{file}{caption}{poster}{transcript} ───────────────────
     # Caption, poster, and transcript are optional; args may span lines.
@@ -449,7 +461,7 @@ def _parse_section_content(
             })
 
         elif kind == 'figure':
-            fname, caption, alt, label = data
+            fname, caption, alt, label, role = data
             asset_id = _uid('asset_img', counters)
             fig_id = _uid('blk_fig', counters)
             assets.append({
@@ -468,6 +480,8 @@ def _parse_section_content(
                 'altText': alt_clean,
                 'sectionId': sec_id,
             }
+            if role:
+                fig_block['role'] = role
             if label:
                 fig_block['label'] = label
             elif fname.strip():

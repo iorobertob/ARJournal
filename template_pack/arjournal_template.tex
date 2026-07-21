@@ -354,13 +354,30 @@ reduced to text \citep{jones2023practice}. The platform renders images
 as full-width HTML figures in the published article and embeds them
 inline in the downloadable PDF.
 
-Use \verb|\ARJfigure| for all images. Upload the image file to the
+Use \verb|\ARJfigure| for all content images. Upload the image file to the
 platform asset manager using exactly the filename you reference here.
+
+\paragraph{Recommended image dimensions.} Upload images at these sizes so they
+stay sharp online and in print without wasting bandwidth. The platform keeps
+your original and automatically generates the smaller renditions it serves:
+\begin{itemize}
+  \item \textbf{Full-width / hero} (the article Cover image, set in the
+        platform, not via \verb|\ARJfigure|): \textbf{1920\,$\times$\,1080\,px}
+        (16:9), up to 2500\,px wide.
+  \item \textbf{Content images} (\verb|\ARJfigure|): about \textbf{1200\,px}
+        wide.
+  \item \textbf{Logos / icons} (\verb|\ARJlogo|): \textbf{300\,$\times$\,300\,px}
+        or smaller — displayed small, never stretched to the text width.
+\end{itemize}
 
 \begin{verbatim}
 \ARJfigure[label]{figure1.jpg}
           {Caption text displayed below the image.}
           {Alt text: a detailed verbal description for accessibility.}
+
+\ARJlogo{partner-logo.png}
+        {Logo of the partner institution.}
+        {Alt text: the partner institution's wordmark.}
 \end{verbatim}
 
 The optional first argument \texttt{[label]} is a short key used for

@@ -107,7 +107,11 @@
       <span style="font-weight:600;">Version {{ rev.version }}</span>
       <span class="status-badge status-badge--{{ rev.status }}" style="font-size:var(--size-xs);">{{ rev.get_status_display }}</span>
       <span style="color:var(--color-muted);font-size:var(--size-sm);">{{ rev.created_at|date:"d M Y" }}</span>
+      {% if rev.manuscript_file %}
       <a href="{{ rev.manuscript_file.url }}" style="margin-left:auto;font-size:var(--size-sm);">Download manuscript</a>
+      {% else %}
+      <span style="margin-left:auto;color:var(--color-muted);font-size:var(--size-sm);">Written in editor</span>
+      {% endif %}
       {% if rev.response_letter %}<a href="{{ rev.response_letter.url }}" style="font-size:var(--size-sm);">Response letter</a>{% endif %}
     </div>
     {% endfor %}

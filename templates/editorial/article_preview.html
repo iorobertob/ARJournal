@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ submission.title|truncatechars:50 }} — Article Preview — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/article.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top:var(--spacing-6);padding-bottom:var(--spacing-10);">
+
+  <div style="display:flex;align-items:baseline;gap:var(--spacing-3);flex-wrap:wrap;margin-bottom:var(--spacing-4);">
+    <a href="{% url 'editorial_submission' submission.pk %}" class="dir-link" style="font-size:var(--size-sm);">&larr; Back to editorial</a>
+    <span class="status-badge status-badge--{{ submission.status }}" style="font-size:var(--size-xs);">{{ submission.get_status_display }}</span>
+    {% if revision %}<span style="color:var(--color-muted);font-size:var(--size-sm);">Version {{ revision.version }}
+      {% if revision.source_type == 'wysiwyg' %}· written in editor{% elif revision.manuscript_file %}· {{ revision.manuscript_file.name|cut:"manuscripts/" }}{% endif %}
+    </span>{% endif %}
+  </div>
+
+  <h1 style="font-family:var(--font-serif);font-size:var(--size-2xl);line-height:var(--leading-snug);margin:0 0 var(--spacing-6);">{{ submission.title }}</h1>
+
+  <!-- Normal-flow reading layout: the page scrolls naturally (this is NOT the
+       reviewer split-pane workspace, which locks height and scrolls per-pane). -->
+  <div style="display:flex;gap:var(--spacing-8);align-items:flex-start;flex-wrap:wrap;">
+    {% if toc %}
+    <nav class="workspace-toc" style="flex:0 0 220px;position:sticky;top:var(--spacing-6);max-height:calc(100vh - var(--spacing-12));overflow-y:auto;">
+      <p class="workspace-toc__label">Contents</p>
+      <ul style="list-style:none;padding:0;margin:0;">
+        {% for item in toc %}
+        <li style="margin-bottom:var(--spacing-1);padding-left:{% if item.level > 1 %}{{ item.level|add:"-1" }}0px{% else %}0{% endif %};"><a href="#{{ item.id }}" style="color:var(--color-text);text-decoration:none;font-size:var(--size-sm);">{{ item.text }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+    {% endif %}
+
+    <div class="workspace-article article-body-content" id="article-content" style="flex:1 1 480px;min-width:0;">
+      {% if article_html %}
+        {{ article_html|safe }}
+      {% else %}
+      <div class="jadmin-card" style="padding:var(--spacing-4) var(--spacing-6);">
+        <p style="margin:0;">This article can't be previewed yet.</p>
+        {% if preview_error %}
+        <p style="margin:var(--spacing-2) 0 0;color:var(--color-muted);font-size:var(--size-sm);">The manuscript could not be rendered: {{ preview_error }}</p>
+        {% else %}
+        <p style="margin:var(--spacing-2) 0 0;color:var(--color-muted);font-size:var(--size-sm);">No manuscript content has been ingested for this submission yet.</p>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

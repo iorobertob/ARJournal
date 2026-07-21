@@ -11,6 +11,7 @@
   <div class="editorial-detail__header">
     <h1>{{ submission.title }}</h1>
     <span class="status-badge status-badge--{{ submission.status }}">{{ submission.get_status_display }}</span>
+    <a href="{% url 'editorial_article_preview' submission.pk %}" class="btn btn--primary btn--small" style="margin-left:auto;">View article &rarr;</a>
   </div>
 
   <div class="editorial-detail__meta">

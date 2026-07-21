@@ -164,6 +164,21 @@
   % Parser reads alt text from arg #4 and optional label from arg #1
 }
 
+% \ARJlogo[label]{filename}{caption}{alt text}
+%
+% Same as \ARJfigure but for a LOGO or ICON: displayed small (not stretched to
+% the text width) here and in the published HTML. Upload the image at its
+% natural size, ≤ 300×300 px. Use \ARJfigure for normal content images.
+\newcommand{\ARJlogo}[4][]{%
+  \begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.3\linewidth]{#2}
+    \caption{#3}
+    \ifthenelse{\equal{#1}{}}{\label{fig:#2}}{\label{fig:#1}}
+  \end{figure}%
+  % Parser reads alt text from arg #4 and tags this figure role="logo"
+}
+
 % \ARJvideo[label]{filename}{caption}{poster image}{transcript file}
 %
 % Optional first argument [label]: reference as Figure~\ref{fig:label}

@@ -68,20 +68,37 @@ def render_html(canonical_data: dict, submission=None, revision=None, reviewer_m
             pass
     if _revision is not None:
         url_map: dict[str, str] = {}
+        meta_map: dict[str, dict] = {}
         for sa in _revision.assets.all():
             if not sa.file:
                 continue
             try:
                 url_map[sa.original_filename] = sa.file.url
             except Exception:
-                pass  # skip this one broken asset; others still resolve
+                continue  # skip this one broken asset; others still resolve
+            # Image sizing metadata (derivatives/role/dimensions) for srcset.
+            meta_map[sa.original_filename] = {
+                'srcset': sa.srcset,
+                'role': sa.role or '',
+                'width': sa.intrinsic_width,
+                'height': sa.intrinsic_height,
+            }
         url_map_lower: dict[str, str] = {k.lower(): v for k, v in url_map.items()}
+        meta_map_lower: dict[str, dict] = {k.lower(): v for k, v in meta_map.items()}
         for asset in assets.values():
             fname = asset.get('originalFilename', '')
+            meta = None
             if fname in url_map:
                 asset['resolvedUrl'] = url_map[fname]
+                meta = meta_map.get(fname)
             elif fname.lower() in url_map_lower:
                 asset['resolvedUrl'] = url_map_lower[fname.lower()]
+                meta = meta_map_lower.get(fname.lower())
+            if meta:
+                asset['resolvedSrcset'] = meta['srcset']
+                asset['resolvedRole'] = meta['role']
+                asset['resolvedWidth'] = meta['width']
+                asset['resolvedHeight'] = meta['height']
             poster_fname = asset.get('posterImageRef', '')
             if poster_fname:
                 if poster_fname in url_map:
@@ -356,8 +373,22 @@ def _render_block(
         credit_html = (
             f'<figcaption class="figure-credit">{credit}</figcaption>' if credit else ''
         )
+        # Explicit \ARJlogo role in the source wins; else the auto-detected role.
+        role = block.get('role') or asset.get('resolvedRole', '')
         if src:
-            media_html = f'<img src="{src}" alt="{alt}" loading="lazy">'
+            # Responsive srcset from generated derivatives (falls back to plain src).
+            srcset = escape(asset.get('resolvedSrcset', ''))
+            iw = asset.get('resolvedWidth')
+            ih = asset.get('resolvedHeight')
+            # Content column is ~820px; tell the browser so it picks the right rendition.
+            srcset_attr = (
+                f' srcset="{srcset}" sizes="(max-width: 860px) 100vw, 820px"'
+                if srcset else ''
+            )
+            dim_attr = f' width="{iw}" height="{ih}"' if iw and ih else ''
+            media_html = (
+                f'<img src="{src}"{srcset_attr} alt="{alt}" loading="lazy"{dim_attr}>'
+            )
         else:
             fname = escape(asset.get('originalFilename', 'image'))
             media_html = (
@@ -366,8 +397,13 @@ def _render_block(
                 f'<span class="media-placeholder__filename">{fname}</span>'
                 f'</div>'
             )
+        fig_class = 'article-figure'
+        if role == 'logo':
+            fig_class += ' article-figure--logo'
+        elif role == 'hero':
+            fig_class += ' article-figure--full'
         return (
-            f'<figure id="{escape(anchor_id)}" class="article-figure" data-block-id="{bid}">'
+            f'<figure id="{escape(anchor_id)}" class="{fig_class}" data-block-id="{bid}">'
             f'{media_html}'
             f'<figcaption class="figure-caption">{caption_prefix}{caption}</figcaption>'
             f'{credit_html}'

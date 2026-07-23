@@ -113,6 +113,7 @@
           <div style="display:flex;align-items:center;gap:var(--spacing-3);font-size:var(--size-sm);">
             <span class="role-badge" style="font-size:var(--size-xs);min-width:80px;text-align:center;">{{ asset.get_kind_display }}</span>
             <a href="{{ asset.file.url }}">{{ asset.original_filename }}</a>
+            {% include 'partials/streaming_badge.html' with asset=asset %}
             {% if asset.caption %}<span style="color:var(--color-muted);font-size:var(--size-xs);">{{ asset.caption|truncatechars:50 }}</span>{% endif %}
             <span style="color:var(--color-muted);font-size:var(--size-xs);margin-left:auto;">
               {% if asset.size_bytes %}{{ asset.size_bytes|filesizeformat }}{% endif %}
@@ -214,15 +215,11 @@
         View HTML Render ↗
       </a>
 
-      <!-- PDF downloads -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-2);">
-        <a href="{% url 'admin_request_pdf' canonical_doc.pk %}?mode=flat"
+      <!-- PDF download -->
+      <div>
+        <a href="{% url 'admin_request_pdf' canonical_doc.pk %}"
            class="btn btn-sm" style="text-align:center;background:var(--color-surface);border:1px solid var(--color-border);">
-          ↓ Flat PDF
-        </a>
-        <a href="{% url 'admin_request_pdf' canonical_doc.pk %}?mode=interactive"
-           class="btn btn-sm" style="text-align:center;background:var(--color-surface);border:1px solid var(--color-border);">
-          ↓ Rich PDF
+          ↓ Download PDF
         </a>
       </div>
       {% else %}

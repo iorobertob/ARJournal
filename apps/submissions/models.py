@@ -161,6 +161,11 @@ class SubmissionRevision(models.Model):
     def __str__(self):
         return f'{self.submission.title[:40]} — v{self.version}'
 
+    @property
+    def media_assets(self):
+        """Video/audio assets on this revision (those with a streaming status)."""
+        return [a for a in self.assets.all() if a.kind in ('video', 'audio')]
+
 
 class AssetKind(models.TextChoices):
     IMAGE = 'image', 'Image'

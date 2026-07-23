@@ -46,7 +46,7 @@ PDFs are rendered from the stored `HTMLBuild.html_content` via WeasyPrint — no
 - **macOS**: `brew install pango cairo glib libffi` — then set `DYLD_LIBRARY_PATH=/opt/homebrew/lib` in `.env`. `setup_dev.sh` handles both steps automatically.
 - **Linux**: `apt-get install libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libharfbuzz0b libffi-dev shared-mime-info fonts-liberation`
 
-Two PDF modes: **flat** (plain print layout) and **interactive** (adds PDF bookmarks from headings). Both use a self-contained HTML document with inlined CSS — no external resources fetched at render time.
+PDFs use a **flat** print layout from a self-contained HTML document with inlined CSS — no external resources fetched at render time. (The old "interactive"/rich-PDF mode that embedded video via Acrobat Screen annotations was **retired** when media moved to protected streaming — a downloadable PDF can't embed stream-only media.)
 
 ### Media streaming (video/audio → protected HLS)
 Video & audio are **never served as a downloadable file**. On upload they are transcoded (ffmpeg) to an **HLS** package and played with **hls.js** (native HLS on Safari). Delivery is through **signed, short-lived URLs** only:

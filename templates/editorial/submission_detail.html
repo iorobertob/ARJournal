@@ -31,6 +31,23 @@
   </section>
   {% endif %}
 
+  {% with rev=submission.get_current_revision %}
+  {% if rev and rev.media_assets %}
+  <section class="editorial-section">
+    <h2>Media</h2>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-2);">
+      {% for asset in rev.media_assets %}
+      <div style="display:flex;align-items:center;gap:var(--spacing-3);font-size:var(--size-sm);">
+        <span class="role-badge" style="font-size:var(--size-xs);min-width:56px;text-align:center;">{{ asset.get_kind_display }}</span>
+        <code style="font-size:var(--size-xs);">{{ asset.original_filename }}</code>
+        {% include 'partials/streaming_badge.html' with asset=asset %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% endwith %}
+
   <!-- Screening -->
   <section class="editorial-section">
     <h2>Technical Screening</h2>
@@ -664,11 +681,8 @@
 
       <!-- PDF downloads (once built) -->
       {% if build %}
-      <a href="{% url 'admin_request_pdf' canonical_doc.pk %}?mode=flat" class="btn btn--secondary">
-        ↓ Flat PDF
-      </a>
-      <a href="{% url 'admin_request_pdf' canonical_doc.pk %}?mode=interactive" class="btn btn--secondary">
-        ↓ Rich PDF
+      <a href="{% url 'admin_request_pdf' canonical_doc.pk %}" class="btn btn--secondary">
+        ↓ PDF
       </a>
       {% endif %}
 

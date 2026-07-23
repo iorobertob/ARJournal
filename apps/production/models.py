@@ -46,7 +46,7 @@ class HTMLBuild(models.Model):
 
 class PDFExport(models.Model):
     document = models.ForeignKey(CanonicalDocument, on_delete=models.CASCADE, related_name='pdf_exports')
-    mode = models.CharField(max_length=20, choices=[('flat', 'Flat'), ('interactive', 'Interactive')], default='flat')
+    mode = models.CharField(max_length=20, choices=[('flat', 'Flat')], default='flat')
     file = models.FileField(upload_to='pdf_exports/', blank=True, null=True)
     download_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     expires_at = models.DateTimeField()

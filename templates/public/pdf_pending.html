@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Preparing Interactive PDF — {{ journal.name }}{% endblock %}
+{% block title %}Preparing PDF — {{ journal.name }}{% endblock %}
 
 {% block content %}
 <section class="container" style="padding:5rem 1rem;text-align:center;">
@@ -9,7 +9,7 @@
     <div id="state-waiting">
       <div class="pdf-spinner" aria-hidden="true"></div>
       <h1 style="font-family:var(--font-serif);font-size:var(--size-xl);font-weight:400;margin:1.75rem 0 0.5rem;">
-        Building your Interactive PDF
+        Building your PDF
       </h1>
       <p style="color:var(--color-muted);line-height:1.6;">
         Embedding media files and generating bookmarks.<br>
@@ -31,13 +31,13 @@
         Your PDF is ready
       </h1>
       <p style="color:var(--color-muted);margin-bottom:1.75rem;">
-        Your Interactive PDF has been generated and is ready to download.
+        Your PDF has been generated and is ready to download.
       </p>
       <a id="download-link"
          href="{% url 'download_pdf' export.download_token %}"
          class="btn btn--primary"
          style="font-size:var(--size-base);padding:0.75rem 2rem;">
-        Download Interactive PDF
+        Download PDF
       </a>
       <p style="margin-top:1.5rem;font-size:var(--size-sm);color:var(--color-muted);line-height:1.6;">
         Video and audio play inline when opened in

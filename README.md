@@ -389,12 +389,9 @@ sudo certbot renew && sudo systemctl reload nginx
 
 ### Celery and PDF generation (all stages)
 
-The Celery worker handles **interactive PDF generation** (WeasyPrint + pikepdf media embedding). Without a running worker, interactive PDFs will queue but never complete.
+PDFs (WeasyPrint) are generated **synchronously in the request** and returned as an immediate download — no Celery worker is required for PDF export. (The old async "interactive"/rich-PDF mode was retired when media moved to protected streaming.)
 
-- **Flat PDFs** run synchronously in the request — no Celery needed.
-- **Interactive PDFs** are dispatched to Celery; the user sees a polling spinner page.
-
-To skip Celery entirely (simpler setup, all PDFs synchronous and slower), set `CELERY_TASK_ALWAYS_EAGER=True` in `.env` and disable/don't start the Celery service.
+The Celery workers are still used for other async work (email, DOI, and the `inact-transcode` HLS transcoding queue). To run everything synchronously in a minimal setup, set `CELERY_TASK_ALWAYS_EAGER=True` in `.env` and don't start the Celery services.
 
 ### pikepdf note
 

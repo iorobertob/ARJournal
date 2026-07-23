@@ -194,10 +194,9 @@ def admin_request_pdf(request, document_pk):
     from django.urls import reverse
     doc = get_object_or_404(CanonicalDocument, pk=document_pk)
     get_object_or_404(HTMLBuild, document=doc)  # must have a build
-    mode = request.GET.get('mode', 'flat')
     exp = PDFExport.objects.create(
         document=doc,
-        mode=mode,
+        mode='flat',  # interactive PDF retired — only flat PDFs are generated
         expires_at=timezone.now() + timedelta(minutes=30),
     )
     from .tasks import generate_pdf
@@ -216,41 +215,29 @@ def request_pdf(request, document_pk):
     """
     doc = get_object_or_404(CanonicalDocument, pk=document_pk)
     get_object_or_404(HTMLBuild, document=doc, is_published=True)
-    mode = request.GET.get('mode', 'flat')
     from datetime import timedelta
     from .tasks import generate_pdf
 
     exp = PDFExport.objects.create(
         document=doc,
-        mode=mode,
+        mode='flat',  # interactive PDF retired — only flat PDFs are generated
         expires_at=timezone.now() + timedelta(minutes=30),
     )
 
-    if mode == 'flat':
-        # Run synchronously regardless of Celery config — flat PDFs are fast
-        # and the user expects an immediate download.
-        generate_pdf.apply(args=(exp.pk,))
-        exp.refresh_from_db()
-        if exp.file:
-            fname = f'{doc.revision.submission.slug or "article"}.pdf'
-            response = FileResponse(
-                exp.file.open('rb'),
-                content_type='application/pdf',
-                as_attachment=True,
-                filename=fname,
-            )
-            return response
-        # Generation failed — show a simple error
-        messages.error(request, 'PDF generation failed. Please try again.')
-        return redirect(request.META.get('HTTP_REFERER') or reverse('home'))
-
-    else:
-        # Interactive PDF: always show the spinner page so the user sees
-        # progress feedback. In dev (always-eager) the task runs synchronously
-        # before this line, so polling will return ready immediately and
-        # auto-trigger the download. In production the worker runs it async.
-        _dispatch_task(generate_pdf, exp.pk)
-        return render(request, 'public/pdf_pending.html', {'export': exp})
+    # Run synchronously regardless of Celery config — the PDF is generated and
+    # returned immediately for download.
+    generate_pdf.apply(args=(exp.pk,))
+    exp.refresh_from_db()
+    if exp.file:
+        fname = f'{doc.revision.submission.slug or "article"}.pdf'
+        return FileResponse(
+            exp.file.open('rb'),
+            content_type='application/pdf',
+            as_attachment=True,
+            filename=fname,
+        )
+    messages.error(request, 'PDF generation failed. Please try again.')
+    return redirect(request.META.get('HTTP_REFERER') or reverse('home'))
 
 
 def download_pdf(request, token):

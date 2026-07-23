@@ -95,11 +95,9 @@
       {% if build %}
       <p class="article-meta-sidebar__label">Download</p>
       {% if admin_preview %}
-      <a href="{% url 'admin_request_pdf' build.document.pk %}?mode=flat">PDF</a>
-      <a href="{% url 'admin_request_pdf' build.document.pk %}?mode=interactive" style="margin-top:var(--spacing-1);">Interactive PDF</a>
+      <a href="{% url 'admin_request_pdf' build.document.pk %}">PDF</a>
       {% else %}
-      <a href="{% url 'request_pdf' build.document.pk %}?mode=flat">PDF</a>
-      <a href="{% url 'request_pdf' build.document.pk %}?mode=interactive" style="margin-top:var(--spacing-1);">Interactive PDF</a>
+      <a href="{% url 'request_pdf' build.document.pk %}">PDF</a>
       {% endif %}
       {% endif %}
 
@@ -119,11 +117,9 @@
     {% if build %}
     <div class="article-downloads">
       {% if admin_preview %}
-      <a href="{% url 'admin_request_pdf' build.document.pk %}?mode=flat" class="btn btn--secondary">Download PDF</a>
-      <a href="{% url 'admin_request_pdf' build.document.pk %}?mode=interactive" class="btn btn--secondary">Interactive PDF</a>
+      <a href="{% url 'admin_request_pdf' build.document.pk %}" class="btn btn--secondary">Download PDF</a>
       {% else %}
-      <a href="{% url 'request_pdf' build.document.pk %}?mode=flat" class="btn btn--secondary">Download PDF</a>
-      <a href="{% url 'request_pdf' build.document.pk %}?mode=interactive" class="btn btn--secondary">Interactive PDF</a>
+      <a href="{% url 'request_pdf' build.document.pk %}" class="btn btn--secondary">Download PDF</a>
       {% endif %}
     </div>
     {% endif %}

@@ -80,7 +80,7 @@
           {% for asset in assets %}
           <tr id="asset-row-{{ asset.pk }}">
             <td><code style="font-size:var(--size-sm);">{{ asset.original_filename }}</code></td>
-            <td>{{ asset.get_kind_display }}</td>
+            <td>{{ asset.get_kind_display }}{% if asset.kind == 'video' or asset.kind == 'audio' %}<br>{% include 'partials/streaming_badge.html' with asset=asset %}{% endif %}</td>
             <td>{{ asset.size_bytes|filesizeformat }}</td>
             <td>
               <button type="button" class="btn btn--small btn--danger"

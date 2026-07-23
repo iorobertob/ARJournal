@@ -1,0 +1,15 @@
+{% comment %}
+Small "Streaming: pending/processing/ready/error" pill for a video/audio asset.
+Usage: {% include 'partials/streaming_badge.html' with asset=asset %}
+{% endcomment %}
+{% if asset.kind == 'video' or asset.kind == 'audio' %}
+{% if asset.hls_status == 'ready' %}
+<span class="stream-badge stream-badge--ready" style="display:inline-block;font-size:var(--size-xs);padding:1px 8px;border-radius:10px;font-weight:600;background:#dcfce7;color:#16a34a;white-space:nowrap;">Streaming: ready</span>
+{% elif asset.hls_status == 'processing' %}
+<span class="stream-badge stream-badge--processing" style="display:inline-block;font-size:var(--size-xs);padding:1px 8px;border-radius:10px;font-weight:600;background:#FFF1E0;color:#B45309;white-space:nowrap;">Streaming: processing…</span>
+{% elif asset.hls_status == 'error' %}
+<span class="stream-badge stream-badge--error" title="{{ asset.hls_error }}" style="display:inline-block;font-size:var(--size-xs);padding:1px 8px;border-radius:10px;font-weight:600;background:#fee2e2;color:#dc2626;white-space:nowrap;">Streaming: error</span>
+{% else %}
+<span class="stream-badge stream-badge--pending" style="display:inline-block;font-size:var(--size-xs);padding:1px 8px;border-radius:10px;font-weight:600;background:var(--color-ghost,#F4F2F7);color:var(--color-ash,#6E667A);white-space:nowrap;">Streaming: pending</span>
+{% endif %}
+{% endif %}

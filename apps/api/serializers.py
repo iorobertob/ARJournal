@@ -76,5 +76,5 @@ class PublicArticleSerializer(serializers.ModelSerializer):
 
 
 class PDFExportRequestSerializer(serializers.Serializer):
-    mode = serializers.ChoiceField(choices=['flat', 'interactive'], default='flat')
+    mode = serializers.ChoiceField(choices=['flat'], default='flat')
     ttl_minutes = serializers.IntegerField(default=30, min_value=5, max_value=120)

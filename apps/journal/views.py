@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
-from .models import Issue, EditorialBoardMember, FeaturedSelection, JournalConfig, ArticleType
+from .models import Issue, EditorialBoardMember, FeaturedSelection, JournalConfig, ArticleType, NewsPost
 
 
 def home(request):
@@ -106,8 +106,18 @@ def home(request):
 
 def news(request):
     return render(request, 'public/news.html', {
+        'posts': NewsPost.objects.filter(is_published=True).select_related('author'),
         'issues': Issue.objects.filter(is_published=True).exclude(call_for_submissions='')[:10],
     })
+
+
+def news_detail(request, slug):
+    post = get_object_or_404(NewsPost, slug=slug, is_published=True)
+    more = (
+        NewsPost.objects.filter(is_published=True)
+        .exclude(pk=post.pk)[:3]
+    )
+    return render(request, 'public/news_detail.html', {'post': post, 'more': more})
 
 
 def contact(request):

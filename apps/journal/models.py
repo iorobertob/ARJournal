@@ -268,3 +268,67 @@ class EditorialBoardMember(models.Model):
 
     def __str__(self):
         return f'{self.name} — {self.role}'
+
+
+class NewsPost(models.Model):
+    """A blog-style news / announcement post, authored by editors and admins
+    via the Journal Admin dashboard and shown on the public /news/ page as
+    chronologically ordered rich row cards."""
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=280, unique=True, blank=True)
+    summary = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text='Short teaser shown on the news card. Falls back to the start of the body.',
+    )
+    body = models.TextField(
+        blank=True, default='',
+        help_text='WYSIWYG rich-text content (sanitized on save).',
+    )
+    thumbnail = models.ImageField(upload_to='news/', blank=True, null=True)
+    author = models.ForeignKey(
+        'accounts.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='news_posts',
+    )
+    is_published = models.BooleanField(default=False)
+    published_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Set automatically when first published; drives chronological order.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # Newest first; drafts (no published_at) fall back to creation time.
+        ordering = ['-published_at', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = self._unique_slug()
+        # Stamp the publish time the first time it goes live.
+        if self.is_published and self.published_at is None:
+            self.published_at = timezone.now()
+        super().save(*args, **kwargs)
+
+    def _unique_slug(self):
+        from django.utils.text import slugify
+        base = slugify(self.title) or 'post'
+        slug = base
+        n = 2
+        qs = NewsPost.objects.all()
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        while qs.filter(slug=slug).exists():
+            slug = f'{base}-{n}'
+            n += 1
+        return slug
+
+    @property
+    def display_date(self):
+        return self.published_at or self.created_at
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('news_detail', args=[self.slug])

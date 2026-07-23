@@ -416,3 +416,43 @@ input[type="file"].form-control::file-selector-button:hover {
   .jadmin-card__title { flex-direction: column; align-items: flex-start; gap: var(--spacing-2); }
   .issue-header-actions { flex-wrap: wrap; gap: var(--spacing-2); }
 }
+
+/* ── News post rows (dashboard list) ─────────────────────────── */
+.jadmin-news-row {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: var(--spacing-4);
+  align-items: center;
+  padding: var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-white, #fff);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.jadmin-news-row:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+.jadmin-news-row__thumb {
+  width: 120px;
+  height: 80px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.jadmin-news-row__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.jadmin-news-row__noimg { font-size: var(--size-xs); color: var(--color-text-muted); }
+.jadmin-news-row__actions { display: flex; gap: var(--spacing-2); align-items: center; }
+
+@media (max-width: 640px) {
+  .jadmin-news-row {
+    grid-template-columns: 80px 1fr;
+    grid-template-areas: "thumb body" "actions actions";
+  }
+  .jadmin-news-row__thumb { grid-area: thumb; width: 80px; height: 60px; }
+  .jadmin-news-row__body { grid-area: body; }
+  .jadmin-news-row__actions { grid-area: actions; justify-content: flex-end; }
+}

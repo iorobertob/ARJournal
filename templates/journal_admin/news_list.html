@@ -1,0 +1,58 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}News — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);">
+  <h1 class="jadmin-page-title" style="margin:0;">News</h1>
+  <a href="{% url 'journal_admin_news_create' %}" class="btn btn-primary">+ New Post</a>
+</div>
+
+<div class="jadmin-card">
+  {% if posts %}
+  <div style="display:flex;flex-direction:column;gap:var(--spacing-4);">
+    {% for post in posts %}
+    <div class="jadmin-news-row">
+      <div class="jadmin-news-row__thumb">
+        {% if post.thumbnail %}
+        <img src="{{ post.thumbnail.url }}" alt="">
+        {% else %}
+        <span class="jadmin-news-row__noimg">No image</span>
+        {% endif %}
+      </div>
+      <div class="jadmin-news-row__body">
+        <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;">
+          <strong style="font-size:var(--size-base);">{{ post.title|truncatechars:70 }}</strong>
+          {% if post.is_published %}
+          <span class="role-badge" style="background:#d1fae5;color:#065f46;">Published</span>
+          {% else %}
+          <span class="role-badge" style="background:#fef3c7;color:#92400e;">Draft</span>
+          {% endif %}
+        </div>
+        <div style="color:var(--color-text-muted);font-size:var(--size-xs);margin-top:var(--spacing-1);">
+          {{ post.display_date|date:"j M Y, H:i" }}{% if post.author %} · {{ post.author.get_full_name|default:post.author.email }}{% endif %}
+        </div>
+        {% if post.summary %}
+        <p style="margin:var(--spacing-2) 0 0;color:var(--color-text-muted);font-size:var(--size-sm);">{{ post.summary|truncatechars:140 }}</p>
+        {% endif %}
+      </div>
+      <div class="jadmin-news-row__actions">
+        <a href="{% url 'journal_admin_news_edit' post.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Edit</a>
+        <form method="post" action="{% url 'journal_admin_news_delete' post.pk %}"
+              data-confirm="Delete “{{ post.title|escapejs }}”? This cannot be undone." data-confirm-ok="Delete"
+              style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm" style="background:transparent;border:1px solid var(--color-border);color:var(--color-danger,#b91c1c);">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:var(--spacing-12);color:var(--color-muted);">
+    <p style="font-size:var(--size-lg);margin-bottom:var(--spacing-4);">No news posts yet.</p>
+    <a href="{% url 'journal_admin_news_create' %}" class="btn btn-primary">Write your first post</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

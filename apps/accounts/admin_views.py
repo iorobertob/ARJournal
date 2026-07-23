@@ -567,3 +567,59 @@ def email_log_preview(request, pk):
         'plain_body': log.plain_body,
         'html': _html_wrapper(log.html_body) if log.html_body else '',
     })
+
+
+# ── News / blog posts ────────────────────────────────────────────────────────
+@journal_admin_required
+def news_list(request):
+    from apps.journal.models import NewsPost
+    posts = NewsPost.objects.select_related('author').all()
+    return render(request, 'journal_admin/news_list.html', {'posts': posts})
+
+
+@journal_admin_required
+def news_edit(request, pk=None):
+    """Create (pk=None) or edit a news post."""
+    from apps.journal.models import NewsPost
+    from apps.journal.sanitize import sanitize_html
+
+    post = get_object_or_404(NewsPost, pk=pk) if pk else None
+
+    if request.method == 'POST':
+        title = (request.POST.get('title') or '').strip()
+        if not title:
+            messages.error(request, 'A title is required.')
+            return render(request, 'journal_admin/news_form.html', {'post': post})
+
+        if post is None:
+            post = NewsPost(author=request.user)
+        post.title = title
+        post.summary = (request.POST.get('summary') or '').strip()
+        post.body = sanitize_html(request.POST.get('body', ''))
+        post.is_published = bool(request.POST.get('is_published'))
+        # Unpublishing clears the publish stamp so re-publishing re-dates it.
+        if not post.is_published:
+            post.published_at = None
+        if request.FILES.get('thumbnail'):
+            post.thumbnail = request.FILES['thumbnail']
+        if request.POST.get('remove_thumbnail') and post.thumbnail:
+            post.thumbnail.delete(save=False)
+            post.thumbnail = None
+        post.save()
+        messages.success(
+            request,
+            'News post published.' if post.is_published else 'News post saved as draft.',
+        )
+        return redirect('journal_admin_news')
+
+    return render(request, 'journal_admin/news_form.html', {'post': post})
+
+
+@journal_admin_required
+def news_delete(request, pk):
+    from apps.journal.models import NewsPost
+    post = get_object_or_404(NewsPost, pk=pk)
+    if request.method == 'POST':
+        post.delete()
+        messages.success(request, 'News post deleted.')
+    return redirect('journal_admin_news')

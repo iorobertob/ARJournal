@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load content_filters %}
+{% block title %}{{ post.title }} — News — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<article class="container news-article">
+  <a href="{% url 'news' %}" class="news-back" style="display:inline-block;margin-bottom:var(--spacing-6);">&#10229; All news</a>
+
+  <p class="news-article__date">{{ post.display_date|date:"j F Y" }}{% if post.author %} · {{ post.author.get_full_name|default:post.author.email }}{% endif %}</p>
+  <h1 class="news-article__title">{{ post.title }}</h1>
+
+  {% if post.thumbnail %}
+  <div class="news-article__hero">
+    <img src="{{ post.thumbnail.url }}" alt="">
+  </div>
+  {% endif %}
+
+  <div class="prose news-article__body">
+    {{ post.body|richtext }}
+  </div>
+
+  {% if more %}
+  <div class="news-article__more">
+    <h2 class="section-heading">More news</h2>
+    <div class="news-list">
+      {% for p in more %}
+      <a href="{% url 'news_detail' p.slug %}" class="news-card">
+        <div class="news-card__thumb">
+          {% if p.thumbnail %}
+          <img src="{{ p.thumbnail.url }}" alt="" loading="lazy">
+          {% else %}
+          <span class="news-card__thumb-fallback">{{ journal.name }}</span>
+          {% endif %}
+        </div>
+        <div class="news-card__body">
+          <p class="news-card__date">{{ p.display_date|date:"j F Y" }}</p>
+          <h2 class="news-card__title">{{ p.title }}</h2>
+          {% if p.summary %}<p class="news-card__summary">{{ p.summary }}</p>{% endif %}
+          <span class="news-card__more link-arrow dir-link">Read more</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</article>
+{% endblock %}

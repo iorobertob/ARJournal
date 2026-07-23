@@ -232,18 +232,29 @@ def _parse_inline_content(
                     fn_num = counters.get('fn', 0) + 1
                     counters['fn'] = fn_num
                     fn_id = _uid('blk_fn', counters)
-                    note_text = re.sub(r'%[^\n]*', '', arg).strip()
+                    note_raw = re.sub(r'%[^\n]*', '', arg).strip()
+                    # Parse the footnote body recursively so inline commands
+                    # (\href, \url, \textit, \cite …) become real nodes — e.g.
+                    # links inside footnotes render as functional hyperlinks.
+                    note_nodes = _parse_inline_content(
+                        note_raw, footnote_list, cite_keys, counters, sec_id
+                    )
+                    # Plain-text form kept for anywhere that needs a flat string.
+                    note_text = ''.join(
+                        nd.get('text', '') for nd in note_nodes
+                    ).strip() or note_raw
                     footnote_list.append({
                         'id': fn_id,
                         'type': 'footnote',
                         'number': fn_num,
-                        'content': [{'type': 'text', 'text': note_text}],
+                        'content': note_nodes,
                         'sectionId': sec_id,
                     })
                     nodes.append({
                         'type': 'footnote_ref',
                         'footnoteId': fn_id,
                         'number': fn_num,
+                        'noteContent': note_nodes,
                         'noteText': note_text,
                     })
                 elif cmd == 'texttt':

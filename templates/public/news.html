@@ -3,10 +3,34 @@
 {% block title %}News — {{ journal.name }}{% endblock %}
 
 {% block content %}
-<section class="container about">
+<section class="container news-page">
   <h1 class="page-title">News</h1>
   {% if journal.news_text %}
   <div class="prose">{{ journal.news_text|richtext }}</div>
+  {% endif %}
+
+  {% if posts %}
+  <div class="news-list">
+    {% for post in posts %}
+    <a href="{% url 'news_detail' post.slug %}" class="news-card">
+      <div class="news-card__thumb">
+        {% if post.thumbnail %}
+        <img src="{{ post.thumbnail.url }}" alt="" loading="lazy">
+        {% else %}
+        <span class="news-card__thumb-fallback">{{ journal.name }}</span>
+        {% endif %}
+      </div>
+      <div class="news-card__body">
+        <p class="news-card__date">{{ post.display_date|date:"j F Y" }}</p>
+        <h2 class="news-card__title">{{ post.title }}</h2>
+        {% if post.summary %}
+        <p class="news-card__summary">{{ post.summary }}</p>
+        {% endif %}
+        <span class="news-card__more link-arrow dir-link">Read more</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
   {% endif %}
 
   {% for issue in issues %}
@@ -15,10 +39,10 @@
     <p>{{ issue.call_for_submissions|linebreaksbr }}</p>
     <a href="{% url 'submit_info' %}" class="btn btn--outline">Submit ⟶</a>
   </div>
-  {% empty %}
-  {% if not journal.news_text %}
+  {% endfor %}
+
+  {% if not posts and not journal.news_text and not issues %}
   <p style="color: var(--color-muted);">No news at the moment — check back soon.</p>
   {% endif %}
-  {% endfor %}
 </section>
 {% endblock %}

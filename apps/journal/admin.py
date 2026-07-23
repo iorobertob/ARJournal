@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import JournalConfig, Issue, Section, EditorialBoardMember
+from .models import JournalConfig, Issue, Section, EditorialBoardMember, NewsPost
 
 
 @admin.register(JournalConfig)
@@ -35,3 +35,12 @@ class IssueAdmin(admin.ModelAdmin):
 class EditorialBoardMemberAdmin(admin.ModelAdmin):
     list_display = ('name', 'role', 'institution', 'country', 'order', 'is_active')
     list_editable = ('order', 'is_active')
+
+
+@admin.register(NewsPost)
+class NewsPostAdmin(admin.ModelAdmin):
+    list_display = ('title', 'author', 'is_published', 'published_at', 'updated_at')
+    list_filter = ('is_published',)
+    search_fields = ('title', 'summary', 'body')
+    prepopulated_fields = {'slug': ('title',)}
+    date_hierarchy = 'published_at'

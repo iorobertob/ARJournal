@@ -18,4 +18,9 @@ urlpatterns = [
     # Email log
     path('email-log/', admin_views.email_log, name='journal_admin_email_log'),
     path('email-log/<int:pk>/preview/', admin_views.email_log_preview, name='journal_admin_email_log_preview'),
+    # News / blog posts
+    path('news/', admin_views.news_list, name='journal_admin_news'),
+    path('news/new/', admin_views.news_edit, name='journal_admin_news_create'),
+    path('news/<int:pk>/edit/', admin_views.news_edit, name='journal_admin_news_edit'),
+    path('news/<int:pk>/delete/', admin_views.news_delete, name='journal_admin_news_delete'),
 ]

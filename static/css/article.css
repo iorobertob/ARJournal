@@ -339,6 +339,17 @@ p.article-meta-sidebar__label {
   max-width: 90ch;
 }
 
+/* Inline hyperlinks — one consistent style across body text, footnotes and
+   endnotes. External links (target=_blank) and internal anchors look alike. */
+.article-link {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: color var(--transition);
+}
+.article-link:hover { color: var(--color-accent-dark); }
+
 .article-body-content .article-authors { display: none; }
 
 .article-body-content .article-abstract {

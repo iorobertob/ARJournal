@@ -337,10 +337,16 @@ def _doi_suffix(doi: str, url: str) -> str:
             href, shown = f'https://doi.org/{d[4:].strip()}', d
         else:
             href = shown = f'https://doi.org/{d}'
-        return f' <a href="{escape(href)}" class="article-cite__doi">{escape(shown)}</a>'
+        return (
+            f' <a href="{escape(href)}" class="article-cite__doi article-link" '
+            f'target="_blank" rel="noopener noreferrer">{escape(shown)}</a>'
+        )
     if url:
         u = escape(url.strip())
-        return f' Available at <a href="{u}">{u}</a>'
+        return (
+            f' Available at <a href="{u}" class="article-link" '
+            f'target="_blank" rel="noopener noreferrer">{u}</a>'
+        )
     return ''
 
 
@@ -679,7 +685,9 @@ def _render_block(
         items_html = ''
         for fn in footnotes:
             fn_num = fn.get('number', '')
-            fn_content = escape(''.join(c.get('text', '') for c in fn.get('content', [])))
+            fn_content = ''.join(
+                _render_inline(c, cm, lm) for c in fn.get('content', [])
+            )
             items_html += (
                 f'<li id="fn-{fn_num}" class="article-footnote">'
                 f'<span class="fn-note__num" aria-hidden="true">{fn_num}.</span> '
@@ -745,8 +753,18 @@ def _render_inline(
         return f'<em>{text}</em>'
 
     if ntype == 'link':
-        href = escape(node.get('href', '#'))
-        return f'<a href="{href}">{text or href}</a>'
+        raw_href = node.get('href', '#')
+        href = escape(raw_href)
+        label = text or href
+        # External links open in a new tab (rel guards against tab-nabbing);
+        # internal fragment links (#…) stay in the same window.
+        is_external = raw_href.startswith(('http://', 'https://', '//', 'mailto:'))
+        if is_external:
+            return (
+                f'<a href="{href}" class="article-link" '
+                f'target="_blank" rel="noopener noreferrer">{label}</a>'
+            )
+        return f'<a href="{href}" class="article-link">{label}</a>'
 
     if ntype == 'cite':
         ref_raw = node.get('ref', '')
@@ -773,14 +791,20 @@ def _render_inline(
 
     if ntype == 'footnote_ref':
         fn_num = node.get('number', '')
-        note_text = escape(node.get('noteText', ''))
+        note_nodes = node.get('noteContent')
+        if note_nodes:
+            note_html = ''.join(
+                _render_inline(c, cite_map, label_map) for c in note_nodes
+            )
+        else:  # legacy canonical data without parsed nodes
+            note_html = escape(node.get('noteText', ''))
         return (
             f'<span class="fn-wrap">'
             f'<sup class="fn-ref-num" id="fnref-{fn_num}" aria-describedby="fn-{fn_num}">'
             f'{fn_num}'
             f'</sup>'
             f'<span class="fn-note" id="fn-{fn_num}" role="note">'
-            f'<span class="fn-note__num" aria-hidden="true">{fn_num}.</span> {note_text}'
+            f'<span class="fn-note__num" aria-hidden="true">{fn_num}.</span> {note_html}'
             f'</span>'
             f'</span>'
         )

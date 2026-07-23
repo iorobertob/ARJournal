@@ -24,20 +24,51 @@ from django.utils.html import escape
 from django.conf import settings
 
 
-# ── Citation helpers ──────────────────────────────────────────────────────────
+# ── Citation helpers (Cambridge author-date, "CambridgeA" style) ──────────────
 
 def _last_name(full_name: str) -> str:
-    """'Alice Smith' → 'Smith', 'Smith, Alice' → 'Smith'."""
+    """'Alice Smith' → 'Smith', 'Smith, Alice' → 'Smith', 'Rubio Marin, X' → 'Rubio Marin'."""
     if ',' in full_name:
         return full_name.split(',')[0].strip()
     parts = full_name.strip().split()
     return parts[-1] if parts else full_name
 
 
-def _cite_label(item: dict) -> str:
-    """Build a Chicago author-date inline label, e.g. 'Smith 2024' or 'Smith et al. 2024'."""
+def _initials(given: str) -> str:
+    """'David A' → 'DA', 'Robert' → 'R' (Cambridge initials: no periods/spaces)."""
+    return ''.join(t[0].upper() for t in given.replace('.', ' ').split() if t)
+
+
+def _author_ref_form(full_name: str) -> str:
+    """Reference-list form: 'Attfield R', 'Kenny DA'. Corporate names pass through."""
+    name = full_name.strip()
+    if ',' in name:
+        family, given = (p.strip() for p in name.split(',', 1))
+    else:
+        parts = name.split()
+        if len(parts) < 2:
+            return name  # single token → corporate/mononym, leave as-is
+        family, given = parts[-1], ' '.join(parts[:-1])
+    inits = _initials(given)
+    return f'{family} {inits}'.strip() if inits else family
+
+
+def _author_ref_list(authors: list) -> str:
+    """'A, B and C' — no serial comma before 'and' (Cambridge)."""
+    forms = [_author_ref_form(a) for a in authors if a]
+    if not forms:
+        return ''
+    if len(forms) == 1:
+        return forms[0]
+    return ', '.join(forms[:-1]) + ' and ' + forms[-1]
+
+
+def _cite_label(item: dict, display_year: str = None) -> str:
+    """Cambridge in-text label: 'Cook 2013', 'Bicchieri and Xiao 1998',
+    'Bhatti et al 2018' (note: 'et al' with no period). Uses display_year
+    (which may carry an a/b/c suffix) when provided."""
     authors = item.get('authors', [])
-    year = str(item.get('year', '')).strip()
+    year = display_year if display_year is not None else str(item.get('year', '')).strip()
     if not authors:
         return item.get('citeKey', '')
     if len(authors) == 1:
@@ -45,16 +76,55 @@ def _cite_label(item: dict) -> str:
     elif len(authors) == 2:
         name_part = f'{_last_name(authors[0])} and {_last_name(authors[1])}'
     else:
-        name_part = f'{_last_name(authors[0])} et al.'
+        name_part = f'{_last_name(authors[0])} et al'
     return f'{name_part} {year}' if year else name_part
+
+
+def _prepare_citations(items: list) -> tuple[dict, list]:
+    """Sort citation items alphabetically (by first-author surname, then year),
+    assign a/b/c suffixes for same author+year, and build the in-text label map.
+
+    Returns (cite_map, ordered_items) where cite_map maps citeKey → in-text label
+    and each ordered item carries a '_displayYear' (year + optional suffix).
+    """
+    def sort_key(it):
+        a = it.get('authors') or []
+        surname = _last_name(a[0]).lower() if a else it.get('citeKey', '').lower()
+        year = str(it.get('year', '') or '')
+        return (surname, year, it.get('citeKey', ''))
+
+    ordered = sorted(items, key=sort_key)
+
+    # Assign a/b/c when the same lead surname + year occurs more than once.
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for it in ordered:
+        a = it.get('authors') or []
+        surname = _last_name(a[0]).lower() if a else it.get('citeKey', '')
+        groups[(surname, str(it.get('year', '') or ''))].append(it)
+
+    cite_map: dict[str, str] = {}
+    for (surname, year), grp in groups.items():
+        multi = len(grp) > 1 and year
+        for i, it in enumerate(grp):
+            suffix = chr(ord('a') + i) if multi else ''
+            disp = f'{year}{suffix}' if year else ''
+            it['_displayYear'] = disp
+            ck = it.get('citeKey', '')
+            if ck:
+                cite_map[ck] = _cite_label(it, disp)
+    return cite_map, ordered
 
 
 def render_html(canonical_data: dict, submission=None, revision=None, reviewer_mode: bool = False) -> str:
     """Render the full article HTML from canonical JSON."""
-    meta = canonical_data.get('metadata', {})
-    contributors = canonical_data.get('contributors', [])
-    content = canonical_data.get('content', [])
-    assets = {a['assetId']: a for a in canonical_data.get('assets', [])}
+    # Coalesce None → defaults: stored canonical JSON may carry explicit nulls
+    # (e.g. metadata: null on some older/WYSIWYG docs), for which .get(key, {})
+    # still returns None because the key is present.
+    meta = canonical_data.get('metadata') or {}
+    contributors = canonical_data.get('contributors') or []
+    content = canonical_data.get('content') or []
+    assets = {a['assetId']: a for a in (canonical_data.get('assets') or [])}
 
     # Resolve asset filenames → media URLs from the correct revision's files.
     # Priority: explicit revision arg → submission's current revision → skip.
@@ -99,20 +169,20 @@ def render_html(canonical_data: dict, submission=None, revision=None, reviewer_m
         meta_map_lower: dict[str, dict] = {k.lower(): v for k, v in meta_map.items()}
         for asset in assets.values():
             fname = asset.get('originalFilename', '')
-            meta = None
+            asset_meta = None  # NB: not `meta` — that holds the document metadata
             if fname in url_map:
                 asset['resolvedUrl'] = url_map[fname]
-                meta = meta_map.get(fname)
+                asset_meta = meta_map.get(fname)
             elif fname.lower() in url_map_lower:
                 asset['resolvedUrl'] = url_map_lower[fname.lower()]
-                meta = meta_map_lower.get(fname.lower())
-            if meta:
-                asset['resolvedSrcset'] = meta['srcset']
-                asset['resolvedRole'] = meta['role']
-                asset['resolvedWidth'] = meta['width']
-                asset['resolvedHeight'] = meta['height']
-                asset['resolvedHlsUrl'] = meta['hls']
-                asset['resolvedStreamUrl'] = meta['stream']
+                asset_meta = meta_map_lower.get(fname.lower())
+            if asset_meta:
+                asset['resolvedSrcset'] = asset_meta['srcset']
+                asset['resolvedRole'] = asset_meta['role']
+                asset['resolvedWidth'] = asset_meta['width']
+                asset['resolvedHeight'] = asset_meta['height']
+                asset['resolvedHlsUrl'] = asset_meta['hls']
+                asset['resolvedStreamUrl'] = asset_meta['stream']
             poster_fname = asset.get('posterImageRef', '')
             if poster_fname:
                 if poster_fname in url_map:
@@ -148,12 +218,20 @@ def render_html(canonical_data: dict, submission=None, revision=None, reviewer_m
         kw_html = ', '.join(f'<span class="keyword">{escape(k)}</span>' for k in keywords)
         parts.append(f'<div class="article-keywords">{kw_html}</div>')
 
-    # Build cite_map: citeKey → formatted author-date label for inline citations.
-    cite_map: dict[str, str] = {}
-    for item in canonical_data.get('citations', {}).get('items', []):
-        ck = item.get('citeKey', '')
-        if ck:
-            cite_map[ck] = _cite_label(item)
+    # Build cite_map (Cambridge author-date labels, with a/b/c suffixes) and sort
+    # the references alphabetically. The same display-year (incl. suffix) is carried
+    # onto the bibliography block so in-text citations and the list agree.
+    cite_map, _ordered_cites = _prepare_citations(
+        (canonical_data.get('citations') or {}).get('items') or []
+    )
+    _disp_by_key = {it.get('citeKey'): it.get('_displayYear', '') for it in _ordered_cites}
+    _order_by_key = {it.get('citeKey'): i for i, it in enumerate(_ordered_cites)}
+    for _block in content:
+        if _block.get('type') == 'bibliography' and _block.get('items'):
+            for _it in _block['items']:
+                _it['_displayYear'] = _disp_by_key.get(
+                    _it.get('citeKey'), str(_it.get('year', '') or ''))
+            _block['items'].sort(key=lambda it: _order_by_key.get(it.get('citeKey'), 10 ** 9))
 
     # Build label_map: 'fig:label' → figure number (sequential across all figures/media).
     label_map = _build_label_map(content)
@@ -249,86 +327,111 @@ def _render_table_from_latex(raw_latex: str, caption: str, bid: str) -> str:
     )
 
 
+def _doi_suffix(doi: str, url: str) -> str:
+    """Cambridge DOI/URL suffix. DOI as an https link; else 'Available at <url>'."""
+    if doi:
+        d = doi.strip()
+        if d.lower().startswith('http'):
+            href, shown = d, d
+        elif d.lower().startswith('doi:'):
+            href, shown = f'https://doi.org/{d[4:].strip()}', d
+        else:
+            href = shown = f'https://doi.org/{d}'
+        return f' <a href="{escape(href)}" class="article-cite__doi">{escape(shown)}</a>'
+    if url:
+        u = escape(url.strip())
+        return f' Available at <a href="{u}">{u}</a>'
+    return ''
+
+
 def _format_bib_item(item: dict) -> str:
-    """Format one bibliography entry in apalike style."""
-    type_ = item.get('type', 'unknown')
-    authors = item.get('authors', [])
-    year = item.get('year', '')
-    title = item.get('title', '') or item.get('citeKey', '')
+    """Format one reference in Cambridge author-date ("CambridgeA") style.
+
+    e.g.  Attfield R (2003) *Environmental Ethics*. Cambridge: Polity Press.
+          Chétima M (2019) You are where you build… *African Studies Review*
+              **62**(3), 40-64. https://doi.org/10.1017/asr.2018.45.
+    """
+    type_ = (item.get('type') or 'misc').lower()
+    authors = item.get('authors') or []
+    editors = item.get('editors') or ([item['editor']] if item.get('editor') else [])
+    disp_year = item.get('_displayYear') or str(item.get('year', '') or '')
+    title = (item.get('title', '') or item.get('citeKey', '') or '').strip()
     journal = item.get('journal', '')
     volume = item.get('volume', '')
     number = item.get('number', '')
-    pages = item.get('pages', '').replace('--', '–')
+    pages = (item.get('pages', '') or '').replace('--', '–')
     publisher = item.get('publisher', '')
     booktitle = item.get('booktitle', '')
-    editor = item.get('editor', '')
+    address = item.get('address', '')
+    edition = item.get('edition', '')
+    series = item.get('series', '')
     school = item.get('school', '')
-    institution = item.get('institution', '')
+    institution = item.get('institution', '') or item.get('organization', '')
     howpublished = item.get('howpublished', '')
     note = item.get('note', '')
-    doi = item.get('doi', '')
-    url = item.get('url', '')
 
-    if len(authors) == 1:
-        authors_str = escape(authors[0])
-    elif len(authors) == 2:
-        authors_str = f'{escape(authors[0])} and {escape(authors[1])}'
-    elif authors:
-        authors_str = ', '.join(escape(a) for a in authors[:-1]) + f', and {escape(authors[-1])}'
-    else:
-        authors_str = ''
+    # Lead: authors, or editors (with an "(ed)"/"(eds)" marker) when no author.
+    editor_lead = not authors and editors
+    lead = _author_ref_list(authors or editors)
+    if editor_lead:
+        lead += ' (ed)' if len(editors) == 1 else ' (eds)'
+    lead_html = f'<strong>{escape(lead)}</strong>' if lead else ''
+    year_html = f' ({escape(disp_year)})' if disp_year else ''
 
-    year_part = f' ({escape(year)}).' if year else '.'
+    def place_pub():
+        parts = [p for p in (escape(address), escape(publisher)) if p]
+        return ': '.join(parts) if len(parts) == 2 else (parts[0] if parts else '')
 
     if type_ == 'article':
-        detail = f'{escape(title)}. <em>{escape(journal)}</em>'
+        vol = ''
         if volume:
-            detail += f', <em>{escape(volume)}</em>'
-            if number:
-                detail += f'({escape(number)})'
+            vol = f' <strong>{escape(volume)}</strong>' + (f'({escape(number)})' if number else '')
+        elif number:
+            vol = f' ({escape(number)})'
+        pg = f', {pages}' if pages else ''
+        jrn = f' <em>{escape(journal)}</em>' if journal else ''
+        body = f'{escape(title)}.{jrn}{vol}{pg}'
+    elif type_ in ('incollection', 'inproceedings', 'conference'):
+        if editors:
+            marker = 'ed' if len(editors) == 1 else 'eds'
+            in_clause = f'In {escape(_author_ref_list(editors))} ({marker}), '
+        else:
+            in_clause = 'In '
+        body = f'{escape(title)}. {in_clause}<em>{escape(booktitle)}</em>'
+        if series:
+            body += f'. {escape(series)}'
+        pp = place_pub()
+        if pp:
+            body += f'. {pp}'
         if pages:
-            detail += f', {pages}'
-    elif type_ == 'book':
-        detail = f'<em>{escape(title)}</em>'
-        loc_pub = ', '.join(filter(None, [escape(item.get('address', '')), escape(publisher)]))
-        if loc_pub:
-            detail += f'. {loc_pub}'
-    elif type_ in ('incollection', 'inproceedings'):
-        in_clause = 'In'
-        if editor:
-            in_clause += f' {escape(editor)} (Ed.),'
-        detail = f'{escape(title)}. {in_clause} <em>{escape(booktitle)}</em>'
-        if pages:
-            detail += f' (pp.&nbsp;{pages})'
-        if publisher:
-            detail += f'. {escape(publisher)}'
-    elif type_ == 'phdthesis':
-        detail = f'<em>{escape(title)}</em> [Doctoral dissertation'
+            body += f', {pages}'
+    elif type_ in ('phdthesis', 'mastersthesis'):
+        kind = 'PhD dissertation' if type_ == 'phdthesis' else "Master's thesis"
+        body = f'<em>{escape(title)}</em>. {kind}'
         if school:
-            detail += f', {escape(school)}'
-        detail += ']'
+            body += f', {escape(school)}'
     elif type_ == 'techreport':
-        detail = f'<em>{escape(title)}</em>'
-        num = item.get('number', '')
-        if num:
-            detail += f' (Report No.&nbsp;{escape(num)})'
+        body = f'<em>{escape(title)}</em>'
         if institution:
-            detail += f'. {escape(institution)}'
-    else:
-        detail = f'<em>{escape(title)}</em>'
-        if howpublished:
-            detail += f'. {escape(howpublished)}'
-        if note:
-            detail += f'. {escape(note)}'
+            body += f'. {escape(institution)}'
+    elif type_ == 'book':
+        body = f'<em>{escape(title)}</em>' + (f', {escape(edition)}' if edition else '')
+        if series:
+            body += f'. {escape(series)}'
+        pp = place_pub()
+        if pp:
+            body += f'. {pp}'
+    else:  # misc / online / unpublished / manual / booklet / website
+        body = f'<em>{escape(title)}</em>' if title else ''
+        extra = escape(howpublished) or escape(institution) or escape(note)
+        if extra:
+            body = f'{body}. {extra}' if body else extra
 
-    suffix = ''
-    if doi:
-        suffix = f'. <a href="https://doi.org/{escape(doi)}" class="article-cite__doi">https://doi.org/{escape(doi)}</a>'
-    elif url:
-        suffix = f'. <a href="{escape(url)}">{escape(url)}</a>'
-
-    lead = authors_str + year_part if authors_str else year_part.lstrip()
-    return f'{lead} {detail}{suffix}.'
+    body = body.rstrip()
+    if body and not body.endswith('.'):
+        body += '.'
+    result = f'{lead_html}{year_html} {body}{_doi_suffix(item.get("doi", ""), item.get("url", ""))}'.strip()
+    return result if result.endswith('.') else result + '.'
 
 
 def _render_block(
@@ -612,7 +715,7 @@ def _render_block(
         return (
             f'<section id="{bid}" class="article-bibliography" data-block-id="{bid}">'
             f'<h2>References</h2>'
-            f'<ol class="article-bibliography__list">{ref_items}</ol>'
+            f'<ul class="article-bibliography__list">{ref_items}</ul>'
             f'</section>'
         )
 

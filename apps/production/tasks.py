@@ -476,20 +476,18 @@ def _parse_bib(bib_source: str) -> dict[str, dict]:
         body = m.group(3)
 
         raw_author = _get_field(body, 'author')
-        # "Last, First and Last2, First2" → ["First Last", "First2 Last2"]
-        authors: list[str] = []
-        for person in re.split(r'\s+and\s+', raw_author, flags=re.IGNORECASE):
-            person = person.strip()
-            if ',' in person:
-                parts = [p.strip() for p in person.split(',', 1)]
-                authors.append(f'{parts[1]} {parts[0]}')
-            elif person:
-                authors.append(person)
+        # Keep each person in the raw BibTeX form ("Family, Given" or "Given
+        # Family") so the renderer can extract surnames reliably (needed for the
+        # Cambridge "Surname Initials" reference format and alphabetical sort).
+        authors = [p.strip() for p in re.split(r'\s+and\s+', raw_author, flags=re.IGNORECASE) if p.strip()]
+        raw_editor = _get_field(body, 'editor')
+        editors = [p.strip() for p in re.split(r'\s+and\s+', raw_editor, flags=re.IGNORECASE) if p.strip()]
 
         entries[cite_key] = {
             'type': entry_type,
             'title': _get_field(body, 'title'),
             'authors': authors,
+            'editors': editors,
             'year': _get_field(body, 'year'),
             'journal': _get_field(body, 'journal'),
             'volume': _get_field(body, 'volume'),
@@ -500,7 +498,10 @@ def _parse_bib(bib_source: str) -> dict[str, dict]:
             'editor': _get_field(body, 'editor'),
             'school': _get_field(body, 'school'),
             'institution': _get_field(body, 'institution'),
+            'organization': _get_field(body, 'organization'),
             'address': _get_field(body, 'address'),
+            'edition': _get_field(body, 'edition'),
+            'series': _get_field(body, 'series'),
             'howpublished': _get_field(body, 'howpublished'),
             'note': _get_field(body, 'note'),
             'doi': _get_field(body, 'doi'),

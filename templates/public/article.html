@@ -104,6 +104,11 @@
       <p class="article-meta-sidebar__label">Cite</p>
       <button class="article-meta-sidebar__cite-btn" onclick="openCiteModal()">Cite this article</button>
 
+      {% if request.user.is_authenticated and request.user.has_editorial_access %}
+      <a href="{% url 'editorial_submission' submission.pk %}" class="btn btn--outline"
+         style="display:block;text-align:center;margin-top:var(--spacing-3);">Editor view &rarr;</a>
+      {% endif %}
+
     </div>
 
   </aside>

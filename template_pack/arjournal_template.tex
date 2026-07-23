@@ -303,23 +303,30 @@ than attempting to integrate archival references directly into the argument.
 \section{Bibliographic Citations}
 % =============================================================
 
-Citations use the \texttt{natbib} package loaded by \texttt{arjournal.cls}.
-The default bibliography style is \texttt{apalike} (author–year, APA-like).
+This journal uses the \textbf{Cambridge author--date reference system}
+(``CambridgeA''). Cite sources parenthetically by author surname and year
+\emph{with no comma between them}, and list every work cited in a section
+headed \textbf{References}. Citations use the \texttt{natbib} package (loaded and
+pre-configured for Cambridge style by \texttt{arjournal.cls}).
 
 \subsection{Citation Commands}
 
 \begin{itemize}
-  \item \verb|\citep{key}| — parenthetical citation: \citep{smith2024art}
-  \item \verb|\citet{key}| — narrative citation: \citet{brown2022practice}
-  \item \verb|\citep[p.~45]{key}| — with page: \citep[p.~45]{smith2024art}
-  \item \verb|\citep{key1,key2}| — multiple keys: \citep{smith2024art,brown2022practice}
-  \item \verb|\cite{key}| — alias for \verb|\citep{key}| (also supported)
+  \item \verb|\citep{key}| — parenthetical: \citep{smith2024art} $\rightarrow$ (Smith 2024)
+  \item \verb|\citet{key}| — narrative: \citet{brown2022practice} $\rightarrow$ Brown (2022)
+  \item \verb|\citep[47]{key}| — with page (no ``p.''): \citep[47]{smith2024art} $\rightarrow$ (Smith 2024, 47)
+  \item \verb|\citep{key1,key2}| — multiple works, separated by ``;'': \citep{smith2024art,brown2022practice}
+  \item \verb|\cite{key}| — alias for \verb|\citep{key}|
 \end{itemize}
 
-In the compiled PDF, natbib produces standard author–year parenthetical
-references. In the HTML article, each citation renders as a link
-(\texttt{(key)}) that scrolls to the corresponding entry in the
-References section at the foot of the article.
+For three or more authors the in-text citation shows the first author followed
+by ``et al'' (e.g. \emph{Bhatti et al 2018}). Works by the same author in the
+same year are distinguished with a lower-case letter (\emph{1972a}, \emph{1972b}).
+
+In the HTML article each citation renders as a link that scrolls to the matching
+entry in the \textbf{References} section, which the platform typesets in full
+Cambridge formatting from your \texttt{.bib}. The local PDF is an author--date
+draft preview.
 
 \subsection{Managing the Bibliography File}
 
@@ -336,6 +343,22 @@ compiled from your \texttt{.bib} file using BibTeX.
 Supported BibTeX entry types: \texttt{@article}, \texttt{@book},
 \texttt{@incollection}, \texttt{@inproceedings}, \texttt{@online},
 \texttt{@misc}, \texttt{@phdthesis}, \texttt{@techreport}.
+
+\paragraph{Formatting your \texttt{.bib} for Cambridge.} The published reference
+list follows the Cambridge (CambridgeA) style, so enter fields accordingly:
+\begin{itemize}
+  \item Give authors as \texttt{Surname, Given} (e.g. \texttt{Attfield, Robert});
+        the platform renders them in bold as \emph{Attfield R}.
+  \item Article and book-chapter \texttt{title}s: sentence-style capitalization,
+        no quotation marks. Book and \texttt{journal} titles: headline-style
+        capitalization (the platform italicises them).
+  \item Give \emph{full} page ranges in \texttt{pages} (e.g. \texttt{213--229},
+        not \texttt{213--29}).
+  \item Include \texttt{doi} where available; add \texttt{address} (place of
+        publication) and \texttt{publisher} for books, rendered as
+        \emph{Place: Publisher}.
+  \item Personal communications are cited in the text only --- do not list them.
+\end{itemize}
 
 Sound art scholarship has also addressed research methodologies at
 length \citep{lee2023sound}. Online resources and performance

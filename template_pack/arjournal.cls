@@ -28,12 +28,27 @@
 % The platform parser converts \enquote{} to typographic curly quotes " ".
 \RequirePackage[autostyle=true]{csquotes}
 
-% ── Bibliography (natbib, author–year style) ───────────────────────────────────
-% Use \citep{key} for parenthetical: (Smith, 2024)
-% Use \citet{key} for narrative: Smith (2024)
-% Use \cite{key} as an alias for \citep{key}
-\RequirePackage[round,authoryear,sort&compress]{natbib}
-% \bibliographystyle must be set in the document, not the class (see arjournal_template.tex).
+% ── Bibliography — Cambridge author–date ("CambridgeA") ────────────────────────
+% The journal uses the Cambridge author–date reference system. Cite sources
+% parenthetically by author surname + year with NO comma between them, and list
+% all works in a section headed "References".
+%   \citep{key}        parenthetical: (Smith 2024)
+%   \citet{key}        narrative:     Smith (2024)
+%   \citep[47]{key}    with page:     (Smith 2024, 47)
+%   \citep{a,b}        multiple:      (Smith 2024; Brown 2022)
+%   \cite{key}         alias for \citep{key}
+\RequirePackage[authoryear,sort&compress]{natbib}
+% Cambridge in-text style: no comma between author and year; ";" between refs.
+\setcitestyle{aysep={},citesep={;}}
+% The reference list is always headed "References".
+\renewcommand{\refname}{References}
+\renewcommand{\bibname}{References}
+% NOTE: the local PDF is an author–year *draft preview*. The published HTML article
+% is rendered by the platform in full Cambridge (CambridgeA) formatting — authors in
+% bold "Surname Initials", sentence-case article titles, italic book/journal titles,
+% "Place: Publisher", DOIs — from your .bib. Follow the Cambridge examples when you
+% fill in the .bib so the published references are complete.
+% \bibliographystyle is set in the document (see arjournal_template.tex).
 
 % ── Hyperlinks ────────────────────────────────────────────────────────────────
 \RequirePackage{hyperref}

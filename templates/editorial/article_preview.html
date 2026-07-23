@@ -1,40 +1,46 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ submission.title|truncatechars:50 }} — Article Preview — {{ journal.name }}{% endblock %}
-{% block body_class %}dashboard{% endblock %}
+{% block body_class %}article-page{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'css/article.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top:var(--spacing-6);padding-bottom:var(--spacing-10);">
+{# Renders the article body with the SAME layout/classes as the public article
+   page (article-layout > article-main > article-body-content), so footnotes,
+   figures and typography look identical to what readers see. #}
+<div class="article-layout container">
 
-  <div style="display:flex;align-items:baseline;gap:var(--spacing-3);flex-wrap:wrap;margin-bottom:var(--spacing-4);">
-    <a href="{% url 'editorial_submission' submission.pk %}" class="dir-link" style="font-size:var(--size-sm);">&larr; Back to editorial</a>
-    <span class="status-badge status-badge--{{ submission.status }}" style="font-size:var(--size-xs);">{{ submission.get_status_display }}</span>
-    {% if revision %}<span style="color:var(--color-muted);font-size:var(--size-sm);">Version {{ revision.version }}
-      {% if revision.source_type == 'wysiwyg' %}· written in editor{% elif revision.manuscript_file %}· {{ revision.manuscript_file.name|cut:"manuscripts/" }}{% endif %}
-    </span>{% endif %}
-  </div>
+  <!-- ── Sidebar ──────────────────────────────────────────────── -->
+  <aside class="article-sidebar" aria-label="Article navigation">
 
-  <h1 style="font-family:var(--font-serif);font-size:var(--size-2xl);line-height:var(--leading-snug);margin:0 0 var(--spacing-6);">{{ submission.title }}</h1>
+    <div style="margin-bottom:var(--spacing-5);">
+      <a href="{% url 'editorial_submission' submission.pk %}" class="dir-link" style="font-size:var(--size-sm);">&larr; Back to editorial</a>
+      <div style="margin-top:var(--spacing-2);display:flex;flex-direction:column;gap:var(--spacing-1);align-items:flex-start;">
+        <span class="status-badge status-badge--{{ submission.status }}" style="font-size:var(--size-xs);">{{ submission.get_status_display }}</span>
+        {% if revision %}<span style="color:var(--color-muted);font-size:var(--size-xs);">Version {{ revision.version }}{% if revision.source_type == 'wysiwyg' %} · written in editor{% elif revision.manuscript_file %} · {{ revision.manuscript_file.name|cut:"manuscripts/" }}{% endif %}</span>{% endif %}
+      </div>
+    </div>
 
-  <!-- Normal-flow reading layout: the page scrolls naturally (this is NOT the
-       reviewer split-pane workspace, which locks height and scrolls per-pane). -->
-  <div style="display:flex;gap:var(--spacing-8);align-items:flex-start;flex-wrap:wrap;">
     {% if toc %}
-    <nav class="workspace-toc" style="flex:0 0 220px;position:sticky;top:var(--spacing-6);max-height:calc(100vh - var(--spacing-12));overflow-y:auto;">
-      <p class="workspace-toc__label">Contents</p>
-      <ul style="list-style:none;padding:0;margin:0;">
+    <nav class="article-toc" aria-label="Table of contents">
+      <p class="article-toc__label">Contents</p>
+      <ul id="toc-root" class="toc-list">
+        <li class="toc-item" data-level="1"><div class="toc-item__row"><a href="#abstract" class="toc-link">Abstract</a></div></li>
         {% for item in toc %}
-        <li style="margin-bottom:var(--spacing-1);padding-left:{% if item.level > 1 %}{{ item.level|add:"-1" }}0px{% else %}0{% endif %};"><a href="#{{ item.id }}" style="color:var(--color-text);text-decoration:none;font-size:var(--size-sm);">{{ item.text }}</a></li>
+        <li class="toc-item" data-level="{{ item.level }}" data-target="{{ item.id }}"><div class="toc-item__row"><a href="#{{ item.id }}" class="toc-link">{{ item.text }}</a></div></li>
         {% endfor %}
       </ul>
     </nav>
     {% endif %}
+  </aside>
 
-    <div class="workspace-article article-body-content" id="article-content" style="flex:1 1 480px;min-width:0;">
+  <!-- ── Main content ─────────────────────────────────────────── -->
+  <main class="article-main" id="article-content">
+    <h1 style="font-family:var(--font-serif);font-size:var(--size-2xl);line-height:var(--leading-snug);margin:0 0 var(--spacing-6);">{{ submission.title }}</h1>
+    <div class="article-body-content">
       {% if article_html %}
         {{ article_html|safe }}
       {% else %}
@@ -48,7 +54,7 @@
       </div>
       {% endif %}
     </div>
-  </div>
+  </main>
 </div>
 {% endblock %}
 

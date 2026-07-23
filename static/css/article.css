@@ -586,8 +586,15 @@ p.article-meta-sidebar__label {
 /* Default (narrow): hide inline sidenotes */
 .fn-note { display: none; }
 
-/* Wide screens: proper margin sidenotes */
-@media (min-width: 1200px) {
+/* Wide screens: proper right-margin sidenotes. Only enabled at ≥1400px, where
+   the reading column plus the 228px note actually fit inside the layout — below
+   that there isn't room, so footnotes render as endnotes instead. The ancestor
+   clips (added for mobile overflow protection) are lifted here so the note can
+   float into the margin without being cut off. */
+@media (min-width: 1400px) {
+  .article-layout { overflow-x: visible; }
+  .article-main { overflow-x: visible; }
+
   .article-body-content {
     max-width: 80ch;
     overflow: visible;

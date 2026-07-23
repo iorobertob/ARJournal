@@ -191,6 +191,19 @@ def _upsert_asset(revision, f):
                                           'intrinsic_height', 'derivatives'])
         except Exception:
             pass
+    # Transcode video/audio to protected HLS (async on the transcode queue).
+    elif asset.kind in ('video', 'audio'):
+        from django.conf import settings as _settings
+        if getattr(_settings, 'MEDIA_STREAMING_ENABLED', True):
+            try:
+                from apps.submissions.models import SubmissionAsset
+                asset.hls_status = SubmissionAsset.HLS_PENDING
+                asset.save(update_fields=['hls_status'])
+                from apps.production.views import _dispatch_task
+                from apps.production.tasks import transcode_asset
+                _dispatch_task(transcode_asset, asset.pk)
+            except Exception:
+                pass
     return asset
 
 

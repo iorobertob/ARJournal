@@ -300,7 +300,7 @@ Full subdomain deployment, no Docker. `scripts/deploy.sh` is **fully self-contai
 **Settings module:** `config.settings.production`
 **App directory:** `/var/www/inact`
 **Gunicorn port:** `5002` (bound to `127.0.0.1`; Nginx proxies to it)
-**Systemd units:** `inact-gunicorn`, `inact-celery`, `inact-celerybeat`
+**Systemd units:** `inact-gunicorn`, `inact-celery`, `inact-celerybeat`, `inact-transcode`
 **Nginx site:** `nginx/nginx-production.conf` → `/etc/nginx/sites-available/inact`
 
 **1. Clone and run — no script editing required.** `deploy.sh` reads everything from `.env` and derives its app directory from its own location. Optionally set `GUNICORN_WORKERS` (default 3 ≈ 2 × CPU cores + 1) as an env var:
@@ -318,6 +318,7 @@ The script installs:
 - Python ≥ 3.11 (the distro default: 3.12 on Ubuntu 24.04, 3.11 on Debian 12; on Ubuntu 22.04 it pulls python3.11), PostgreSQL 16, Redis, Nginx, Certbot
 - WeasyPrint native libs: `libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libharfbuzz0b libffi-dev shared-mime-info fonts-liberation fonts-dejavu-core`
 - `libmagic1` (python-magic file type detection)
+- `ffmpeg` (video/audio → HLS transcoding for protected streaming)
 - All Python packages from `requirements/production.txt`, including **pikepdf** (binary wheel, no extra build deps on Ubuntu 22.04+)
 
 Required production `.env` values:
@@ -371,8 +372,9 @@ sudo bash scripts/deploy.sh --update
 **Service management:**
 ```bash
 sudo systemctl status inact-gunicorn
-sudo systemctl restart inact-gunicorn inact-celery inact-celerybeat
+sudo systemctl restart inact-gunicorn inact-celery inact-celerybeat inact-transcode
 sudo journalctl -u inact-gunicorn -f
+tail -f /var/www/inact/logs/transcode.log     # video/audio HLS transcoding
 tail -f /var/www/inact/logs/gunicorn-error.log
 tail -f /var/www/inact/logs/celery.log
 ```
@@ -402,6 +404,28 @@ pikepdf ships as a binary wheel from PyPI (`pikepdf>=9.0,<11`) — no compilatio
 sudo apt-get install libqpdf-dev
 pip install pikepdf --no-binary pikepdf
 ```
+
+---
+
+### Media streaming (protected HLS)
+
+Video and audio are **not served as downloadable files**. On upload they are transcoded with **ffmpeg** into an adaptive **HLS** package and streamed with **hls.js** through **signed, short-lived URLs** — the browser's download button, right-click "save", and any direct `/media/…mp4|m3u8|ts` URL are all removed/blocked. This deters casual downloading and hotlinking; it is **not DRM** (a determined user with `yt-dlp` or screen capture can still capture playback — true protection would require a DRM service, which is out of scope).
+
+Everything is provisioned by `deploy.sh`:
+- installs **ffmpeg**;
+- runs the dedicated **`inact-transcode`** Celery worker (a low-concurrency queue so transcoding never starves the web/email worker);
+- configures Nginx to serve segments via `X-Accel-Redirect` from an `internal` location and to 404 any direct request for a media file.
+
+**Turn it off** (serve media as plain files) with `MEDIA_STREAMING_ENABLED=False` in `.env`.
+
+**Backfill** media uploaded before streaming existed:
+```bash
+source venv/bin/activate
+python manage.py transcode_media           # inline
+python manage.py transcode_media --async   # queue on the transcode worker
+```
+
+Key modules: `apps/production/transcode.py` (ffmpeg), `apps/production/tasks.py::transcode_asset`, `apps/production/media_access.py` (URL signing), `apps/production/views.py::stream_media`, `static/js/hls-player.js`.
 
 ---
 

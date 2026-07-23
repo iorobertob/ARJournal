@@ -46,6 +46,17 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
+    # In production Nginx makes video/audio/HLS an `internal` location (direct
+    # access → 404); mirror that in dev so protected media is only reachable via
+    # the signed streaming view here too. This block must precede static().
+    from django.http import HttpResponseNotFound
+    from django.urls import re_path
+    _protected = '|'.join(e.lstrip('.') for e in getattr(settings, 'PROTECTED_MEDIA_EXTS', ()))
+    if _protected:
+        urlpatterns += [
+            re_path(rf'^media/.+\.(?:{_protected})$',
+                    lambda request, *a, **k: HttpResponseNotFound('Not found.')),
+        ]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     try:
         import debug_toolbar

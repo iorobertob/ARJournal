@@ -32,6 +32,7 @@ GUNICORN_WORKERS="${GUNICORN_WORKERS:-3}"
 GUNICORN_SERVICE="${GUNICORN_SERVICE:-inact-gunicorn}"
 CELERY_SERVICE="${CELERY_SERVICE:-inact-celery}"
 CELERY_BEAT_SERVICE="${CELERY_BEAT_SERVICE:-inact-celerybeat}"
+TRANSCODE_SERVICE="${TRANSCODE_SERVICE:-inact-transcode}"
 NGINX_SITE="${NGINX_SITE:-inact}"
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -105,7 +106,8 @@ if ! $UPDATE_ONLY; then
     libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
     libgdk-pixbuf2.0-0 libharfbuzz0b libffi-dev \
     shared-mime-info fonts-liberation fonts-dejavu-core \
-    libmagic1
+    libmagic1 \
+    ffmpeg
 
   # Project needs Python >= 3.11. Ubuntu 22.04's default is 3.10, so fetch 3.11
   # (from universe, or the deadsnakes PPA) when the default interpreter is older.
@@ -118,6 +120,16 @@ if ! $UPDATE_ONLY; then
            && apt-get install -y --no-install-recommends python3.11 python3.11-venv python3.11-dev; } \
       || die "Need Python >= 3.11 but could not install it. Install python3.11 manually and re-run."
   fi
+fi
+
+# ── 2b. ffmpeg (video/audio HLS transcoding) — ensure present in both modes ────
+# Runs on --update too, so an existing deploy that predates media streaming gets
+# ffmpeg without a full first-deploy run.
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  step "Installing ffmpeg (media transcoding)"
+  apt-get update -q --allow-releaseinfo-change
+  apt-get install -y --no-install-recommends ffmpeg \
+    || warn "ffmpeg install failed — video/audio streaming will be unavailable until it is installed."
 fi
 
 # ── 3. App user (production) ──────────────────────────────────────────────────
@@ -323,7 +335,34 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-echo "  Units written: ${GUNICORN_SERVICE}, ${CELERY_SERVICE}, ${CELERY_BEAT_SERVICE}"
+# Dedicated low-concurrency worker for CPU-heavy ffmpeg HLS transcoding. Consumes
+# only the `transcode` queue (CELERY_TASK_ROUTES) so it never starves the web/
+# email worker, which in turn does not consume this queue.
+cat > /etc/systemd/system/"${TRANSCODE_SERVICE}.service" << EOF
+[Unit]
+Description=inAct Journal — Celery transcode worker (ffmpeg/HLS)
+After=network.target redis.service
+
+[Service]
+User=${RUN_AS}
+Group=${RUN_AS}
+WorkingDirectory=${APP_DIR}
+EnvironmentFile=${APP_DIR}/.env
+Environment=DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS}
+ExecStart=${VENV_DIR}/bin/celery \\
+    -A config.celery worker \\
+    --queues=transcode \\
+    --concurrency=1 \\
+    --loglevel=info \\
+    --logfile=${APP_DIR}/logs/transcode.log
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "  Units written: ${GUNICORN_SERVICE}, ${CELERY_SERVICE}, ${CELERY_BEAT_SERVICE}, ${TRANSCODE_SERVICE}"
 
 # ── 13. Nginx + TLS certificate ───────────────────────────────────────────────
 # The real config (nginx/nginx-production.conf) references Let's Encrypt certs that
@@ -387,8 +426,8 @@ fi
 step "Starting services"
 systemctl enable --now redis-server
 systemctl daemon-reload
-systemctl enable "${GUNICORN_SERVICE}" "${CELERY_SERVICE}" "${CELERY_BEAT_SERVICE}"
-systemctl restart "${GUNICORN_SERVICE}" "${CELERY_SERVICE}" "${CELERY_BEAT_SERVICE}"
+systemctl enable "${GUNICORN_SERVICE}" "${CELERY_SERVICE}" "${CELERY_BEAT_SERVICE}" "${TRANSCODE_SERVICE}"
+systemctl restart "${GUNICORN_SERVICE}" "${CELERY_SERVICE}" "${CELERY_BEAT_SERVICE}" "${TRANSCODE_SERVICE}"
 $UPDATE_ONLY || systemctl reload nginx
 echo "  All services running."
 
@@ -444,6 +483,7 @@ echo "  Logs:"
 echo "    sudo journalctl -u ${GUNICORN_SERVICE} -f"
 echo "    tail -f ${APP_DIR}/logs/gunicorn-error.log"
 echo "    tail -f ${APP_DIR}/logs/celery.log"
+echo "    tail -f ${APP_DIR}/logs/transcode.log   # video/audio HLS transcoding"
 echo ""
 echo "  Future updates:"
 echo "    sudo bash scripts/deploy.sh --update"

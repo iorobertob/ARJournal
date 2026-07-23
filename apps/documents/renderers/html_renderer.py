@@ -76,12 +76,24 @@ def render_html(canonical_data: dict, submission=None, revision=None, reviewer_m
                 url_map[sa.original_filename] = sa.file.url
             except Exception:
                 continue  # skip this one broken asset; others still resolve
-            # Image sizing metadata (derivatives/role/dimensions) for srcset.
+            # Image sizing metadata (srcset) + protected streaming URLs (video/audio).
+            hls_url, stream_url = '', ''
+            if sa.kind in ('video', 'audio'):
+                try:
+                    from apps.production.media_access import signed_stream_url
+                    # Protected progressive URL (never the raw file) as a fallback.
+                    stream_url = signed_stream_url(sa.file.name)
+                    if sa.hls_status == 'ready' and sa.hls_master:
+                        hls_url = signed_stream_url(sa.hls_master)
+                except Exception:
+                    pass
             meta_map[sa.original_filename] = {
                 'srcset': sa.srcset,
                 'role': sa.role or '',
                 'width': sa.intrinsic_width,
                 'height': sa.intrinsic_height,
+                'hls': hls_url,
+                'stream': stream_url,
             }
         url_map_lower: dict[str, str] = {k.lower(): v for k, v in url_map.items()}
         meta_map_lower: dict[str, dict] = {k.lower(): v for k, v in meta_map.items()}
@@ -99,6 +111,8 @@ def render_html(canonical_data: dict, submission=None, revision=None, reviewer_m
                 asset['resolvedRole'] = meta['role']
                 asset['resolvedWidth'] = meta['width']
                 asset['resolvedHeight'] = meta['height']
+                asset['resolvedHlsUrl'] = meta['hls']
+                asset['resolvedStreamUrl'] = meta['stream']
             poster_fname = asset.get('posterImageRef', '')
             if poster_fname:
                 if poster_fname in url_map:
@@ -435,24 +449,51 @@ def _render_block(
                 f'</figure>'
             )
 
+        # Protected streaming: HLS when transcoded, else a signed progressive URL.
+        # Never emit the raw /media/ file, and strip download/PiP affordances.
+        hls_url = escape(asset.get('resolvedHlsUrl', ''))
+        stream_url = escape(asset.get('resolvedStreamUrl', '')) or src
+        deterrents = 'controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false"'
         if media_type == 'video':
             poster = escape(asset.get('resolvedPosterUrl', ''))
+            if hls_url:
+                inner = (
+                    f'<video controls preload="metadata" playsinline poster="{poster}" '
+                    f'data-hls="{hls_url}" {deterrents}>'
+                    f'Your browser does not support video.'
+                    f'</video>'
+                )
+            else:
+                inner = (
+                    f'<video controls preload="metadata" playsinline poster="{poster}" '
+                    f'data-protected {deterrents}>'
+                    f'<source src="{stream_url}">'
+                    f'Your browser does not support video.'
+                    f'</video>'
+                )
             return (
                 f'<figure id="{escape(anchor_id)}" class="article-media article-video" data-block-id="{bid}">'
-                f'<video controls preload="metadata" poster="{poster}">'
-                f'<source src="{src}">'
-                f'Your browser does not support video.'
-                f'</video>'
+                f'{inner}'
                 f'<figcaption>{caption}</figcaption>'
                 f'</figure>'
             )
         if media_type == 'audio':
+            if hls_url:
+                inner = (
+                    f'<audio controls preload="metadata" data-hls="{hls_url}" {deterrents}>'
+                    f'Your browser does not support audio.'
+                    f'</audio>'
+                )
+            else:
+                inner = (
+                    f'<audio controls preload="metadata" data-protected {deterrents}>'
+                    f'<source src="{stream_url}">'
+                    f'Your browser does not support audio.'
+                    f'</audio>'
+                )
             return (
                 f'<figure id="{escape(anchor_id)}" class="article-media article-audio" data-block-id="{bid}">'
-                f'<audio controls preload="metadata">'
-                f'<source src="{src}">'
-                f'Your browser does not support audio.'
-                f'</audio>'
+                f'{inner}'
                 f'<figcaption>{caption}</figcaption>'
                 f'</figure>'
             )

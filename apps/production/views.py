@@ -288,3 +288,98 @@ def download_pdf(request, token):
     exp.downloaded = True
     exp.save(update_fields=['downloaded'])
     return response
+
+
+# ── Protected media streaming ─────────────────────────────────────────────────
+def _media_content_type(norm):
+    ext = norm.rsplit('.', 1)[-1].lower()
+    return {
+        'ts': 'video/mp2t', 'm4s': 'video/iso.segment',
+        'm3u8': 'application/vnd.apple.mpegurl',
+        'mp4': 'video/mp4', 'mov': 'video/quicktime', 'webm': 'video/webm',
+        'mp3': 'audio/mpeg', 'aac': 'audio/aac', 'm4a': 'audio/mp4',
+        'wav': 'audio/wav', 'ogg': 'audio/ogg', 'flac': 'audio/flac',
+    }.get(ext, 'application/octet-stream')
+
+
+def _stream_referer_ok(request):
+    """Anti-hotlink: if a Referer/Origin is present it must be same-site.
+
+    Native players sometimes omit it, so an absent header is allowed — the
+    signed, short-lived token is the primary access gate.
+    """
+    from django.conf import settings
+    from urllib.parse import urlparse
+    ref = request.META.get('HTTP_REFERER') or request.META.get('HTTP_ORIGIN')
+    if not ref:
+        return True
+    host = urlparse(ref).netloc.split('@')[-1].split(':')[0].lower()
+    allowed = {h.lower().lstrip('.') for h in getattr(settings, 'ALLOWED_HOSTS', []) if h != '*'}
+    allowed.add(request.get_host().split(':')[0].lower())
+    if not allowed:
+        return True
+    return host in allowed or any(host.endswith('.' + a) for a in allowed)
+
+
+def _rewrite_playlist(abs_path, norm):
+    """Return the playlist text with each segment/sub-playlist URI replaced by a
+    freshly-signed stream URL (so nothing in it is a permanent/guessable link)."""
+    from apps.production.media_access import signed_stream_url
+    base_dir = norm.rsplit('/', 1)[0] if '/' in norm else ''
+    out = []
+    with open(abs_path) as fh:
+        for line in fh.read().splitlines():
+            s = line.strip()
+            if s and not s.startswith('#'):
+                child = f'{base_dir}/{s}' if base_dir else s
+                out.append(signed_stream_url(child))
+            else:
+                out.append(line)
+    return '\n'.join(out) + '\n'
+
+
+def stream_media(request, media_path):
+    """Serve HLS playlists/segments (and protected originals) via signed URLs.
+
+    Blocks expired/tampered links and cross-site hotlinking. Playlists are
+    rewritten so every child URI carries its own fresh token; segments are
+    handed to Nginx via X-Accel-Redirect in production, or streamed by Django
+    in dev (no Nginx).
+    """
+    import os
+    import posixpath
+    from urllib.parse import quote
+    from django.conf import settings
+    from django.http import (HttpResponse, HttpResponseForbidden,
+                             HttpResponseBadRequest, FileResponse)
+    from apps.production.media_access import verify
+
+    if not verify(media_path, request.GET.get('exp'), request.GET.get('t')):
+        return HttpResponseForbidden('Invalid or expired media link.')
+    if not _stream_referer_ok(request):
+        return HttpResponseForbidden('Cross-site media access is not allowed.')
+
+    norm = posixpath.normpath(media_path)
+    if norm.startswith(('..', '/')) or '..' in norm.split('/'):
+        return HttpResponseBadRequest('Bad media path.')
+
+    abs_path = os.path.join(settings.MEDIA_ROOT, norm)
+    if not os.path.isfile(abs_path):
+        raise Http404('Media not found.')
+
+    if norm.endswith('.m3u8'):
+        resp = HttpResponse(_rewrite_playlist(abs_path, norm),
+                            content_type='application/vnd.apple.mpegurl')
+        resp['Cache-Control'] = 'private, max-age=30'
+        return resp
+
+    content_type = _media_content_type(norm)
+    if getattr(settings, 'USE_X_ACCEL', False):
+        # Nginx serves the bytes (with range support) from an internal location.
+        resp = HttpResponse(status=200)
+        resp['Content-Type'] = content_type
+        resp['X-Accel-Redirect'] = settings.MEDIA_URL.rstrip('/') + '/' + quote(norm)
+        return resp
+    resp = FileResponse(open(abs_path, 'rb'), content_type=content_type)
+    resp['Accept-Ranges'] = 'bytes'
+    return resp

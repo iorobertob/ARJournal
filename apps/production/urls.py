@@ -11,4 +11,5 @@ urlpatterns = [
     path('admin/pdf/<int:document_pk>/', views.admin_request_pdf, name='admin_request_pdf'),
     path('slug/<int:document_pk>/', views.update_slug, name='update_article_slug'),
     path('ingest/<int:submission_pk>/', views.trigger_ingest, name='trigger_ingest'),
+    path('stream/<path:media_path>', views.stream_media, name='stream_media'),
 ]

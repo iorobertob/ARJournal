@@ -189,6 +189,17 @@ class SubmissionAsset(models.Model):
     intrinsic_width = models.PositiveIntegerField(null=True, blank=True)
     intrinsic_height = models.PositiveIntegerField(null=True, blank=True)
     derivatives = models.JSONField(default=dict, blank=True)  # {width(str): url}
+    # HLS streaming metadata (populated for video/audio assets by transcode_asset).
+    HLS_NONE, HLS_PENDING, HLS_PROCESSING, HLS_READY, HLS_ERROR = (
+        'none', 'pending', 'processing', 'ready', 'error')
+    HLS_STATUS_CHOICES = [
+        (HLS_NONE, 'Not applicable'), (HLS_PENDING, 'Pending'),
+        (HLS_PROCESSING, 'Processing'), (HLS_READY, 'Ready'), (HLS_ERROR, 'Error'),
+    ]
+    hls_status = models.CharField(max_length=12, choices=HLS_STATUS_CHOICES, default=HLS_NONE)
+    hls_master = models.CharField(max_length=500, blank=True, default='')  # MEDIA-relative path
+    hls_error = models.TextField(blank=True, default='')
+    duration_seconds = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

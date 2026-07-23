@@ -48,6 +48,14 @@ PDFs are rendered from the stored `HTMLBuild.html_content` via WeasyPrint — no
 
 Two PDF modes: **flat** (plain print layout) and **interactive** (adds PDF bookmarks from headings). Both use a self-contained HTML document with inlined CSS — no external resources fetched at render time.
 
+### Media streaming (video/audio → protected HLS)
+Video & audio are **never served as a downloadable file**. On upload they are transcoded (ffmpeg) to an **HLS** package and played with **hls.js** (native HLS on Safari). Delivery is through **signed, short-lived URLs** only:
+
+- **Transcode:** `apps/production/transcode.py` (ffmpeg ladder, capped at source height) → `transcode_asset` Celery task in `apps/production/tasks.py`, routed to the **`transcode`** queue (dedicated `inact-transcode` worker). Dispatched from `_upsert_asset` in `apps/submissions/views.py`. HLS state lives on `SubmissionAsset` (`hls_status`, `hls_master`, `duration_seconds`).
+- **Signing / delivery:** `apps/production/media_access.py` (HMAC `sign`/`verify`, `signed_stream_url`) + the `stream_media` view in `apps/production/views.py`. Playlists are rewritten so every segment URI is freshly signed; segments go out via Nginx **X-Accel-Redirect** in prod, `FileResponse` in dev. Blocks expired tokens, wrong-path token reuse, and cross-site hotlinking.
+- **No direct access:** Nginx makes video/audio/HLS extensions an `internal` location (`nginx/nginx-production.conf`); `config/urls.py` mirrors this in dev. Raw `/media/*.mp4|.m3u8|.ts` → 404.
+- **Player + deterrents:** `static/js/hls.min.js` (vendored) + `static/js/hls-player.js`, included via `templates/partials/hls_scripts.html`. Players get `controlsList=nodownload`, `disablePictureInPicture`, and right-click disabled. **Requires `ffmpeg`** (installed by `scripts/deploy.sh`). This is a strong deterrent against casual downloading — not DRM. Backfill existing media: `python manage.py transcode_media`.
+
 ## App Responsibilities
 
 | App | Responsibility |

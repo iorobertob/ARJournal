@@ -109,7 +109,9 @@ def _preprocess_html_for_pdf(html_content, interactive, site_url=''):
         html = m.group(0)
         fig_id = _attr(html, 'id')
         caption = _figcaption(html)
-        src = _abs(_source_src(html))
+        # Media is stream-only (HLS + signed short-lived URLs): never embed or link
+        # the file in a downloadable PDF. Show the poster + a "view online" note.
+        src = ''
         poster = _attr(html, 'poster')
         cap_html = f'<figcaption>{caption}</figcaption>' if caption else ''
 
@@ -130,17 +132,17 @@ def _preprocess_html_for_pdf(html_content, interactive, site_url=''):
             if poster:
                 return (
                     f'<figure id="{fig_id}" class="article-figure">'
-                    f'<img src="{poster}" alt="" style="display:block;width:100%;">'
+                    f'<img src="{poster}" alt="" style="display:block;width:100%;max-height:15cm;object-fit:contain;">'
                     f'<figcaption>{caption}'
-                    f' <span style="font-size:8pt;color:#FF4500;">&#9654; Click to play (Adobe Acrobat)</span>'
-                    f'</figcaption></figure>{fallback}'
+                    f' <span style="font-size:8pt;color:#FF4500;">&#9654; Video — view in the online article</span>'
+                    f'</figcaption></figure>'
                 )
             return (
                 f'<figure id="{fig_id}" class="pdf-media-placeholder">'
                 f'<div class="pdf-media-box">'
                 f'<span class="pdf-media-icon">&#9654;</span>'
-                f' <span class="pdf-media-label">Video — click to play (Adobe Acrobat)</span>'
-                f'</div>{cap_html}</figure>{fallback}'
+                f' <span class="pdf-media-label">Video — view in the online article</span>'
+                f'</div>{cap_html}</figure>'
             )
 
         # Flat mode: styled placeholder with active hyperlink.
@@ -160,23 +162,17 @@ def _preprocess_html_for_pdf(html_content, interactive, site_url=''):
         html = m.group(0)
         fig_id = _attr(html, 'id')
         caption = _figcaption(html)
-        src = _abs(_source_src(html))
+        # Stream-only: never embed/link the audio file in a downloadable PDF.
+        src = ''
         cap_html = f'<figcaption>{caption}</figcaption>' if caption else ''
 
         if interactive:
-            if src:
-                mime = _mt.guess_type(src.split('?')[0])[0] or 'audio/mpeg'
-                media_items.append({
-                    'id': fig_id, 'src': src,
-                    'media_type': 'audio', 'mime': mime,
-                })
-            fallback = _fallback_link(src, '&#9835; Open audio file (non-Acrobat viewers)')
             return (
                 f'<figure id="{fig_id}" class="pdf-media-placeholder">'
                 f'<div class="pdf-media-box">'
                 f'<span class="pdf-media-icon">&#9835;</span>'
-                f' <span class="pdf-media-label">Audio — click to play (Adobe Acrobat)</span>'
-                f'</div>{cap_html}</figure>{fallback}'
+                f' <span class="pdf-media-label">Audio — listen in the online article</span>'
+                f'</div>{cap_html}</figure>'
             )
 
         # Flat mode: styled placeholder with active hyperlink.
@@ -1163,3 +1159,44 @@ def generate_pdf(export_pk):
     export.file.save(filename, ContentFile(pdf_bytes), save=True)
     export.document.pdf_build_ok = True
     export.document.save(update_fields=['pdf_build_ok'])
+
+
+@shared_task
+def transcode_asset(asset_pk):
+    """Transcode a video/audio SubmissionAsset into a protected HLS package.
+
+    Runs on the dedicated `transcode` Celery queue (see CELERY_TASK_ROUTES).
+    Output lands in MEDIA_ROOT/hls/<asset_pk>/ and is served only through the
+    signed streaming view — never as a direct file.
+    """
+    import os
+    from django.conf import settings
+    from apps.submissions.models import SubmissionAsset
+    from apps.production import transcode as _t
+
+    asset = SubmissionAsset.objects.filter(pk=asset_pk).first()
+    if not asset or asset.kind not in ('video', 'audio') or not asset.file:
+        return {'skipped': True}
+    if getattr(settings, 'USE_S3', False):
+        # Transcoding reads from the local filesystem; skip on remote storage.
+        return {'skipped': 's3'}
+
+    asset.hls_status = SubmissionAsset.HLS_PROCESSING
+    asset.hls_error = ''
+    asset.save(update_fields=['hls_status', 'hls_error'])
+    try:
+        src = asset.file.path
+        out_rel = f'hls/{asset.pk}'
+        out_dir = os.path.join(settings.MEDIA_ROOT, out_rel)
+        result = _t.transcode(src, out_dir, is_audio=(asset.kind == 'audio'),
+                              ladder=getattr(settings, 'HLS_LADDER', None))
+        asset.hls_master = f'{out_rel}/{result["master"]}'
+        asset.duration_seconds = result.get('duration')
+        asset.hls_status = SubmissionAsset.HLS_READY
+        asset.save(update_fields=['hls_master', 'duration_seconds', 'hls_status'])
+        return {'ok': True, 'master': asset.hls_master, 'renditions': result.get('renditions')}
+    except Exception as e:  # noqa: BLE001 — record and surface, never crash the worker
+        asset.hls_status = SubmissionAsset.HLS_ERROR
+        asset.hls_error = str(e)[:2000]
+        asset.save(update_fields=['hls_status', 'hls_error'])
+        return {'error': str(e)}

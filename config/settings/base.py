@@ -198,6 +198,26 @@ else:
     MEDIA_URL = f'{_prefix}/media/'
     MEDIA_ROOT = BASE_DIR / env('MEDIA_ROOT', default='media')
 
+# ── Media streaming / protected delivery ─────────────────────────────────────
+# Video & audio are transcoded to HLS and served only through signed, short-lived
+# URLs (never as a directly downloadable file). See apps/production/media_access.py,
+# apps/production/transcode.py and the streaming view in apps/production/views.py.
+MEDIA_STREAMING_ENABLED = env.bool('MEDIA_STREAMING_ENABLED', default=True)
+MEDIA_SIGNED_URL_TTL = env.int('MEDIA_SIGNED_URL_TTL', default=10800)   # seconds (3h)
+# In production Nginx serves the bytes via X-Accel-Redirect (fast, no app I/O);
+# in dev (runserver, no Nginx) the view streams the file itself.
+USE_X_ACCEL = env.bool('USE_X_ACCEL', default=not DEBUG)
+# ffmpeg/ffprobe binaries and the HLS bitrate ladder (heights, px). Renditions are
+# capped at the source height so nothing is upscaled.
+FFMPEG_BIN = env('FFMPEG_BIN', default='ffmpeg')
+FFPROBE_BIN = env('FFPROBE_BIN', default='ffprobe')
+HLS_LADDER = [1080, 720, 360]
+# Media file extensions that must never be served directly (streamed only).
+PROTECTED_MEDIA_EXTS = (
+    '.m3u8', '.ts', '.m4s', '.mp4', '.mov', '.webm', '.mkv',
+    '.mp3', '.wav', '.flac', '.aac', '.m4a', '.ogg',
+)
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Django REST Framework
@@ -220,6 +240,11 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+# Route CPU-heavy transcoding to a dedicated low-concurrency worker (inact-transcode
+# systemd unit) so it never starves the web/email worker.
+CELERY_TASK_ROUTES = {
+    'apps.production.tasks.transcode_asset': {'queue': 'transcode'},
+}
 
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {

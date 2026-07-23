@@ -141,6 +141,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{% include 'partials/hls_scripts.html' %}
 <script src="{% static 'js/annotations.js' %}"></script>
 
 <!-- Citation modal — rendered here so it is a direct child of <body>, outside any stacking context -->

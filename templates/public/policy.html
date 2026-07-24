@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load content_filters %}
+{% block title %}Policy — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<section class="about container">
+  <h1 class="page-title">Policy</h1>
+  {% if journal.policy_text %}
+  <div class="prose" style="max-width:72ch;">{{ journal.policy_text|richtext }}</div>
+  {% else %}
+  <p style="color: var(--color-muted);">Our editorial policies will be published here soon.</p>
+  {% endif %}
+</section>
+{% endblock %}

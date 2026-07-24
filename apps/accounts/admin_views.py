@@ -219,6 +219,8 @@ def journal_settings(request):
         journal.mission_text = sanitize_html(request.POST.get('mission_text', ''))
         journal.methodology_text = sanitize_html(request.POST.get('methodology_text', ''))
         journal.submission_guidelines = sanitize_html(request.POST.get('submission_guidelines', ''))
+        journal.policy_text = sanitize_html(request.POST.get('policy_text', ''))
+        journal.terms_text = sanitize_html(request.POST.get('terms_text', ''))
         journal.institution = request.POST.get('institution', journal.institution)
         journal.publisher = request.POST.get('publisher', journal.publisher)
         journal.imprint = request.POST.get('imprint', '')

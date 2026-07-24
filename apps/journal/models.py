@@ -116,6 +116,16 @@ class JournalConfig(models.Model):
         blank=True, default='',
         help_text='Optional jurisdiction-specific text appended to the Terms & Conditions page (DPO contact, supervisory authority, etc.)',
     )
+    # Editorial policy documents (WYSIWYG HTML). When blank, the public pages
+    # fall back to a placeholder (Policy) or the hardcoded template (Terms).
+    policy_text = models.TextField(
+        blank=True, default='',
+        help_text='Content of the public Policy page (/policy/) — Open Access, ethics, data sharing, charges.',
+    )
+    terms_text = models.TextField(
+        blank=True, default='',
+        help_text='Content of the public Terms & Conditions page (/terms/). When blank, the built-in default text is shown.',
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

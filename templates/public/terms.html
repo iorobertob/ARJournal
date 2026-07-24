@@ -1,10 +1,14 @@
 {% extends 'base.html' %}
+{% load content_filters %}
 {% block title %}Terms &amp; Conditions — {{ journal.name }}{% endblock %}
 
 {% block content %}
 <section class="about container">
   <h1 class="page-title">Terms &amp; Conditions</h1>
 
+  {% if journal.terms_text %}
+  <div class="prose" style="max-width:72ch;">{{ journal.terms_text|richtext }}</div>
+  {% else %}
   <div class="prose" style="max-width:72ch;">
 
     <p>These Terms and Conditions govern your use of <strong>{{ journal.name }}</strong> and all services operated under it, including article submission, peer review, account management, and access to published content. By using this platform you agree to these terms. The effective date of this version is 2025.</p>
@@ -114,8 +118,8 @@
       <li>The work is original, has not been published elsewhere, and is not currently under review at another venue.</li>
       <li>All co-authors have approved the submission.</li>
       <li>You hold the rights to all content submitted, including images and third-party materials.</li>
-      <li>You grant {{ journal.name }} a non-exclusive licence to publish, reproduce, and distribute the article in print and digital form for as long as the journal is in operation.</li>
-      <li>Copyright in the article remains with the author(s). Published articles are made available under the terms indicated on each article page (by default, a Creative Commons Attribution licence is applied unless otherwise agreed).</li>
+      <li>You grant {{ journal.name }} the right to publish, reproduce, and distribute the article in print and digital form.</li>
+      <li>Copyright in the article remains with the author(s). Published articles are made available under a Creative Commons Attribution–NonCommercial–NoDerivatives 4.0 International licence (<a href="https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.en">CC BY-NC-ND 4.0</a>). See our <a href="{% url 'policy' %}">Policy</a> page for the full open-access terms.</li>
     </ul>
 
     <!-- 5. Article Lifecycle -->
@@ -222,5 +226,6 @@
     {% endif %}
 
   </div>
+  {% endif %}
 </section>
 {% endblock %}

@@ -138,6 +138,23 @@
   </div>
 </div>
 
+<!-- ── Policy & Terms pages ───────────────────────────────── -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title">Policy &amp; Terms pages</div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_policy_text" id="id_policy_text_label">Policy</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Displayed on the public Policy page (/policy/) — open access, ethics, data sharing, charges.</p>
+    <textarea name="policy_text" id="id_policy_text" rows="14" class="form-control" data-wysiwyg>{{ journal.policy_text }}</textarea>
+  </div>
+
+  <div class="form-group">
+    <label for="id_terms_text" id="id_terms_text_label">Terms &amp; Conditions</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Displayed on the public Terms &amp; Conditions page (/terms/). When left empty, the built-in default text is shown instead.</p>
+    <textarea name="terms_text" id="id_terms_text" rows="16" class="form-control" data-wysiwyg>{{ journal.terms_text }}</textarea>
+  </div>
+</div>
+
 <!-- ── Email ──────────────────────────────────────────────── -->
 <div class="jadmin-card" x-data="{ backend: '{{ journal.email_backend_type }}' }">
   <div class="jadmin-card__title">Email</div>

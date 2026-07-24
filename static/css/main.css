@@ -149,6 +149,27 @@ p:last-child { margin-bottom: 0; }
 .prose h2 { margin-top: var(--spacing-12); margin-bottom: var(--spacing-4); }
 .prose p { margin-bottom: var(--spacing-6); }
 
+/* Tables in editorial prose (e.g. Terms & Conditions). Inline styles are
+   stripped by the sanitizer, so all presentation comes from here. */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--spacing-6);
+  font-size: var(--size-sm);
+  text-align: left;
+}
+.prose th,
+.prose td {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+  hyphens: manual;
+}
+.prose thead th {
+  border-bottom: 2px solid var(--color-border);
+  font-weight: 600;
+}
+
 /* Orange section heading — "Current Issue", "Across the archive"… */
 .section-heading {
   font-size: var(--size-2xl);

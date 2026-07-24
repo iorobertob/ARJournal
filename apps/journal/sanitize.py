@@ -16,10 +16,17 @@ from html.parser import HTMLParser
 ALLOWED_TAGS = {
     'p', 'br', 'strong', 'b', 'em', 'i', 'u',
     'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'blockquote', 'a',
+    # Tables — used by the Terms & Conditions page. Structure only; any inline
+    # styling is dropped and supplied by the `.prose table` CSS instead.
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
 }
 VOID_TAGS = {'br'}
 DROP_CONTENT_TAGS = {'script', 'style'}
-ALLOWED_ATTRS = {'a': {'href', 'title'}}
+ALLOWED_ATTRS = {
+    'a': {'href', 'title'},
+    'th': {'scope', 'colspan', 'rowspan'},
+    'td': {'scope', 'colspan', 'rowspan'},
+}
 ALLOWED_SCHEMES = ('http:', 'https:', 'mailto:')
 
 

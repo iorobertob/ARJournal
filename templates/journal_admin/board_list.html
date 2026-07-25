@@ -12,15 +12,15 @@
   {% if members %}
   <div style="display:flex;flex-direction:column;gap:var(--spacing-4);">
     {% for member in members %}
-    <div class="jadmin-news-row">
-      <div class="jadmin-news-row__thumb">
+    <div class="jadmin-board-row">
+      <div class="jadmin-board-avatar">
         {% if member.photo %}
         <img src="{{ member.photo.url }}" alt="">
         {% else %}
-        <span class="jadmin-news-row__noimg">No photo</span>
+        <span class="jadmin-board-avatar__noimg">No photo</span>
         {% endif %}
       </div>
-      <div class="jadmin-news-row__body">
+      <div class="jadmin-board-row__body">
         <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;">
           <strong style="font-size:var(--size-base);">{{ member.name }}</strong>
           {% if member.is_active %}
@@ -34,7 +34,7 @@
           {{ member.role }}{% if member.institution %} · {{ member.institution }}{% if member.country %}, {{ member.country }}{% endif %}{% endif %}
         </div>
       </div>
-      <div class="jadmin-news-row__actions">
+      <div class="jadmin-board-row__actions">
         <a href="{% url 'journal_admin_board_edit' member.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Edit</a>
         <form method="post" action="{% url 'journal_admin_board_delete' member.pk %}"
               data-confirm="Delete “{{ member.name|escapejs }}”? This cannot be undone." data-confirm-ok="Delete"

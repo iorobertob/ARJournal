@@ -456,3 +456,45 @@ input[type="file"].form-control::file-selector-button:hover {
   .jadmin-news-row__body { grid-area: body; }
   .jadmin-news-row__actions { grid-area: actions; justify-content: flex-end; }
 }
+
+/* Editorial board member rows — round avatar thumbnails matching the public page */
+.jadmin-board-row {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: var(--spacing-4);
+  align-items: center;
+  padding: var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-white, #fff);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.jadmin-board-row:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+.jadmin-board-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.jadmin-board-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.jadmin-board-avatar__noimg { font-size: 10px; color: var(--color-text-muted); text-align: center; line-height: 1.2; }
+.jadmin-board-row__body { min-width: 0; }
+.jadmin-board-row__actions { display: flex; gap: var(--spacing-2); align-items: center; }
+
+@media (max-width: 640px) {
+  .jadmin-board-row {
+    grid-template-columns: 64px 1fr;
+    grid-template-areas: "avatar body" "actions actions";
+  }
+  .jadmin-board-avatar { grid-area: avatar; }
+  .jadmin-board-row__body { grid-area: body; }
+  .jadmin-board-row__actions { grid-area: actions; justify-content: flex-end; }
+}

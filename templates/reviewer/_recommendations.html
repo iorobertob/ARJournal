@@ -1,0 +1,45 @@
+{% comment %}
+Recommendations for Reviewers — shared guidance content (fixed text).
+Included both on the standalone page and on the invitation-response page.
+{% endcomment %}
+<section class="reviewer-recommendations" aria-label="Recommendations for reviewers">
+  <h2 class="section-heading" style="font-size:var(--size-xl);margin:0 0 var(--spacing-4);">Recommendations for Reviewers</h2>
+
+  <ol style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--spacing-4);counter-reset:rec;">
+    <li class="rec-item"><p><strong>Evaluate submissions fairly and constructively.</strong> Consider not only their limitations but also their potential contribution to knowledge, artistic research, and professional practice. Innovative and insightful work may be valuable even when it is not fully developed.</p></li>
+    <li class="rec-item"><p><strong>Maintain a respectful and professional tone throughout the review.</strong> Your tone should be the same as if you are giving comments to a colleague face-to-face. Comments should focus on the work rather than the author and should be formulated as constructive feedback intended to improve the submission.</p></li>
+    <li class="rec-item"><p><strong>Provide clear justification for your recommendation.</strong> Whether recommending acceptance, revision, or rejection, explain your reasoning and support your evaluation with specific comments.</p></li>
+    <li class="rec-item"><p><strong>Ensure that recommendations for revisions are proportionate to the issues identified.</strong> Request substantial revisions only when they are necessary to improve the quality, clarity, or validity of the work. Maintain critical independence.</p></li>
+    <li class="rec-item"><p><strong>Personal appreciation of a research topic, artistic practice, methodology, or aesthetic approach should not prevent a thorough and objective evaluation.</strong></p></li>
+    <li class="rec-item"><p><strong>Engage deeply with the submission and provide an honest assessment of its strengths and weaknesses.</strong> Critical feedback is an important form of scholarly and artistic dialogue and contributes to the development of both the work and the field.</p></li>
+    <li class="rec-item"><p><strong>Recognise that the purpose of peer review is not only to support editorial decision-making but also to contribute to the improvement of research and artistic practice through constructive and informed feedback.</strong></p></li>
+  </ol>
+</section>
+
+<style>
+  .reviewer-recommendations ol { counter-reset: rec; }
+  .reviewer-recommendations .rec-item {
+    counter-increment: rec;
+    position: relative;
+    padding: var(--spacing-4) var(--spacing-6);
+    padding-inline-start: var(--spacing-12);
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+  .reviewer-recommendations .rec-item::before {
+    content: counter(rec);
+    position: absolute;
+    left: var(--spacing-4);
+    top: var(--spacing-4);
+    font-family: var(--font-serif);
+    font-size: var(--size-base);
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+  .reviewer-recommendations .rec-item p {
+    margin: 0;
+    line-height: 1.65;
+    color: var(--color-text);
+  }
+</style>

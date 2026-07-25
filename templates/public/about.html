@@ -14,20 +14,5 @@
   <h2>Methodology</h2>
   <div class="about__text prose">{{ journal.methodology_text|richtext }}</div>
   {% endif %}
-  {% if board %}
-  <h2 id="editorial-board">Editorial Board</h2>
-  <ul class="board-list">
-    {% for member in board %}
-    <li class="board-member">
-      {% if member.photo %}<img src="{{ member.photo.url }}" alt="{{ member.name }}" class="board-member__photo">{% endif %}
-      <div>
-        <p class="board-member__name">{{ member.name }}</p>
-        <p class="board-member__role">{{ member.role }}</p>
-        {% if member.institution %}<p class="board-member__institution">{{ member.institution }}{% if member.country %}, {{ member.country }}{% endif %}</p>{% endif %}
-      </div>
-    </li>
-    {% endfor %}
-  </ul>
-  {% endif %}
 </section>
 {% endblock %}

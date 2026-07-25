@@ -26,6 +26,29 @@
       {% if review.expertise_self_rating %}
       <div><p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Expertise self-rating</p><p style="font-size:var(--size-sm);">{{ review.expertise_self_rating }}/5</p></div>
       {% endif %}
+      {% if criteria_display %}
+      <div>
+        <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Evaluation Criteria <span style="text-transform:none;letter-spacing:0;">(1 = Poor … 5 = Excellent)</span></p>
+        <table style="width:100%;border-collapse:collapse;font-size:var(--size-sm);">
+          {% for label, value in criteria_display %}
+          <tr>
+            <td style="padding:var(--spacing-2) 0;border-bottom:1px solid var(--color-border);">{{ label }}</td>
+            <td style="padding:var(--spacing-2) 0;border-bottom:1px solid var(--color-border);text-align:right;font-weight:600;color:var(--color-accent);white-space:nowrap;">{{ value }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% endif %}
+      {% if questions_display %}
+      <div>
+        <p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Additional Questions</p>
+        <div style="display:flex;flex-direction:column;gap:var(--spacing-2);">
+          {% for text, answer in questions_display %}
+          <div style="font-size:var(--size-sm);"><span>{{ text }}</span> <span style="font-weight:600;color:var(--color-accent);margin-left:var(--spacing-2);">{{ answer }}</span></div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
       {% if review.summary %}
       <div><p style="font-size:var(--size-xs);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-muted);margin-bottom:var(--spacing-1);">Summary</p><p style="font-size:var(--size-sm);white-space:pre-wrap;line-height:var(--leading-loose);">{{ review.summary }}</p></div>
       {% endif %}

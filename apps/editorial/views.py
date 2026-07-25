@@ -60,6 +60,23 @@ def editorial_dashboard(request):
 
 
 @editorial_required
+@require_POST
+def set_review_model(request):
+    """Set the journal-wide peer-review blinding policy from the dashboard."""
+    from apps.journal.models import JournalConfig
+    choice = request.POST.get('review_model')
+    if choice in ('double_blind', 'single_blind'):
+        config = JournalConfig.get()
+        config.review_model = choice
+        config.save(update_fields=['review_model'])
+        label = 'double-blind' if choice == 'double_blind' else 'single-blind'
+        messages.success(request, f'Peer review is now {label}.')
+    else:
+        messages.error(request, 'Invalid review model.')
+    return redirect('editorial_dashboard')
+
+
+@editorial_required
 def article_preview(request, pk):
     """Read-only rendering of a submission's manuscript for any editorial user.
 

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load content_filters %}
+{% block title %}Editorial Board — {{ journal.name }}{% endblock %}
+
+{% block content %}
+<section class="about container">
+  <h1 class="page-title">Editorial Board</h1>
+  {% if journal.editorial_board_text %}
+  <div class="about__text prose">{{ journal.editorial_board_text|richtext }}</div>
+  {% endif %}
+  {% if board %}
+  <ul class="board-list">
+    {% for member in board %}
+    <li class="board-member">
+      {% if member.photo %}<img src="{{ member.photo.url }}" alt="{{ member.name }}" class="board-member__photo">{% endif %}
+      <div>
+        <p class="board-member__name">{{ member.name }}</p>
+        <p class="board-member__role">{{ member.role }}</p>
+        {% if member.institution %}<p class="board-member__institution">{{ member.institution }}{% if member.country %}, {{ member.country }}{% endif %}</p>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% elif not journal.editorial_board_text %}
+  <p style="color: var(--color-muted);">Editorial board information will be published here soon.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -12,9 +12,9 @@ class ReviewStatus(models.TextChoices):
 
 
 class Recommendation(models.TextChoices):
-    ACCEPT = 'accept', 'Accept'
-    MINOR_REVISION = 'minor_revision', 'Minor Revision'
-    MAJOR_REVISION = 'major_revision', 'Major Revision'
+    ACCEPT = 'accept', 'Accept without revisions'
+    MINOR_REVISION = 'minor_revision', 'Accept with minor revisions'
+    MAJOR_REVISION = 'major_revision', 'Revise and resubmit'
     REJECT = 'reject', 'Reject'
 
 

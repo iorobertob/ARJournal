@@ -18,6 +18,11 @@ urlpatterns = [
     # Email log
     path('email-log/', admin_views.email_log, name='journal_admin_email_log'),
     path('email-log/<int:pk>/preview/', admin_views.email_log_preview, name='journal_admin_email_log_preview'),
+    # Editorial board members
+    path('board/', admin_views.board_list, name='journal_admin_board'),
+    path('board/new/', admin_views.board_edit, name='journal_admin_board_create'),
+    path('board/<int:pk>/edit/', admin_views.board_edit, name='journal_admin_board_edit'),
+    path('board/<int:pk>/delete/', admin_views.board_delete, name='journal_admin_board_delete'),
     # News / blog posts
     path('news/', admin_views.news_list, name='journal_admin_news'),
     path('news/new/', admin_views.news_edit, name='journal_admin_news_create'),

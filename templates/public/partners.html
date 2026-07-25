@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
+{% load content_filters %}
 {% block title %}Partners — {{ journal.name }}{% endblock %}
 
 {% block content %}
 <section class="container about">
   <h1 class="page-title">Partners</h1>
-  <div class="prose">
+  <div class="about__text prose">
     {% if journal.footer_partners %}
-    {{ journal.footer_partners|linebreaks }}
+    {{ journal.footer_partners|richtext }}
     {% else %}
     <p style="color: var(--color-muted);">Partner information will be published here soon.</p>
     {% endif %}

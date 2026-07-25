@@ -1,0 +1,62 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Editorial Board — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);">
+  <h1 class="jadmin-page-title" style="margin:0;">Editorial Board</h1>
+  <a href="{% url 'journal_admin_board_create' %}" class="btn btn-primary">+ New Member</a>
+</div>
+
+<div class="jadmin-card">
+  {% if members %}
+  <div style="display:flex;flex-direction:column;gap:var(--spacing-4);">
+    {% for member in members %}
+    <div class="jadmin-news-row">
+      <div class="jadmin-news-row__thumb">
+        {% if member.photo %}
+        <img src="{{ member.photo.url }}" alt="">
+        {% else %}
+        <span class="jadmin-news-row__noimg">No photo</span>
+        {% endif %}
+      </div>
+      <div class="jadmin-news-row__body">
+        <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;">
+          <strong style="font-size:var(--size-base);">{{ member.name }}</strong>
+          {% if member.is_active %}
+          <span class="role-badge" style="background:#d1fae5;color:#065f46;">Active</span>
+          {% else %}
+          <span class="role-badge" style="background:#fee2e2;color:#991b1b;">Hidden</span>
+          {% endif %}
+          <span class="role-badge" style="background:var(--color-surface);color:var(--color-text-muted);">Order {{ member.order }}</span>
+        </div>
+        <div style="color:var(--color-text-muted);font-size:var(--size-sm);margin-top:var(--spacing-1);">
+          {{ member.role }}{% if member.institution %} · {{ member.institution }}{% if member.country %}, {{ member.country }}{% endif %}{% endif %}
+        </div>
+      </div>
+      <div class="jadmin-news-row__actions">
+        <a href="{% url 'journal_admin_board_edit' member.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Edit</a>
+        <form method="post" action="{% url 'journal_admin_board_delete' member.pk %}"
+              data-confirm="Delete “{{ member.name|escapejs }}”? This cannot be undone." data-confirm-ok="Delete"
+              style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm" style="background:transparent;border:1px solid var(--color-border);color:var(--color-danger,#b91c1c);">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:var(--spacing-12);color:var(--color-muted);">
+    <p style="font-size:var(--size-lg);margin-bottom:var(--spacing-4);">No board members yet.</p>
+    <a href="{% url 'journal_admin_board_create' %}" class="btn btn-primary">Add your first member</a>
+  </div>
+  {% endif %}
+</div>
+
+<p style="margin-top:var(--spacing-4);font-size:var(--size-xs);color:var(--color-text-muted);">
+  Members appear on the public <a href="{% url 'editorial_board' %}" target="_blank">Editorial Board page</a>,
+  ordered by the “Order” value (lowest first), then name. Only active members are shown.
+  The intro text above the list is edited under <a href="{% url 'journal_admin_settings' %}">Settings</a>.
+</p>
+{% endblock %}

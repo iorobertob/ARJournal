@@ -163,7 +163,6 @@ def homepage_settings(request):
             journal.contribute_caption = request.POST.get('contribute_caption', '')
             journal.contribute_text = sanitize_html(request.POST.get('contribute_text', ''))
             journal.mission_text = sanitize_html(request.POST.get('mission_text', ''))
-            journal.news_text = sanitize_html(request.POST.get('news_text', ''))
             # Section visibility toggles (checkbox absent => unchecked => False)
             journal.show_filtered_section = bool(request.POST.get('show_filtered_section'))
             journal.show_archive_section = bool(request.POST.get('show_archive_section'))
@@ -218,6 +217,8 @@ def journal_settings(request):
         journal.about_text = sanitize_html(request.POST.get('about_text', ''))
         journal.mission_text = sanitize_html(request.POST.get('mission_text', ''))
         journal.methodology_text = sanitize_html(request.POST.get('methodology_text', ''))
+        journal.editorial_board_text = sanitize_html(request.POST.get('editorial_board_text', ''))
+        journal.footer_partners = sanitize_html(request.POST.get('footer_partners', ''))
         journal.submission_guidelines = sanitize_html(request.POST.get('submission_guidelines', ''))
         journal.policy_text = sanitize_html(request.POST.get('policy_text', ''))
         journal.terms_text = sanitize_html(request.POST.get('terms_text', ''))
@@ -574,9 +575,16 @@ def email_log_preview(request, pk):
 # ── News / blog posts ────────────────────────────────────────────────────────
 @journal_admin_required
 def news_list(request):
-    from apps.journal.models import NewsPost
+    from apps.journal.models import NewsPost, JournalConfig
+    journal = JournalConfig.get()
+    if request.method == 'POST':
+        from apps.journal.sanitize import sanitize_html
+        journal.news_text = sanitize_html(request.POST.get('news_text', ''))
+        journal.save(update_fields=['news_text'])
+        messages.success(request, 'News page intro saved.')
+        return redirect('journal_admin_news')
     posts = NewsPost.objects.select_related('author').all()
-    return render(request, 'journal_admin/news_list.html', {'posts': posts})
+    return render(request, 'journal_admin/news_list.html', {'posts': posts, 'journal': journal})
 
 
 @journal_admin_required
@@ -625,3 +633,59 @@ def news_delete(request, pk):
         post.delete()
         messages.success(request, 'News post deleted.')
     return redirect('journal_admin_news')
+
+
+# ── Editorial Board members ──────────────────────────────────────
+@journal_admin_required
+def board_list(request):
+    from apps.journal.models import EditorialBoardMember
+    members = EditorialBoardMember.objects.all()
+    return render(request, 'journal_admin/board_list.html', {'members': members})
+
+
+@journal_admin_required
+def board_edit(request, pk=None):
+    """Create (pk=None) or edit an editorial board member."""
+    from apps.journal.models import EditorialBoardMember
+
+    member = get_object_or_404(EditorialBoardMember, pk=pk) if pk else None
+
+    if request.method == 'POST':
+        name = (request.POST.get('name') or '').strip()
+        role = (request.POST.get('role') or '').strip()
+        if not name or not role:
+            messages.error(request, 'Name and role are required.')
+            return render(request, 'journal_admin/board_form.html', {'member': member})
+
+        if member is None:
+            member = EditorialBoardMember()
+        member.name = name
+        member.role = role
+        member.institution = (request.POST.get('institution') or '').strip()
+        member.country = (request.POST.get('country') or '').strip()
+        member.bio = (request.POST.get('bio') or '').strip()
+        try:
+            member.order = int(request.POST.get('order') or 0)
+        except (TypeError, ValueError):
+            member.order = 0
+        member.is_active = bool(request.POST.get('is_active'))
+        if request.FILES.get('photo'):
+            member.photo = request.FILES['photo']
+        if request.POST.get('remove_photo') and member.photo:
+            member.photo.delete(save=False)
+            member.photo = None
+        member.save()
+        messages.success(request, f'Board member “{member.name}” saved.')
+        return redirect('journal_admin_board')
+
+    return render(request, 'journal_admin/board_form.html', {'member': member})
+
+
+@journal_admin_required
+def board_delete(request, pk):
+    from apps.journal.models import EditorialBoardMember
+    member = get_object_or_404(EditorialBoardMember, pk=pk)
+    if request.method == 'POST':
+        member.delete()
+        messages.success(request, 'Board member deleted.')
+    return redirect('journal_admin_board')

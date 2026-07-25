@@ -5,6 +5,95 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'css/article.css' %}">
+<style>
+  .review-criteria {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: var(--spacing-4) var(--spacing-6);
+    margin-bottom: var(--spacing-6);
+  }
+  .review-criteria legend {
+    padding: 0 var(--spacing-2);
+    color: var(--color-accent);
+  }
+  .review-criteria__hint {
+    font-size: var(--size-xs);
+    color: var(--color-muted);
+    margin: 0 0 var(--spacing-3);
+    line-height: 1.5;
+  }
+  .review-criterion {
+    padding: var(--spacing-3) 0;
+    border-top: 1px solid var(--color-border);
+  }
+  .review-criterion:first-of-type { border-top: none; }
+  .review-criterion__label {
+    display: block;
+    font-size: var(--size-sm);
+    color: var(--color-text);
+    margin-bottom: var(--spacing-2);
+    line-height: 1.4;
+  }
+  .review-criterion__scale {
+    display: flex;
+    gap: var(--spacing-2);
+  }
+  .review-criterion__opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    cursor: pointer;
+    padding: var(--spacing-2) 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: var(--size-xs);
+    color: var(--color-muted);
+    transition: border-color .12s, background .12s;
+  }
+  .review-criterion__opt:has(input:checked) {
+    border-color: var(--color-accent);
+    background: var(--color-accent-light);
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+  .review-criterion__opt input { accent-color: var(--color-accent); }
+  .review-question {
+    padding: var(--spacing-3) 0;
+    border-top: 1px solid var(--color-border);
+  }
+  .review-question:first-of-type { border-top: none; }
+  .review-question__text {
+    display: block;
+    font-size: var(--size-sm);
+    color: var(--color-text);
+    margin-bottom: var(--spacing-2);
+    line-height: 1.45;
+  }
+  .review-question__opts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+  }
+  .review-question__opt {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    cursor: pointer;
+    padding: var(--spacing-2) var(--spacing-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: var(--size-xs);
+    color: var(--color-text);
+  }
+  .review-question__opt:has(input:checked) {
+    border-color: var(--color-accent);
+    background: var(--color-accent-light);
+    font-weight: 600;
+  }
+  .review-question__opt input { accent-color: var(--color-accent); }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -96,23 +185,43 @@
     <div x-show="tab === 'form'" class="workspace-review-form">
       <form id="review-form" data-review-id="{{ review.pk }}">
         {% csrf_token %}
+
+        <!-- ── Reviewer Recommendation ─────────────────────────────── -->
         <div class="form__group">
-          <label class="form__label">Expertise Self-Rating (1–5)</label>
-          <select class="form__select" name="expertise_self_rating">
-            <option value="5">5 — Expert</option>
-            <option value="4">4 — Knowledgeable</option>
-            <option value="3">3 — Familiar</option>
-            <option value="2">2 — Limited</option>
-            <option value="1">1 — Not my area</option>
+          <label class="form__label">Reviewer Recommendation <span>*</span></label>
+          <select class="form__select" name="recommendation" required>
+            <option value="" {% if not review.recommendation %}selected{% endif %}>-- Select --</option>
+            <option value="accept" {% if review.recommendation == 'accept' %}selected{% endif %}>Accept without revisions</option>
+            <option value="minor_revision" {% if review.recommendation == 'minor_revision' %}selected{% endif %}>Accept with minor revisions</option>
+            <option value="major_revision" {% if review.recommendation == 'major_revision' %}selected{% endif %}>Revise and resubmit</option>
+            <option value="reject" {% if review.recommendation == 'reject' %}selected{% endif %}>Reject</option>
           </select>
         </div>
+
+        <!-- ── Evaluation Criteria ─────────────────────────────────── -->
+        <fieldset class="review-criteria">
+          <legend class="form__label">Evaluation Criteria</legend>
+          <p class="review-criteria__hint">Rate each criterion from 1 (Poor) to 5 (Excellent).</p>
+          {% for c in criteria_fields %}
+          <div class="review-criterion">
+            <span class="review-criterion__label">{{ c.label }}</span>
+            <div class="review-criterion__scale" role="radiogroup" aria-label="{{ c.label }}">
+              {% for n in criterion_scale %}
+              <label class="review-criterion__opt">
+                <input type="radio" name="criterion_{{ c.slug }}" value="{{ n }}" {% if c.value == n %}checked{% endif %}>
+                <span>{{ n }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </fieldset>
+
+        <!-- ── Reviewer Comments for the Author ────────────────────── -->
         <div class="form__group">
-          <label class="form__label">Summary <span>*</span></label>
-          <textarea class="form__textarea" name="summary" rows="4" required>{{ review.summary }}</textarea>
-        </div>
-        <div class="form__group">
-          <label class="form__label">Strengths <span>*</span></label>
-          <textarea class="form__textarea" name="strengths" rows="4">{{ review.strengths }}</textarea>
+          <label class="form__label">Reviewer Comments for the Author <span>*</span></label>
+          <p class="review-criteria__hint">Constructive feedback addressing the strengths and weaknesses of the submission.</p>
+          <textarea class="form__textarea" name="comments_to_author" rows="6">{{ review.comments_to_author }}</textarea>
         </div>
         <div class="form__group">
           <label class="form__label">Major Issues</label>
@@ -122,28 +231,37 @@
           <label class="form__label">Minor Issues</label>
           <textarea class="form__textarea" name="minor_issues" rows="4">{{ review.minor_issues }}</textarea>
         </div>
+
+        <!-- ── Confidential Comments for the Editor ────────────────── -->
         <div class="form__group">
-          <label class="form__label">Ethical Concerns</label>
-          <textarea class="form__textarea" name="ethical_concerns" rows="3">{{ review.ethical_concerns }}</textarea>
-        </div>
-        <div class="form__group">
-          <label class="form__label">Comments to Author</label>
-          <textarea class="form__textarea" name="comments_to_author" rows="5">{{ review.comments_to_author }}</textarea>
-        </div>
-        <div class="form__group">
-          <label class="form__label">Confidential Comments to Editor</label>
+          <label class="form__label">Confidential Comments for the Editor</label>
+          <p class="review-criteria__hint">These comments will not be shared with the author.</p>
           <textarea class="form__textarea" name="comments_to_editor" rows="4">{{ review.comments_to_editor }}</textarea>
         </div>
-        <div class="form__group">
-          <label class="form__label">Recommendation <span>*</span></label>
-          <select class="form__select" name="recommendation" required>
-            <option value="" {% if not review.recommendation %}selected{% endif %}>-- Select --</option>
-            <option value="accept" {% if review.recommendation == 'accept' %}selected{% endif %}>Accept</option>
-            <option value="minor_revision" {% if review.recommendation == 'minor_revision' %}selected{% endif %}>Minor Revision</option>
-            <option value="major_revision" {% if review.recommendation == 'major_revision' %}selected{% endif %}>Major Revision</option>
-            <option value="reject" {% if review.recommendation == 'reject' %}selected{% endif %}>Reject</option>
-          </select>
-        </div>
+
+        <!-- ── Additional Questions ────────────────────────────────── -->
+        <fieldset class="review-criteria">
+          <legend class="form__label">Additional Questions</legend>
+          {% for q in question_fields %}
+          <div class="review-question">
+            <span class="review-question__text">{{ q.text }}</span>
+            <div class="review-question__opts" role="radiogroup" aria-label="{{ q.text }}">
+              {% for opt in q.options %}
+              <label class="review-question__opt">
+                <input type="radio" name="q_{{ q.slug }}" value="{{ opt.0 }}" {% if q.value == opt.0 %}checked{% endif %}>
+                <span>{{ opt.1 }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+          <div class="form__group" style="margin-top:var(--spacing-4);">
+            <label class="form__label">Ethical Concerns — please explain</label>
+            <p class="review-criteria__hint">If you answered “Yes” above, describe the ethical concern, conflict of interest, or issue requiring editorial attention.</p>
+            <textarea class="form__textarea" name="ethical_concerns" rows="3">{{ review.ethical_concerns }}</textarea>
+          </div>
+        </fieldset>
+
         <div class="form__actions">
           <button type="button" id="save-draft-btn" class="btn btn--secondary">Save Draft</button>
           <button type="button" id="submit-review-btn" class="btn btn--primary">Submit Review</button>

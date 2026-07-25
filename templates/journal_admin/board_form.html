@@ -1,0 +1,104 @@
+{% extends "journal_admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if member %}Edit member{% else %}New member{% endif %} — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);gap:var(--spacing-4);">
+  <h1 class="jadmin-page-title" style="margin:0;">{% if member %}Edit member{% else %}New member{% endif %}</h1>
+  <div style="display:flex;gap:var(--spacing-3);align-items:center;">
+    <a href="{% url 'journal_admin_board' %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
+    <button type="submit" form="board-form" class="btn btn-primary">Save member</button>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="board-form">
+  {% csrf_token %}
+
+  <div class="jadmin-card">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_name">Name</label>
+        <input type="text" name="name" id="id_name" class="form-control" required
+               value="{{ member.name|default:'' }}" placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label for="id_role">Role</label>
+        <input type="text" name="role" id="id_role" class="form-control" required
+               value="{{ member.role|default:'' }}" placeholder="e.g. Editor-in-Chief">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_institution">Institution <span style="color:var(--color-text-muted);font-weight:400;">(optional)</span></label>
+        <input type="text" name="institution" id="id_institution" class="form-control"
+               value="{{ member.institution|default:'' }}" placeholder="e.g. Academy of Music and Theatre">
+      </div>
+      <div class="form-group">
+        <label for="id_country">Country <span style="color:var(--color-text-muted);font-weight:400;">(optional)</span></label>
+        <input type="text" name="country" id="id_country" class="form-control"
+               value="{{ member.country|default:'' }}" placeholder="e.g. Lithuania">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="id_bio">Bio <span style="color:var(--color-text-muted);font-weight:400;">(optional)</span></label>
+      <textarea name="bio" id="id_bio" rows="4" class="form-control"
+                placeholder="A short biography.">{{ member.bio|default:'' }}</textarea>
+    </div>
+  </div>
+
+  <div class="jadmin-card">
+    <div class="jadmin-card__title">Photo</div>
+    <div class="form-group">
+      {% if member.photo %}
+      <div style="margin-bottom:var(--spacing-3);display:flex;align-items:center;gap:var(--spacing-4);">
+        <img src="{{ member.photo.url }}" alt="Current photo" style="max-height:96px;border-radius:2px;">
+        <label style="display:flex;align-items:center;gap:var(--spacing-2);cursor:pointer;font-size:var(--size-sm);color:var(--color-text-muted);">
+          <input type="checkbox" name="remove_photo" style="width:16px;height:16px;accent-color:var(--color-accent);">
+          Remove current photo
+        </label>
+      </div>
+      {% endif %}
+      <input type="file" name="photo" id="id_photo" accept="image/*" class="form-control">
+      <p style="margin:var(--spacing-2) 0 0;font-size:var(--size-xs);color:var(--color-text-muted);">Square portraits work best.</p>
+    </div>
+  </div>
+
+  <div class="jadmin-card">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_order">Order</label>
+        <input type="number" name="order" id="id_order" class="form-control"
+               value="{{ member.order|default:0 }}" min="0" step="1">
+        <p style="margin:var(--spacing-2) 0 0;font-size:var(--size-xs);color:var(--color-text-muted);">Lower numbers appear first.</p>
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end;">
+        <label style="display:flex;align-items:center;gap:var(--spacing-2);cursor:pointer;">
+          <input type="checkbox" name="is_active" {% if member is None or member.is_active %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
+          <span>Active <span style="color:var(--color-text-muted);font-weight:400;">— visible on the public page.</span></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;">
+    <button type="submit" class="btn btn-primary">Save member</button>
+  </div>
+</form>
+
+{% if member %}
+<div class="jadmin-card" style="margin-top:var(--spacing-6);border-color:var(--color-danger,#b91c1c);">
+  <div class="jadmin-card__title" style="color:var(--color-danger,#b91c1c);">Danger zone</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--spacing-4);flex-wrap:wrap;">
+    <p style="margin:0;color:var(--color-text-muted);font-size:var(--size-sm);">Permanently delete this member.</p>
+    <form method="post" action="{% url 'journal_admin_board_delete' member.pk %}"
+          data-confirm="Delete “{{ member.name|escapejs }}”? This cannot be undone." data-confirm-ok="Delete">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm" style="background:transparent;border:1px solid var(--color-danger,#b91c1c);color:var(--color-danger,#b91c1c);">Delete member</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -99,6 +99,18 @@
   </div>
 
   <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_editorial_board_text" id="id_editorial_board_text_label">Editorial Board intro</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Shown above the members on the Editorial Board page (/editorial-board/). Individual members are managed under <a href="{% url 'journal_admin_board' %}">Editorial Board</a>.</p>
+    <textarea name="editorial_board_text" id="id_editorial_board_text" rows="4" class="form-control" data-wysiwyg>{{ journal.editorial_board_text }}</textarea>
+  </div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <label for="id_footer_partners" id="id_footer_partners_label">Partners</label>
+    <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Displayed on the Partners page (/partners/).</p>
+    <textarea name="footer_partners" id="id_footer_partners" rows="4" class="form-control" data-wysiwyg>{{ journal.footer_partners }}</textarea>
+  </div>
+
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
     <label for="id_submission_guidelines" id="id_submission_guidelines_label">Submission guidelines</label>
     <p style="margin:0 0 var(--spacing-2);font-size:var(--size-xs);color:var(--color-text-muted);">Displayed on the Submit page (/submit/).</p>
     <textarea name="submission_guidelines" id="id_submission_guidelines" rows="8" class="form-control" data-wysiwyg>{{ journal.submission_guidelines }}</textarea>

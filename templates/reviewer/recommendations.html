@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Recommendations for Reviewers — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:760px;padding-block:var(--spacing-10);">
+
+  <p style="margin-bottom:var(--spacing-4);">
+    <a href="{% url 'reviewer_dashboard' %}">&larr; My reviews</a>
+  </p>
+
+  <p style="font-size:var(--size-base);color:var(--color-muted);line-height:1.7;margin:0 0 var(--spacing-8);">
+    Please keep the following principles in mind when assessing a submission for
+    {{ journal.name }}. They are intended to help make peer review fair, constructive,
+    and useful to authors and editors alike.
+  </p>
+
+  {% include 'reviewer/_recommendations.html' %}
+
+</div>
+{% endblock %}

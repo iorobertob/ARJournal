@@ -16,6 +16,27 @@
     </div>
   </div>
 
+  <!-- ── Peer-review blinding policy ────────────────────────────────── -->
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:var(--spacing-4);padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-8);background:var(--color-surface-warm);border:1px solid var(--color-border);border-radius:var(--radius);">
+    <div style="flex:1 1 260px;min-width:220px;">
+      <p style="font-size:var(--size-xs);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-accent);margin:0 0 var(--spacing-1);">Peer review model</p>
+      <p style="font-size:var(--size-sm);color:var(--color-muted);margin:0;line-height:1.5;">
+        Double-blind hides author identities from reviewers. Single-blind reveals the author to the reviewer. In both, reviewer identities stay hidden from authors.
+      </p>
+    </div>
+    <form method="post" action="{% url 'set_review_model' %}"
+          style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;">
+      {% csrf_token %}
+      <label for="review_model_select" style="font-size:var(--size-sm);font-weight:500;color:var(--color-text);">Mode</label>
+      <select id="review_model_select" name="review_model"
+              style="padding:var(--spacing-2) var(--spacing-3);border:1px solid var(--color-border);border-radius:var(--radius);font-family:var(--font-sans);font-size:var(--size-sm);color:var(--color-text);background:var(--color-bg);">
+        <option value="double_blind" {% if journal.review_model == 'double_blind' %}selected{% endif %}>Double-blind</option>
+        <option value="single_blind" {% if journal.review_model == 'single_blind' %}selected{% endif %}>Single-blind</option>
+      </select>
+      <button type="submit" class="btn btn--small btn--primary">Save</button>
+    </form>
+  </div>
+
   <div class="dashboard-columns">
 
     <div class="dashboard-column">

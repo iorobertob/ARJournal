@@ -309,8 +309,12 @@ def archive(request):
 
 
 def about(request):
+    return render(request, 'public/about.html', {})
+
+
+def editorial_board(request):
     board = EditorialBoardMember.objects.filter(is_active=True)
-    return render(request, 'public/about.html', {'board': board})
+    return render(request, 'public/editorial_board.html', {'board': board})
 
 
 def submit_info(request):

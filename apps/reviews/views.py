@@ -42,6 +42,12 @@ def _resolve_review_revision(review):
 
 
 @login_required
+def reviewer_recommendations(request):
+    """Standalone 'Recommendations for Reviewers' guidance page."""
+    return render(request, 'reviewer/recommendations.html', {})
+
+
+@login_required
 def reviewer_dashboard(request):
     """Dashboard for reviewers: active reviews, pending invitations, history."""
     from collections import defaultdict
@@ -177,6 +183,7 @@ def reviewer_workspace(request, invitation_pk):
         toc = []
 
     annotations = review.annotations.filter(resolved=False)
+    from . import constants
     return render(request, 'reviewer/workspace.html', {
         'invitation': invitation,
         'review': review,
@@ -186,6 +193,9 @@ def reviewer_workspace(request, invitation_pk):
         'toc': toc,
         'annotations': annotations,
         'ingest_error': ingest_error,
+        'criteria_fields': constants.criteria_fields(review.scores),
+        'question_fields': constants.question_fields(review.scores),
+        'criterion_scale': constants.CRITERION_SCALE,
     })
 
 
@@ -204,6 +214,13 @@ def save_draft(request, review_pk):
     review.comments_to_author = data.get('comments_to_author', review.comments_to_author)
     review.comments_to_editor = data.get('comments_to_editor', review.comments_to_editor)
     review.recommendation = data.get('recommendation', review.recommendation)
+    if 'expertise_self_rating' in data:
+        try:
+            review.expertise_self_rating = int(data['expertise_self_rating'])
+        except (TypeError, ValueError):
+            pass
+    from . import constants
+    review.scores = constants.collect_scores_from_payload(data, review.scores)
     review.draft_saved_at = timezone.now()
     review.save()
     return JsonResponse({'saved_at': review.draft_saved_at.isoformat()})
@@ -215,8 +232,11 @@ def submit_review(request, review_pk):
     review = get_object_or_404(Review, pk=review_pk)
     if review.invitation.reviewer != request.user:
         return JsonResponse({'error': 'Forbidden'}, status=403)
-    if not review.summary or not review.recommendation:
-        return JsonResponse({'error': 'Summary and recommendation are required.'}, status=400)
+    if not review.recommendation or not review.comments_to_author.strip():
+        return JsonResponse(
+            {'error': 'A recommendation and comments for the author are required.'},
+            status=400,
+        )
     review.status = ReviewStatus.SUBMITTED
     review.submitted_at = timezone.now()
     review.save()
@@ -325,11 +345,14 @@ def moderate_review(request, review_pk):
     except Exception:
         pass
 
+    from . import constants
     return render(request, 'editorial/moderate_review.html', {
         'review': review,
         'moderation': moderation,
         'annotations': annotations,
         'canonical_doc': canonical_doc,
+        'criteria_display': constants.criteria_display(review.scores),
+        'questions_display': constants.questions_display(review.scores),
     })
 
 
@@ -379,6 +402,7 @@ def review_detail(request, review_pk):
     except Exception:
         pass
 
+    from . import constants
     return render(request, 'reviews/review_detail.html', {
         'review': review,
         'submission': submission,
@@ -389,6 +413,8 @@ def review_detail(request, review_pk):
         'is_author': is_author,
         'canonical_doc': canonical_doc,
         'html_build': html_build,
+        'criteria_display': constants.criteria_display(review.scores),
+        'questions_display': constants.questions_display(review.scores),
     })
 
 

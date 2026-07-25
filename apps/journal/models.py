@@ -37,6 +37,9 @@ class JournalConfig(models.Model):
     about_text = models.TextField(blank=True, default='')
     mission_text = models.TextField(blank=True, default='')
     methodology_text = models.TextField(blank=True, default='')
+    editorial_board_text = models.TextField(
+        blank=True, default='',
+        help_text='Intro text shown above the members on the Editorial Board page (/editorial-board/).')
     news_text = models.TextField(blank=True, default='', help_text='Content of the public News page')
 
     # ── Homepage (admin-managed content) ───────────────────────

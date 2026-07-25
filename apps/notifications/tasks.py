@@ -363,6 +363,18 @@ def notify_reviewer_invited(invitation_pk):
     subject = f'Invitation to review — {inv.submission.title[:70]}'
     deadline_str = inv.deadline.strftime('%-d %B %Y') if hasattr(inv.deadline, 'strftime') else str(inv.deadline)
 
+    from apps.journal.models import JournalConfig
+    if JournalConfig.get().review_model == 'single_blind':
+        blind_html = ('Reviews are conducted under <strong>single-blind</strong> conditions: '
+                      'your identity will not be disclosed to the authors.')
+        blind_plain = ('Reviews are conducted under single-blind conditions; your identity '
+                       'will not be disclosed to the authors.')
+    else:
+        blind_html = ('Reviews are conducted under <strong>double-blind</strong> conditions: '
+                      'neither you nor the authors will know each other’s identity.')
+        blind_plain = ('Reviews are conducted under double-blind conditions; neither you nor '
+                       'the authors will know each other’s identity.')
+
     # ── HTML ─────────────────────────────────────────────────────────────────
     html_body = (
         _greeting(inv.reviewer.display_name)
@@ -376,8 +388,7 @@ def notify_reviewer_invited(invitation_pk):
         + _btn(invitation_url, 'Respond to this invitation')
         + _p('If you are unable to review this submission, we would be grateful if you could suggest '
              'an alternative reviewer with relevant expertise.')
-        + _p('<span style="font-size:13px;color:#6B6B6B;">All reviews are conducted under '
-             'double-blind conditions. Your identity will not be disclosed to the authors.</span>')
+        + _p(f'<span style="font-size:13px;color:#6B6B6B;">{blind_html}</span>')
         + _signature()
     )
 
@@ -389,7 +400,7 @@ def notify_reviewer_invited(invitation_pk):
         f'Title: {inv.submission.title}\n'
         f'Review deadline: {deadline_str}\n\n'
         f'Please visit the link below to accept or decline:\n{invitation_url}\n\n'
-        f'All reviews are conducted under double-blind conditions.\n\n'
+        f'{blind_plain}\n\n'
         f'Warm regards,\nThe inAct Editorial Office'
     )
 

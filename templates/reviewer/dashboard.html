@@ -8,7 +8,14 @@
 <div class="dashboard-layout container">
   <div class="dashboard-header">
     <h1>My Reviews</h1>
+    <a href="{% url 'reviewer_recommendations' %}" class="btn btn--secondary">Recommendations for Reviewers</a>
   </div>
+
+  {% if journal.review_model == 'double_blind' %}
+  <p style="display:flex;align-items:center;gap:var(--spacing-2);font-size:var(--size-sm);color:var(--color-muted);margin:0 0 var(--spacing-6);padding:var(--spacing-3) var(--spacing-4);background:var(--color-surface-warm);border:1px solid var(--color-border);border-radius:var(--radius);">
+    <strong style="color:var(--color-text);">Double-blind review.</strong> Author identities are hidden for the manuscripts assigned to you.
+  </p>
+  {% endif %}
 
   <!-- ── Pending Invitations ────────────────────────────────────────── -->
   <section class="review-list-section" x-data="listSearch()">
@@ -39,11 +46,11 @@
       <tbody>
         {% for inv in pending_invitations %}
         <tr class="list-row"
-            data-search="{{ inv.submission.title|lower }} {{ inv.submission.author.display_name|lower }}"
+            data-search="{{ inv.submission.title|lower }}{% if journal.review_model != 'double_blind' %} {{ inv.submission.author.display_name|lower }}{% endif %}"
             x-show="show($el)">
           <td>
             <span class="list-row__title">{{ inv.submission.title|truncatechars:70 }}</span>
-            <span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ inv.submission.author.display_name }}</span>
+            {% if journal.review_model != 'double_blind' %}<span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ inv.submission.author.display_name }}</span>{% else %}<span style="display:block;font-size:var(--size-xs);color:var(--color-light);margin-top:2px;font-style:italic;">Author hidden (double-blind)</span>{% endif %}
           </td>
           <td style="font-size:var(--size-sm);">{{ inv.submission.get_article_type_display }}</td>
           <td style="font-size:var(--size-sm);">
@@ -126,7 +133,7 @@
         {% for item in active_items %}
         {% with inv=item.invitation rev=item.review %}
         <tr class="list-row"
-            data-search="{{ inv.submission.title|lower }} {{ inv.submission.author.display_name|lower }} {{ inv.submission.get_article_type_display|lower }}"
+            data-search="{{ inv.submission.title|lower }}{% if journal.review_model != 'double_blind' %} {{ inv.submission.author.display_name|lower }}{% endif %} {{ inv.submission.get_article_type_display|lower }}"
             x-show="show($el)">
           <td>
             <a href="{% url 'reviewer_workspace' inv.pk %}" class="list-row__title">
@@ -135,7 +142,7 @@
             {% if inv.is_multi_round %}
             <span style="display:inline-block;margin-left:0.4rem;font-size:0.68rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--color-accent);background:var(--color-accent-light);border:1px solid rgba(232,107,31,0.25);border-radius:3px;padding:1px 5px;vertical-align:middle;">Round {{ inv.round_number }}</span>
             {% endif %}
-            <span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ inv.submission.author.display_name }}</span>
+            {% if journal.review_model != 'double_blind' %}<span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ inv.submission.author.display_name }}</span>{% else %}<span style="display:block;font-size:var(--size-xs);color:var(--color-light);margin-top:2px;font-style:italic;">Author hidden (double-blind)</span>{% endif %}
           </td>
           <td style="font-size:var(--size-sm);">{{ inv.submission.get_article_type_display }}</td>
           <td style="font-size:var(--size-sm);">
@@ -190,7 +197,7 @@
         {% for item in submitted_items %}
         {% with inv=item.invitation rev=item.review %}
         <tr class="list-row"
-            data-search="{{ inv.submission.title|lower }} {{ inv.submission.author.display_name|lower }}"
+            data-search="{{ inv.submission.title|lower }}{% if journal.review_model != 'double_blind' %} {{ inv.submission.author.display_name|lower }}{% endif %}"
             x-show="show($el)">
           <td>
             <a href="{% url 'reviewer_workspace' inv.pk %}" class="list-row__title">
@@ -199,7 +206,7 @@
             {% if inv.is_multi_round %}
             <span style="display:inline-block;margin-left:0.4rem;font-size:0.68rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--color-accent);background:var(--color-accent-light);border:1px solid rgba(232,107,31,0.25);border-radius:3px;padding:1px 5px;vertical-align:middle;">Round {{ inv.round_number }}</span>
             {% endif %}
-            <span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ inv.submission.author.display_name }}</span>
+            {% if journal.review_model != 'double_blind' %}<span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ inv.submission.author.display_name }}</span>{% else %}<span style="display:block;font-size:var(--size-xs);color:var(--color-light);margin-top:2px;font-style:italic;">Author hidden (double-blind)</span>{% endif %}
             {% if inv.submission_id in active_submission_ids %}
             <span style="display:block;font-size:0.7rem;font-weight:500;color:#2563eb;margin-top:4px;">&#8635; New round in progress</span>
             {% endif %}
@@ -251,11 +258,11 @@
       <tbody>
         {% for inv in history_invitations %}
         <tr class="list-row"
-            data-search="{{ inv.submission.title|lower }} {{ inv.submission.author.display_name|lower }}"
+            data-search="{{ inv.submission.title|lower }}{% if journal.review_model != 'double_blind' %} {{ inv.submission.author.display_name|lower }}{% endif %}"
             x-show="show($el)">
           <td>
             <span class="list-row__title">{{ inv.submission.title|truncatechars:70 }}</span>
-            <span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ inv.submission.author.display_name }}</span>
+            {% if journal.review_model != 'double_blind' %}<span style="display:block;font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">{{ inv.submission.author.display_name }}</span>{% else %}<span style="display:block;font-size:var(--size-xs);color:var(--color-light);margin-top:2px;font-style:italic;">Author hidden (double-blind)</span>{% endif %}
           </td>
           <td style="font-size:var(--size-sm);color:var(--color-muted);">{{ inv.sent_at|date:"d M Y" }}</td>
           <td><span class="status-badge status-badge--{{ inv.status }}">{{ inv.get_status_display }}</span></td>

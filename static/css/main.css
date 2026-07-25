@@ -998,12 +998,16 @@ a.home-current__title:hover { color: var(--color-accent); }
   color: var(--color-white);
 }
 
-.site-footer__label {
+.site-footer .site-footer__label {
   font-family: var(--font-sans);
   font-size: var(--size-xs);
-  font-weight: 400;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--color-amber);
-  margin-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+  padding-bottom: var(--spacing-2);
+  border-bottom: 1px solid rgba(255, 189, 109, 0.4);
 }
 
 .site-footer ul {

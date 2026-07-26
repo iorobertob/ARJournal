@@ -778,7 +778,9 @@ def generate_pdf(export_pk):
     else:
         _footer_l = _jname
 
-    _copyright = f'© {_year} {_short_auth}' if _year else f'© {_short_auth}'
+    # Copyright holder is the journal, not a name token — deriving it from the
+    # author's surname produced junk for accounts whose surname is a mail domain.
+    _copyright = f'© {_year} {_jname}' if _year else f'© {_jname}'
 
     def _css_str(s):
         """Escape a value for use inside a CSS single-quoted content: string."""
@@ -961,12 +963,24 @@ def generate_pdf(export_pk):
     }
     .article-blockquote p { margin: 0; }
     .article-cite { color: #21252B; text-decoration: none; }
-    /* Footnotes — WeasyPrint float: footnote places them at page bottom */
+    /* Footnotes — float: footnote moves each note to the bottom of the page
+       where it is referenced. WeasyPrint auto-generates the in-text call and the
+       note marker from the `footnote` counter, so the manual markers baked into
+       the HTML (.fn-ref-num and .fn-note__num) are hidden here to avoid the
+       number appearing twice. The auto call/marker are styled to match. */
     .fn-wrap { display: inline; }
-    .fn-ref-num { font-size: 0.7em; vertical-align: super;
-                  color: #FF4500; font-weight: bold; line-height: 0; }
+    .fn-ref-num { display: none; }
     .fn-note { float: footnote; font-size: 9pt; color: #444; line-height: 1.4; }
-    .fn-note__num { font-weight: bold; color: #FF4500; margin-right: 0.2em; }
+    .fn-note__num { display: none; }
+    .fn-note::footnote-call {
+      content: counter(footnote);
+      font-size: 0.7em; vertical-align: super; line-height: 0;
+      color: #FF4500; font-weight: bold;
+    }
+    .fn-note::footnote-marker {
+      content: counter(footnote) '.';
+      color: #FF4500; font-weight: bold; padding-right: 0.3em;
+    }
     .article-footnotes { display: none; }
     .para-num { display: none; }
     pre.article-verbatim {

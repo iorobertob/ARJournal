@@ -21,6 +21,9 @@ urlpatterns = [
     path('submit/<int:pk>/revise/step1/', views.resubmit_step1, name='resubmit_step1'),
     path('submit/<int:pk>/revise/<int:rev>/step2/', views.resubmit_step2, name='resubmit_step2'),
     path('submit/<int:pk>/revise/<int:rev>/step3/', views.resubmit_step3, name='resubmit_step3'),
+    # Resubmission via the online editor (editor-authored manuscripts)
+    path('submit/<int:pk>/revise/editor/', wysiwyg_views.resubmit_wysiwyg_editor, name='resubmit_wysiwyg_editor'),
+    path('submit/<int:pk>/revise/editor/<int:rev>/confirm/', wysiwyg_views.resubmit_wysiwyg_confirm, name='resubmit_wysiwyg_confirm'),
     # Asset management (draft revisions only)
     path('submit/<int:pk>/revision/<int:rev>/asset/<int:asset_pk>/delete/', views.delete_revision_asset, name='delete_revision_asset'),
     # Author self-service delete / withdrawal

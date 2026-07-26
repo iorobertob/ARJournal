@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{% if mode == 'screening' %}Correct &amp; Resubmit{% else %}Submit Revision{% endif %} — Confirm — {{ journal.name }}{% endblock %}
+{% block body_class %}dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+<div class="wizard container">
+  <div class="wizard__progress">
+    <span class="wizard__step wizard__step--done">1. Revise</span>
+    <span class="wizard__step wizard__step--active">2. Confirm</span>
+  </div>
+
+  <p><a href="{{ editor_url }}">← Back to editor</a></p>
+  <h1 class="wizard__title">
+    {% if mode == 'screening' %}Correct &amp; Resubmit{% else %}Submit Revision{% endif %}
+    — {{ submission.title|truncatechars:60 }}
+  </h1>
+
+  <p style="color:var(--color-muted);font-size:var(--size-sm);margin-bottom:var(--spacing-6);">
+    Your edits have been saved automatically. Add a response to the editorial team below,
+    then submit your {% if mode == 'screening' %}corrected manuscript{% else %}revision{% endif %}.
+  </p>
+
+  {% if mode == 'review' and decision %}
+  <div style="border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-6);background:var(--color-surface);">
+    <h2 style="margin-top:0;font-size:var(--size-base);">Editorial Decision — Round {{ decision.round }}: {{ decision.get_decision_type_display }}</h2>
+    {% if decision.letter %}
+    <div style="margin-bottom:var(--spacing-3);">
+      <p style="font-size:var(--size-sm);font-weight:600;margin-bottom:var(--spacing-1);">Decision Letter</p>
+      <div style="background:#fff;border-left:3px solid var(--color-accent);padding:var(--spacing-3);font-size:var(--size-sm);white-space:pre-line;">{{ decision.letter }}</div>
+    </div>
+    {% endif %}
+    {% if decision.instructions_to_author %}
+    <div>
+      <p style="font-size:var(--size-sm);font-weight:600;margin-bottom:var(--spacing-1);">Revision Instructions</p>
+      <div style="background:#fff;padding:var(--spacing-3);border-radius:4px;font-size:var(--size-sm);white-space:pre-line;">{{ decision.instructions_to_author }}</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if mode == 'screening' and screening and screening.notes %}
+  <div style="border:1px solid var(--color-border);border-radius:8px;padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-6);background:var(--color-surface);">
+    <h2 style="margin-top:0;font-size:var(--size-base);">Notes from the Editorial Team</h2>
+    <div style="border-left:3px solid var(--color-accent);padding:var(--spacing-3);background:#fff;font-size:var(--size-sm);white-space:pre-line;">{{ screening.notes }}</div>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="form">
+    {% csrf_token %}
+    {% if mode == 'review' %}
+    <div class="form__group">
+      <label class="form__label" for="response_letter">Response Letter (PDF, optional)</label>
+      <p style="font-size:var(--size-sm);color:var(--color-muted);margin-bottom:var(--spacing-2);">Upload a document addressing the editors' and reviewers' comments point by point.</p>
+      <input class="form__file" type="file" id="response_letter" name="response_letter" accept=".pdf,.doc,.docx">
+    </div>
+    {% endif %}
+    <div class="form__group">
+      <label class="form__label" for="keywords">Keywords (semicolon or comma separated)</label>
+      <input class="form__input" type="text" id="keywords" name="keywords"
+             placeholder="e.g. artistic research; performance; sound"
+             value="{{ submission.keywords|join:'; ' }}">
+      <p style="font-size:var(--size-sm);color:var(--color-muted);margin-top:var(--spacing-1);">Update if your keywords have changed since the previous version.</p>
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="notes">Note to Editors (optional)</label>
+      <textarea class="form__textarea" id="notes" name="notes" rows="4"
+                placeholder="Briefly summarise the changes made in this {% if mode == 'screening' %}correction{% else %}revision{% endif %}…">{{ revision.notes }}</textarea>
+    </div>
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary">
+        {% if mode == 'screening' %}Submit Corrected Manuscript{% else %}Submit Revision{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

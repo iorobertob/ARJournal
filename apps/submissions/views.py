@@ -2,7 +2,9 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
-from .models import Submission, SubmissionRevision, SubmissionAsset, SubmissionStatus
+from .models import (
+    Submission, SubmissionRevision, SubmissionAsset, SubmissionStatus, RevisionSource,
+)
 
 
 @login_required
@@ -84,7 +86,6 @@ def new_submission_step2(request, pk):
     """Step 2: Choose authoring path (LaTeX upload or WYSIWYG editor)."""
     sub = get_object_or_404(Submission, pk=pk, author=request.user)
     if request.method == 'POST' and request.FILES.get('manuscript'):
-        from .models import RevisionSource
         rev, created = SubmissionRevision.objects.get_or_create(
             submission=sub,
             version=1,
@@ -107,7 +108,6 @@ def new_submission_step3(request, pk, rev):
     sub = get_object_or_404(Submission, pk=pk, author=request.user)
     revision = get_object_or_404(SubmissionRevision, pk=rev, submission=sub)
 
-    from .models import RevisionSource
     if revision.source_type == RevisionSource.WYSIWYG:
         return redirect('submission_step4', pk=sub.pk, rev=revision.pk)
 
@@ -211,6 +211,45 @@ def _upsert_asset(revision, f):
     return asset
 
 
+def _copy_assets(src_revision, dst_revision):
+    """Copy every asset from one revision to another so authors only re-upload
+    what actually changed between versions.
+
+    The underlying file is shared by storage path (no physical re-copy), and
+    image/HLS derivative metadata is carried over so previously-processed media
+    keeps rendering and streaming without re-transcoding. Returns a map of
+    ``{source_asset_pk: new_asset}`` so callers can remap references that embed
+    an asset's primary key (e.g. WYSIWYG figure/media blocks).
+    """
+    pk_map = {}
+    for old_asset in src_revision.assets.all():
+        new_asset = SubmissionAsset.objects.create(
+            revision=dst_revision,
+            kind=old_asset.kind,
+            file=old_asset.file.name,
+            original_filename=old_asset.original_filename,
+            mime_type=old_asset.mime_type,
+            caption=old_asset.caption,
+            alt_text=old_asset.alt_text,
+            rights_cleared=old_asset.rights_cleared,
+            role=old_asset.role,
+            intrinsic_width=old_asset.intrinsic_width,
+            intrinsic_height=old_asset.intrinsic_height,
+            derivatives=old_asset.derivatives,
+            hls_status=old_asset.hls_status,
+            hls_master=old_asset.hls_master,
+            duration_seconds=old_asset.duration_seconds,
+        )
+        # Resolve size from storage (old records may have size_bytes=0).
+        try:
+            new_asset.size_bytes = new_asset.file.size
+            new_asset.save(update_fields=['size_bytes'])
+        except Exception:
+            pass
+        pk_map[old_asset.pk] = new_asset
+    return pk_map
+
+
 @login_required
 def new_submission_step4(request, pk, rev):
     """Step 4: Declarations and submit."""
@@ -266,6 +305,13 @@ def submission_detail(request, pk):
 _RESUBMITTABLE = {SubmissionStatus.REVISION_REQUESTED}
 
 
+def _authored_in_editor(sub):
+    """True when the manuscript's most recent revision was written in the WYSIWYG
+    editor — such submissions are revised in the editor, not via a .tex upload."""
+    latest = sub.revisions.order_by('-version').first()
+    return bool(latest and latest.source_type == RevisionSource.WYSIWYG)
+
+
 @login_required
 def resubmit_step1(request, pk):
     """Resubmission step 1: upload revised manuscript + optional response letter."""
@@ -273,6 +319,11 @@ def resubmit_step1(request, pk):
     if sub.status not in _RESUBMITTABLE:
         messages.error(request, 'This submission is not currently open for revision.')
         return redirect('submission_detail', pk=pk)
+
+    # Manuscripts written in the online editor are revised in the editor, not
+    # by uploading a replacement .tex file.
+    if _authored_in_editor(sub):
+        return redirect('resubmit_wysiwyg_editor', pk=sub.pk)
 
     last_decision = sub.editorial_decisions.order_by('-round').first()
 
@@ -301,23 +352,7 @@ def resubmit_step1(request, pk):
             sub.save(update_fields=['keywords'])
         # Copy assets from the previous revision so authors only re-upload what changed.
         if current_version:
-            for old_asset in current_version.assets.all():
-                new_asset = SubmissionAsset.objects.create(
-                    revision=rev,
-                    kind=old_asset.kind,
-                    file=old_asset.file.name,
-                    original_filename=old_asset.original_filename,
-                    mime_type=old_asset.mime_type,
-                    caption=old_asset.caption,
-                    alt_text=old_asset.alt_text,
-                    rights_cleared=old_asset.rights_cleared,
-                )
-                # Resolve size from storage (old records may have size_bytes=0).
-                try:
-                    new_asset.size_bytes = new_asset.file.size
-                    new_asset.save(update_fields=['size_bytes'])
-                except Exception:
-                    pass
+            _copy_assets(current_version, rev)
         return redirect('resubmit_step2', pk=sub.pk, rev=rev.pk)
 
     return render(request, 'author/resubmit_step1.html', {
@@ -384,6 +419,10 @@ def resubmit_after_screening(request, pk):
         messages.error(request, 'This submission is not currently awaiting a correction.')
         return redirect('submission_detail', pk=pk)
 
+    # Manuscripts written in the online editor are corrected in the editor.
+    if _authored_in_editor(sub):
+        return redirect('resubmit_wysiwyg_editor', pk=sub.pk)
+
     screening = sub.screening_checks.filter(result='return_to_author').order_by('-checked_at').first()
 
     if request.method == 'POST':
@@ -404,22 +443,7 @@ def resubmit_after_screening(request, pk):
         )
         # Copy assets from previous revision — author only needs to replace what changed
         if current_version:
-            for old_asset in current_version.assets.all():
-                new_asset = SubmissionAsset.objects.create(
-                    revision=rev,
-                    kind=old_asset.kind,
-                    file=old_asset.file.name,
-                    original_filename=old_asset.original_filename,
-                    mime_type=old_asset.mime_type,
-                    caption=old_asset.caption,
-                    alt_text=old_asset.alt_text,
-                    rights_cleared=old_asset.rights_cleared,
-                )
-                try:
-                    new_asset.size_bytes = new_asset.file.size
-                    new_asset.save(update_fields=['size_bytes'])
-                except Exception:
-                    pass
+            _copy_assets(current_version, rev)
         sub.status = SubmissionStatus.SUBMITTED
         sub.submission_date = timezone.now()
         sub.save()

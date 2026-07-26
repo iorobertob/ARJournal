@@ -13,9 +13,14 @@
 {% block content %}
 <div class="wizard container wizard--wide">
   <div class="wizard__progress">
+    {% if is_resubmission %}
+    <span class="wizard__step wizard__step--active">1. Revise</span>
+    <span class="wizard__step">2. Confirm</span>
+    {% else %}
     <span class="wizard__step wizard__step--done">1. Metadata</span>
     <span class="wizard__step wizard__step--active">2. Write</span>
     <span class="wizard__step">3. Declarations</span>
+    {% endif %}
   </div>
 
   <!-- ── Inline metadata panel ──────────────────────────────────────── -->
@@ -114,8 +119,7 @@
       <div id="editor-resize-handle" class="editor-canvas-resize" title="Drag to resize editor" aria-hidden="true"></div>
 
       <!-- Continue form (hidden — submitted programmatically after final save) -->
-      <form id="editor-continue-form" method="get"
-            action="{% url 'submission_step4' pk=submission.pk rev=revision.pk %}">
+      <form id="editor-continue-form" method="get" action="{{ continue_url }}">
       </form>
     </div>
 
@@ -127,8 +131,13 @@
         <button type="button" id="editor-continue" class="btn btn--primary btn--full">
           Save &amp; Continue →
         </button>
+        {% if is_resubmission %}
+        <a href="{% url 'submission_detail' submission.pk %}"
+           class="btn btn--ghost btn--full">← Back to submission</a>
+        {% else %}
         <a href="{% url 'submission_step2' pk=submission.pk %}"
            class="btn btn--ghost btn--full">← Change method</a>
+        {% endif %}
       </div>
 
       <!-- References / bibliography -->

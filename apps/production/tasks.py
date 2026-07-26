@@ -1201,3 +1201,24 @@ def transcode_asset(asset_pk):
         asset.hls_error = str(e)[:2000]
         asset.save(update_fields=['hls_status', 'hls_error'])
         return {'error': str(e)}
+
+
+@shared_task
+def generate_submission_cover_derivatives(submission_pk):
+    """Generate responsive WebP renditions for a submission's cover image.
+
+    Runs on the `transcode` queue (see CELERY_TASK_ROUTES). Best-effort — the
+    original cover is always the fallback (Submission.cover_url), so failures are
+    non-fatal. Works on both local disk and S3 storage (generate_derivatives goes
+    through default_storage), so there is no S3 skip here.
+    """
+    from apps.submissions.models import Submission
+    from apps.submissions.imaging import generate_derivatives
+
+    sub = Submission.objects.filter(pk=submission_pk).first()
+    if not sub or not sub.cover_image:
+        return {'skipped': True}
+    info = generate_derivatives(sub.cover_image, role_hint='hero')
+    sub.cover_derivatives = info.get('derivatives', {}) if info else {}
+    sub.save(update_fields=['cover_derivatives'])
+    return {'ok': True, 'count': len(sub.cover_derivatives)}

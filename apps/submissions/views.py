@@ -136,14 +136,18 @@ def _guess_kind(mime, filename=''):
 
 
 def _generate_cover_derivatives(sub):
-    """Generate hero-sized responsive derivatives for a submission's cover image."""
+    """Queue hero-sized responsive derivatives for a submission's cover image.
+
+    Dispatched to the `transcode` queue so the WebP encoding + storage I/O never
+    blocks the request (async in prod, eager/inline in dev). Best-effort — the
+    original cover is always the fallback until derivatives land.
+    """
     if not sub.cover_image:
         return
     try:
-        from apps.submissions.imaging import generate_derivatives
-        info = generate_derivatives(sub.cover_image, role_hint='hero')
-        sub.cover_derivatives = info.get('derivatives', {}) if info else {}
-        sub.save(update_fields=['cover_derivatives'])
+        from apps.production.views import _dispatch_task
+        from apps.production.tasks import generate_submission_cover_derivatives
+        _dispatch_task(generate_submission_cover_derivatives, sub.pk)
     except Exception:
         pass
 

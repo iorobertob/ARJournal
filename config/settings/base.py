@@ -244,6 +244,7 @@ CELERY_TIMEZONE = TIME_ZONE
 # systemd unit) so it never starves the web/email worker.
 CELERY_TASK_ROUTES = {
     'apps.production.tasks.transcode_asset': {'queue': 'transcode'},
+    'apps.production.tasks.generate_submission_cover_derivatives': {'queue': 'transcode'},
 }
 
 from celery.schedules import crontab

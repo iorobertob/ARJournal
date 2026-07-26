@@ -129,6 +129,10 @@ class JournalConfig(models.Model):
         blank=True, default='',
         help_text='Content of the public Terms & Conditions page (/terms/). When blank, the built-in default text is shown.',
     )
+    faq_text = models.TextField(
+        blank=True, default='',
+        help_text='Content of the public FAQ page (/faq/).',
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

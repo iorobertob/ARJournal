@@ -341,6 +341,10 @@ def policy(request):
     return render(request, 'public/policy.html', {})
 
 
+def faq(request):
+    return render(request, 'public/faq.html', {})
+
+
 def download_template(request):
     """Serve the LaTeX template pack as a zip download."""
     import zipfile, io, os

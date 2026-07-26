@@ -168,7 +168,7 @@ def submission_detail(request, pk):
         except Exception:
             pass
 
-    default_deadline = (timezone.now().date() + timezone.timedelta(days=21)).isoformat()
+    default_deadline = (timezone.now().date() + timezone.timedelta(days=60)).isoformat()
 
     from apps.notifications.models import AuditEvent
     audit_events = AuditEvent.objects.filter(submission=submission).order_by('-timestamp')
@@ -387,10 +387,10 @@ def reinvite_reviewer(request, pk, reviewer_pk):
     try:
         from datetime import date
         deadline = date.fromisoformat(deadline_str) if deadline_str else (
-            timezone.now().date() + timezone.timedelta(days=21)
+            timezone.now().date() + timezone.timedelta(days=60)
         )
     except ValueError:
-        deadline = timezone.now().date() + timezone.timedelta(days=21)
+        deadline = timezone.now().date() + timezone.timedelta(days=60)
 
     inv = ReviewerInvitation.objects.create(
         submission=submission,

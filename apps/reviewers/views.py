@@ -105,7 +105,7 @@ def send_invitations(request, submission_pk):
             status__in=[SuggestionStatus.APPROVED, SuggestionStatus.INVITED],
         )
         deadline = request.POST.get('deadline')
-        deadline_date = deadline or (timezone.now().date() + timezone.timedelta(days=21))
+        deadline_date = deadline or (timezone.now().date() + timezone.timedelta(days=60))
         sent_count = 0
         for suggestion in approved:
             inv = (

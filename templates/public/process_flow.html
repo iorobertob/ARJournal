@@ -1,0 +1,493 @@
+{% extends 'base.html' %}
+{% block title %}Editorial Process — {{ journal.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .process-page { padding: var(--spacing-16) var(--spacing-6); }
+  .process-page__head { max-width: 70ch; margin-bottom: var(--spacing-8); }
+  .process-page__head h1 { margin-bottom: var(--spacing-4); }
+  .process-page__head p {
+    font-size: var(--size-sm);
+    color: var(--color-muted);
+    line-height: var(--leading-loose);
+  }
+
+  /* ---- Legend ---------------------------------------------------------- */
+  .flow-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-3) var(--spacing-6);
+    padding: var(--spacing-4) var(--spacing-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    margin-bottom: var(--spacing-4);
+  }
+  .flow-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    font-size: var(--size-xs, 0.75rem);
+    color: var(--color-text);
+  }
+  .dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.9);
+  }
+  .dot--author     { background: #FF4500; }
+  .dot--assistant  { background: #FFBD6D; }
+  .dot--editor     { background: #764D40; }
+  .dot--reviewer   { background: #1E8E5A; }
+  .dot--production { background: #2F6690; }
+
+  /* ---- Toolbar --------------------------------------------------------- */
+  .flow-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin-bottom: var(--spacing-2);
+  }
+  .flow-toolbar__hint {
+    margin-left: auto;
+    font-size: var(--size-xs, 0.75rem);
+    color: var(--color-light);
+  }
+  .flow-zoom-btn {
+    width: 38px; height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    border-radius: var(--radius);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+  }
+  .flow-zoom-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .flow-zoom-btn--reset { width: auto; padding: 0 var(--spacing-3); font-size: var(--size-xs, 0.75rem); }
+
+  /* ---- Pan/zoom viewport ---------------------------------------------- */
+  .flow-viewport {
+    position: relative;
+    height: 74vh;
+    min-height: 460px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background:
+      radial-gradient(circle, var(--color-border) 1px, transparent 1px) 0 0 / 22px 22px,
+      var(--color-surface);
+    touch-action: none;
+    cursor: grab;
+  }
+  .flow-viewport.is-panning { cursor: grabbing; }
+  .flow-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: max-content;
+    transform-origin: 0 0;
+    padding: var(--spacing-8);
+    will-change: transform;
+  }
+
+  /* ---- Flow blocks ----------------------------------------------------- */
+  .flow-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: max-content;
+  }
+  .stage {
+    width: 340px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius);
+    padding: var(--spacing-4) var(--spacing-6);
+    box-shadow: var(--shadow-sm);
+  }
+  .stage--decision { border-left-color: #764D40; background: #fbf6f4; }
+  .stage--terminal { border-left-color: #1E8E5A; }
+  .stage--exit     { border-left-color: var(--color-error); background: #fdf3f2; width: 240px; }
+  .stage__top {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-2);
+    margin-bottom: var(--spacing-2);
+  }
+  .stage__num {
+    font-size: var(--size-xs, 0.75rem);
+    font-weight: 700;
+    color: var(--color-accent);
+    letter-spacing: 0.04em;
+  }
+  .stage__status {
+    margin-left: auto;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-light);
+  }
+  .stage__title {
+    font-size: var(--size-base);
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0 0 var(--spacing-2);
+  }
+  .stage__desc {
+    font-size: var(--size-xs, 0.75rem);
+    color: var(--color-muted);
+    line-height: 1.45;
+    margin: 0 0 var(--spacing-3);
+  }
+  .stage__actors {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    flex-wrap: wrap;
+    padding-top: var(--spacing-2);
+    border-top: 1px dashed var(--color-border);
+  }
+  .stage__actors .actor {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    font-size: 0.66rem;
+    color: var(--color-muted);
+  }
+
+  /* Connectors */
+  .connector {
+    width: 2px;
+    height: var(--spacing-6);
+    background: var(--color-ash);
+    position: relative;
+  }
+  .connector::after {
+    content: "";
+    position: absolute;
+    bottom: -1px; left: 50%;
+    width: 7px; height: 7px;
+    border-right: 2px solid var(--color-ash);
+    border-bottom: 2px solid var(--color-ash);
+    transform: translateX(-50%) rotate(45deg);
+  }
+  .connector__label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(calc(-50% + 12px), -50%);
+    white-space: nowrap;
+    font-size: 0.62rem;
+    color: var(--color-muted);
+    background: var(--color-surface);
+    padding: 0 var(--spacing-1);
+  }
+
+  /* Branch row: a decision outcome that leaves the main spine to the left,
+     while the decision card stays centred on the spine (symmetric 3-col grid). */
+  .branch {
+    display: grid;
+    grid-template-columns: 240px 340px 240px;
+    gap: var(--spacing-4);
+    align-items: start;
+    width: max-content;
+    justify-content: center;
+  }
+  .branch__side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: var(--spacing-6);
+  }
+  .branch__arrow {
+    font-size: 0.62rem;
+    color: var(--color-error);
+    margin-bottom: var(--spacing-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .loopback {
+    font-size: 0.66rem;
+    color: #764D40;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    padding: var(--spacing-1) var(--spacing-3);
+    border: 1px dashed #764D40;
+    border-radius: var(--radius);
+    margin-top: var(--spacing-2);
+  }
+
+  @media (max-width: 700px) {
+    .process-page { padding: var(--spacing-10) var(--spacing-4); }
+    .flow-viewport { height: 68vh; }
+    .flow-toolbar__hint { display: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="process-page container">
+  <div class="process-page__head">
+    <a href="{% url 'submit_info' %}" style="display:inline-block;margin-bottom:var(--spacing-3);font-size:var(--size-sm);color:var(--color-accent)">⟵ Back to Submissions</a>
+    <h1>The Editorial Process</h1>
+    <p>From first draft to published article, every manuscript moves through the stages below.
+       Each block is colour-tagged to show who holds the action at that point. Drag to move around,
+       pinch or scroll to zoom — handy on a small screen.</p>
+  </div>
+
+  <div class="flow-legend" aria-label="Who is responsible at each stage">
+    <span class="flow-legend__item"><span class="dot dot--author"></span> Author</span>
+    <span class="flow-legend__item"><span class="dot dot--assistant"></span> Editorial Assistant</span>
+    <span class="flow-legend__item"><span class="dot dot--editor"></span> Editor</span>
+    <span class="flow-legend__item"><span class="dot dot--reviewer"></span> Reviewer</span>
+    <span class="flow-legend__item"><span class="dot dot--production"></span> Production &amp; Copyediting</span>
+  </div>
+
+  <div class="flow-toolbar">
+    <button type="button" class="flow-zoom-btn" data-zoom="out" aria-label="Zoom out">−</button>
+    <button type="button" class="flow-zoom-btn" data-zoom="in" aria-label="Zoom in">+</button>
+    <button type="button" class="flow-zoom-btn flow-zoom-btn--reset" data-zoom="reset">Reset</button>
+    <span class="flow-toolbar__hint">Scroll / pinch to zoom · drag to pan</span>
+  </div>
+
+  <div class="flow-viewport" id="flow-viewport">
+    <div class="flow-canvas" id="flow-canvas">
+      <div class="flow-col">
+
+        <div class="stage">
+          <div class="stage__top"><span class="stage__num">STAGE 1</span><span class="stage__status">Draft</span></div>
+          <h3 class="stage__title">Manuscript Preparation</h3>
+          <p class="stage__desc">Author prepares the manuscript from the LaTeX template pack and uploads the <code>.tex</code> file plus any images, audio or video.</p>
+          <div class="stage__actors"><span class="actor"><span class="dot dot--author"></span> Author</span></div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="stage">
+          <div class="stage__top"><span class="stage__num">STAGE 2</span><span class="stage__status">Submitted</span></div>
+          <h3 class="stage__title">Submission</h3>
+          <p class="stage__desc">The completed manuscript is submitted through the platform and enters the editorial queue, awaiting a technical check.</p>
+          <div class="stage__actors"><span class="actor"><span class="dot dot--author"></span> Author</span></div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="stage">
+          <div class="stage__top"><span class="stage__num">STAGE 3</span><span class="stage__status">Technical Check</span></div>
+          <h3 class="stage__title">Technical &amp; Similarity Check</h3>
+          <p class="stage__desc">Editorial Assistant verifies formatting, completeness and (where enabled) the Turnitin similarity report. Incomplete files are returned to the author.</p>
+          <div class="stage__actors"><span class="actor"><span class="dot dot--assistant"></span> Editorial Assistant</span></div>
+          <div class="loopback">↩ Returned to author for fixes</div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="branch">
+          <div class="branch__side">
+            <span class="branch__arrow">Desk reject ✕</span>
+            <div class="stage stage--exit">
+              <h3 class="stage__title" style="margin:0">Desk Rejected</h3>
+              <p class="stage__desc" style="margin:var(--spacing-2) 0 0">Out of scope or below threshold. Author notified.</p>
+            </div>
+          </div>
+          <div class="stage stage--decision">
+            <div class="stage__top"><span class="stage__num">STAGE 4</span><span class="stage__status">Desk Review</span></div>
+            <h3 class="stage__title">Desk Review</h3>
+            <p class="stage__desc">Handling Editor / Editor-in-Chief assess scope, originality and fit. The manuscript is either advanced to peer review or desk-rejected.</p>
+            <div class="stage__actors"><span class="actor"><span class="dot dot--editor"></span> Editor</span></div>
+          </div>
+          <div aria-hidden="true"></div>
+        </div>
+
+        <div class="connector"><span class="connector__label">Advanced</span></div>
+
+        <div class="stage">
+          <div class="stage__top"><span class="stage__num">STAGE 5</span><span class="stage__status">Reviewer Suggestion</span></div>
+          <h3 class="stage__title">Reviewer Assignment</h3>
+          <p class="stage__desc">The suggestion engine ranks candidates; the Handling Editor invites reviewers and confirms the review panel.</p>
+          <div class="stage__actors"><span class="actor"><span class="dot dot--editor"></span> Editor</span></div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="stage">
+          <div class="stage__top"><span class="stage__num">STAGE 6</span><span class="stage__status">Under Review</span></div>
+          <h3 class="stage__title">Peer Review</h3>
+          <p class="stage__desc">Reviewers read the work, annotate it and submit their reports and recommendations within the review deadline.</p>
+          <div class="stage__actors"><span class="actor"><span class="dot dot--reviewer"></span> Reviewer</span></div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="branch">
+          <div class="branch__side">
+            <span class="branch__arrow">Reject ✕</span>
+            <div class="stage stage--exit">
+              <h3 class="stage__title" style="margin:0">Rejected</h3>
+              <p class="stage__desc" style="margin:var(--spacing-2) 0 0">Reviews do not support publication. Author notified with feedback.</p>
+            </div>
+          </div>
+          <div class="stage stage--decision">
+            <div class="stage__top"><span class="stage__num">STAGE 7</span><span class="stage__status">Decision</span></div>
+            <h3 class="stage__title">Editorial Decision</h3>
+            <p class="stage__desc">The Editor weighs the reports and decides: accept, request revisions, or reject.</p>
+            <div class="stage__actors"><span class="actor"><span class="dot dot--editor"></span> Editor</span></div>
+          </div>
+          <div aria-hidden="true"></div>
+        </div>
+
+        <div class="connector"><span class="connector__label">Revisions requested</span></div>
+
+        <div class="stage">
+          <div class="stage__top"><span class="stage__num">STAGE 8</span><span class="stage__status">Revision · Revised</span></div>
+          <h3 class="stage__title">Revision &amp; Resubmission</h3>
+          <p class="stage__desc">Author addresses reviewer comments and resubmits. The revised manuscript returns to the Editor, and to peer review if a further round is needed.</p>
+          <div class="stage__actors">
+            <span class="actor"><span class="dot dot--author"></span> Author</span>
+            <span class="actor"><span class="dot dot--reviewer"></span> Reviewer</span>
+          </div>
+          <div class="loopback">↩ Loops back to Editorial Decision</div>
+        </div>
+
+        <div class="connector"><span class="connector__label">Accepted</span></div>
+
+        <div class="stage stage--terminal">
+          <div class="stage__top"><span class="stage__num">STAGE 9</span><span class="stage__status">In Production</span></div>
+          <h3 class="stage__title">Production</h3>
+          <p class="stage__desc">Copyediting, typesetting and the HTML / PDF build. Media is transcoded to protected streaming and a DOI is registered.</p>
+          <div class="stage__actors"><span class="actor"><span class="dot dot--production"></span> Production &amp; Copyediting</span></div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="stage stage--terminal">
+          <div class="stage__top"><span class="stage__num">STAGE 10</span><span class="stage__status">Published</span></div>
+          <h3 class="stage__title">Publication</h3>
+          <p class="stage__desc">The article goes live with its multimedia, assigned to an issue and openly accessible to readers.</p>
+          <div class="stage__actors">
+            <span class="actor"><span class="dot dot--editor"></span> Editor</span>
+            <span class="actor"><span class="dot dot--production"></span> Production</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var vp = document.getElementById('flow-viewport');
+  var canvas = document.getElementById('flow-canvas');
+  if (!vp || !canvas) return;
+
+  var scale = 1, tx = 0, ty = 0;
+  var MIN = 0.25, MAX = 3;
+  var pointers = new Map();
+  var pinchDist = 0, pinchScale = 1;
+  var panStart = null;
+
+  function apply() {
+    canvas.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+  }
+  function clamp(s) { return Math.min(MAX, Math.max(MIN, s)); }
+
+  // Zoom keeping the point (cx,cy) — in viewport pixels — anchored.
+  function zoomAt(newScale, cx, cy) {
+    newScale = clamp(newScale);
+    var ox = (cx - tx) / scale, oy = (cy - ty) / scale;
+    scale = newScale;
+    tx = cx - ox * scale;
+    ty = cy - oy * scale;
+    apply();
+  }
+
+  // Fit the canvas width into the viewport, centred horizontally, pinned to top.
+  function fit() {
+    var vw = vp.clientWidth, ch = canvas.scrollWidth || canvas.offsetWidth;
+    scale = clamp(Math.min(1, (vw - 24) / ch));
+    tx = Math.max(12, (vw - ch * scale) / 2);
+    ty = 12;
+    apply();
+  }
+
+  function localPoint(e) {
+    var r = vp.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  vp.addEventListener('pointerdown', function (e) {
+    vp.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, localPoint(e));
+    if (pointers.size === 1) {
+      panStart = { x: localPoint(e).x - tx, y: localPoint(e).y - ty };
+      vp.classList.add('is-panning');
+    } else if (pointers.size === 2) {
+      var pts = Array.from(pointers.values());
+      pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+      pinchScale = scale;
+      panStart = null;
+    }
+  });
+
+  vp.addEventListener('pointermove', function (e) {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, localPoint(e));
+
+    if (pointers.size === 2) {
+      var pts = Array.from(pointers.values());
+      var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+      var mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+      zoomAt(pinchScale * (dist / pinchDist), mid.x, mid.y);
+    } else if (pointers.size === 1 && panStart) {
+      var p = localPoint(e);
+      tx = p.x - panStart.x;
+      ty = p.y - panStart.y;
+      apply();
+    }
+  });
+
+  function endPointer(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinchDist = 0;
+    if (pointers.size === 0) { panStart = null; vp.classList.remove('is-panning'); }
+    else if (pointers.size === 1) {
+      var only = Array.from(pointers.values())[0];
+      panStart = { x: only.x - tx, y: only.y - ty };
+    }
+  }
+  vp.addEventListener('pointerup', endPointer);
+  vp.addEventListener('pointercancel', endPointer);
+
+  vp.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var p = localPoint(e);
+    var factor = Math.pow(1.0015, -e.deltaY);
+    zoomAt(scale * factor, p.x, p.y);
+  }, { passive: false });
+
+  document.querySelectorAll('[data-zoom]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var mode = btn.getAttribute('data-zoom');
+      var cx = vp.clientWidth / 2, cy = vp.clientHeight / 2;
+      if (mode === 'in') zoomAt(scale * 1.25, cx, cy);
+      else if (mode === 'out') zoomAt(scale / 1.25, cx, cy);
+      else fit();
+    });
+  });
+
+  window.addEventListener('resize', fit);
+  // Fit once layout has settled.
+  requestAnimationFrame(fit);
+})();
+</script>
+{% endblock %}

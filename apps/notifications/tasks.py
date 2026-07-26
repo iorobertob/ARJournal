@@ -259,6 +259,7 @@ def _editorial_users():
     from apps.accounts.models import User, UserRole
     editorial_roles = [
         UserRole.EDITORIAL_ASSISTANT, UserRole.HANDLING_EDITOR,
+        UserRole.ASSOCIATE_EDITOR, UserRole.GUEST_EDITOR,
         UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
         UserRole.JOURNAL_ADMIN, UserRole.SYSTEM_ADMIN,
     ]

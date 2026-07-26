@@ -14,6 +14,8 @@ class EditorialAssignment(models.Model):
         max_length=30,
         choices=[
             ('handling_editor', 'Handling Editor'),
+            ('associate_editor', 'Associate Editor'),
+            ('guest_editor', 'Guest Editor'),
             ('managing_editor', 'Managing Editor'),
             ('editor_in_chief', 'Editor-in-Chief'),
         ],

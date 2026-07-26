@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView
 from .models import Issue, EditorialBoardMember, FeaturedSelection, JournalConfig, ArticleType, NewsPost
 
@@ -319,6 +320,11 @@ def editorial_board(request):
 
 def submit_info(request):
     return render(request, 'public/submit.html', {})
+
+
+@login_required
+def process_flow(request):
+    return render(request, 'public/process_flow.html', {})
 
 
 def author_page(request, pk):

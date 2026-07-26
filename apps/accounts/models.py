@@ -33,6 +33,8 @@ class UserRole(models.TextChoices):
     REVIEWER = 'reviewer', 'Reviewer'
     EDITORIAL_ASSISTANT = 'editorial_assistant', 'Editorial Assistant'
     HANDLING_EDITOR = 'handling_editor', 'Handling Editor'
+    ASSOCIATE_EDITOR = 'associate_editor', 'Associate Editor'
+    GUEST_EDITOR = 'guest_editor', 'Guest Editor'
     EDITOR_IN_CHIEF = 'editor_in_chief', 'Editor-in-Chief'
     MANAGING_EDITOR = 'managing_editor', 'Managing Editor'
     COPYEDITOR = 'copyeditor', 'Copyeditor'
@@ -72,7 +74,8 @@ class User(AbstractUser):
         priority = [
             UserRole.SYSTEM_ADMIN, UserRole.JOURNAL_ADMIN,
             UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
-            UserRole.HANDLING_EDITOR, UserRole.EDITORIAL_ASSISTANT,
+            UserRole.ASSOCIATE_EDITOR, UserRole.HANDLING_EDITOR,
+            UserRole.GUEST_EDITOR, UserRole.EDITORIAL_ASSISTANT,
             UserRole.PRODUCTION_EDITOR, UserRole.COPYEDITOR,
             UserRole.REVIEWER, UserRole.AUTHOR,
         ]
@@ -90,6 +93,7 @@ class User(AbstractUser):
             return True
         editorial = {
             UserRole.EDITORIAL_ASSISTANT, UserRole.HANDLING_EDITOR,
+            UserRole.ASSOCIATE_EDITOR, UserRole.GUEST_EDITOR,
             UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
             UserRole.JOURNAL_ADMIN, UserRole.SYSTEM_ADMIN,
         }

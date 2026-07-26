@@ -1368,6 +1368,13 @@ a.home-current__title:hover { color: var(--color-accent); }
   max-width: 70ch;
 }
 
+.submit-page__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
 .submit-page__template h2,
 .submit-page__submit h2 {
   font-size: var(--size-xl);

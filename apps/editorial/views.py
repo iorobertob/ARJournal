@@ -350,7 +350,9 @@ def editor_search_json(request, submission_pk):
         Q(roles__contains=UserRole.HANDLING_EDITOR) |
         Q(roles__contains=UserRole.MANAGING_EDITOR) |
         Q(roles__contains=UserRole.EDITOR_IN_CHIEF) |
-        Q(roles__contains=UserRole.EDITORIAL_ASSISTANT),
+        Q(roles__contains=UserRole.EDITORIAL_ASSISTANT) |
+        Q(roles__contains=UserRole.ASSOCIATE_EDITOR) |
+        Q(roles__contains=UserRole.GUEST_EDITOR),
         is_active=True,
     )
     if q:

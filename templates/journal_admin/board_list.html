@@ -1,4 +1,5 @@
 {% extends "journal_admin/base.html" %}
+{% load static %}
 
 {% block title %}Editorial Board — Journal Admin{% endblock %}
 
@@ -17,7 +18,7 @@
         {% if member.photo %}
         <img src="{{ member.photo.url }}" alt="">
         {% else %}
-        <span class="jadmin-board-avatar__noimg">No photo</span>
+        <img src="{% static 'img/avatar-placeholder.svg' %}" alt="No photo">
         {% endif %}
       </div>
       <div class="jadmin-board-row__body">

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load content_filters %}
+{% load content_filters static %}
 {% block title %}Editorial Board — {{ journal.name }}{% endblock %}
 
 {% block content %}
@@ -12,7 +12,7 @@
   <ul class="board-list">
     {% for member in board %}
     <li class="board-member">
-      {% if member.photo %}<img src="{{ member.photo.url }}" alt="{{ member.name }}" class="board-member__photo">{% endif %}
+      {% if member.photo %}<img src="{{ member.photo.url }}" alt="{{ member.name }}" class="board-member__photo">{% else %}<img src="{% static 'img/avatar-placeholder.svg' %}" alt="" class="board-member__photo board-member__photo--placeholder">{% endif %}
       <div>
         <p class="board-member__name">{{ member.name }}</p>
         <p class="board-member__role">{{ member.role }}</p>

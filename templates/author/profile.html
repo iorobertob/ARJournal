@@ -16,9 +16,8 @@
          data-lightbox="{{ profile.photo.url }}"
          style="width:88px;height:88px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid var(--color-bg);box-shadow:0 0 0 2px var(--color-border);cursor:pointer;">
     {% else %}
-    <div style="width:88px;height:88px;border-radius:50%;background:var(--color-accent-light);border:3px solid var(--color-bg);box-shadow:0 0 0 2px var(--color-border);display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:2rem;color:var(--color-accent);flex-shrink:0;">
-      {{ request.user.display_name|first|upper }}
-    </div>
+    <img src="{% static 'img/avatar-placeholder.svg' %}" alt=""
+         style="width:88px;height:88px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid var(--color-bg);box-shadow:0 0 0 2px var(--color-border);">
     {% endif %}
 
     <!-- Name + meta -->

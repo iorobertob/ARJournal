@@ -24,9 +24,8 @@
         <img src="{{ profile.photo.url }}" alt=""
              style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--color-border);flex-shrink:0;">
         {% else %}
-        <div style="width:60px;height:60px;border-radius:50%;background:var(--color-accent-light);display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:1.4rem;color:var(--color-accent);flex-shrink:0;">
-          {{ request.user.display_name|first|upper }}
-        </div>
+        <img src="{% static 'img/avatar-placeholder.svg' %}" alt=""
+             style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--color-border);flex-shrink:0;">
         {% endif %}
         </div>
         <div>

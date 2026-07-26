@@ -150,7 +150,12 @@ def reviewer_workspace(request, invitation_pk):
         review.save(update_fields=['revision'])
     revision = _resolve_review_revision(review)
 
-    # Auto-ingest .tex manuscript if no canonical doc exists yet
+    # Build the canonical document on demand if it doesn't exist yet, so the
+    # manuscript is visible as soon as a reviewer opens the workspace. Handles
+    # both authoring paths: a .tex upload (LaTeX) and the WYSIWYG editor (whose
+    # content lives in wysiwyg_data, with no manuscript_file). A non-.tex upload
+    # (e.g. .docx/.pdf) is left un-ingested so the template offers a download.
+    from apps.submissions.models import RevisionSource
     canonical_doc_obj = None
     ingest_error = None
     if revision:
@@ -158,19 +163,19 @@ def reviewer_workspace(request, invitation_pk):
             canonical_doc_obj = revision.canonical_document
         except Exception:
             pass
-        if canonical_doc_obj is None and revision.manuscript_file:
-            fname = revision.manuscript_file.name.lower()
-            if fname.endswith('.tex'):
+        is_wysiwyg = revision.source_type == RevisionSource.WYSIWYG and revision.wysiwyg_data
+        is_tex = bool(revision.manuscript_file) and revision.manuscript_file.name.lower().endswith('.tex')
+        if canonical_doc_obj is None and (is_wysiwyg or is_tex):
+            try:
+                from apps.production.tasks import ingest_submission
+                ingest_submission(revision.pk)  # run synchronously
+                revision.refresh_from_db()
                 try:
-                    from apps.production.tasks import ingest_submission
-                    ingest_submission(revision.pk)  # run synchronously
-                    revision.refresh_from_db()
-                    try:
-                        canonical_doc_obj = revision.canonical_document
-                    except Exception:
-                        pass
-                except Exception as e:
-                    ingest_error = str(e)
+                    canonical_doc_obj = revision.canonical_document
+                except Exception:
+                    pass
+            except Exception as e:
+                ingest_error = str(e)
 
     canonical_doc = canonical_doc_obj.data if canonical_doc_obj else {}
 

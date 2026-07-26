@@ -1028,11 +1028,13 @@ a.home-current__title:hover { color: var(--color-accent); }
 
 .site-footer a:hover { color: var(--color-shadow); }
 
-.site-footer__copy {
+.site-footer .site-footer__copy {
   font-size: var(--size-xs);
   line-height: 1.2;
   color: var(--color-amber);
-  margin-top: var(--spacing-6);
+  margin-top: var(--spacing-8);
+  padding-top: var(--spacing-6);
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 /* ── Status Badges ───────────────────────────────────────────── */

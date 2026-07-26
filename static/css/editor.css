@@ -526,6 +526,29 @@
 
 .btn--full { width: 100%; text-align: center; }
 
+/* ── Bibliography search ────────────────────────────────────────────────────── */
+
+.bib-search {
+  margin-top: var(--spacing-4);
+}
+
+.bib-search__input {
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.bib-search__input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
 /* ── Bibliography list ──────────────────────────────────────────────────────── */
 
 .bib-list {
@@ -535,6 +558,17 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
+}
+
+/* Shown when a search filter matches no references. */
+.bib-empty {
+  font-size: 0.76rem;
+  font-family: var(--font-sans);
+  color: var(--color-muted);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px dashed var(--color-border);
+  border-radius: 4px;
+  text-align: center;
 }
 
 .bib-item {

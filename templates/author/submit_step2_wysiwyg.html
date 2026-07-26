@@ -206,6 +206,13 @@
           <input type="file" id="bibtex-file-input" accept=".bib" style="display:none;">
         </div>
 
+        <!-- Bibliography search (shown once there are references) -->
+        <div class="bib-search" id="bib-search-wrap" hidden>
+          <input type="search" id="bib-search" class="bib-search__input"
+                 placeholder="Search references…" autocomplete="off" spellcheck="false"
+                 aria-label="Search references">
+        </div>
+
         <!-- Bibliography list -->
         <ul id="bib-list" class="bib-list"></ul>
       </div>

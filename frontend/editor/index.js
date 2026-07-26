@@ -41,6 +41,7 @@ let csrfToken = null;
 let editingCitationIdx = null; // null = new entry, number = editing existing
 let _wrapperDefaultParent = null;
 let _wrapperDefaultNextSibling = null;
+let bibFilterQuery = '';       // live search filter for the References list
 
 // ── Utilities ────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,18 @@ function setStatusMsg(msg) {
 
 // ── Bibliography helpers ──────────────────────────────────────────────────────
 
+// Does a citation match the live search query? Matches across key, title,
+// authors, year, and container (journal/publisher) so any of them can be typed.
+function bibItemMatchesQuery(item, q) {
+  if (!q) return true;
+  const haystack = [
+    item.citeKey, item.title, item.year, item.type,
+    item.journal, item.publisher, item.booktitle,
+    ...(item.authors || []),
+  ].filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(q);
+}
+
 function renderBibliography() {
   const list = document.getElementById('bib-list');
   if (!list) return;
@@ -96,7 +109,20 @@ function renderBibliography() {
 
   list.innerHTML = '';
 
+  // Only expose the search field once there is something to search.
+  const searchWrap = document.getElementById('bib-search-wrap');
+  if (searchWrap) searchWrap.hidden = bibliography.length === 0;
+
+  const q = bibFilterQuery.trim().toLowerCase();
+  let shown = 0;
+
   bibliography.forEach((item, idx) => {
+    // Keep the item being edited visible regardless of the filter, so an
+    // in-progress inline edit is never hidden mid-type.
+    const matches = editingCitationIdx === idx || bibItemMatchesQuery(item, q);
+    if (!matches) return;
+    shown += 1;
+
     const li = document.createElement('li');
     li.className = 'bib-item';
     const authorYear = [(item.authors || []).join(', '), item.year].filter(Boolean).join(' · ');
@@ -118,6 +144,14 @@ function renderBibliography() {
       list.appendChild(formLi);
     }
   });
+
+  // Empty state when a filter excludes every reference.
+  if (q && shown === 0 && bibliography.length > 0) {
+    const li = document.createElement('li');
+    li.className = 'bib-empty';
+    li.textContent = 'No references match your search.';
+    list.appendChild(li);
+  }
 
   // Not editing: restore wrapper to its original DOM position (above the bib-list)
   if (editingCitationIdx === null && wrapper && _wrapperDefaultParent) {
@@ -486,6 +520,12 @@ function bindEvents() {
       autosave();
     }
     if (editBtn) editCitation(+editBtn.dataset.idx);
+  });
+
+  // Bibliography live search — filters the References list as the user types
+  document.getElementById('bib-search')?.addEventListener('input', e => {
+    bibFilterQuery = e.target.value;
+    renderBibliography();
   });
 
   // Manual citation form toggle — reset edit state when opened fresh

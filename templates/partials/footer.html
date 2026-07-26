@@ -6,6 +6,7 @@
       <p class="site-footer__blurb">
         {% if journal.footer_text %}{{ journal.footer_text }}{% else %}{{ journal.name }} is published twice yearly and features essays, visual projects, multimedia research, and experimental contributions across artistic research practices.{% endif %}
       </p>
+      <p class="site-footer__copy">&copy; {% now "Y" %}<br>{{ journal.name }} Journal<br>All rights reserved</p>
     </div>
     <div class="site-footer__col">
       <p class="site-footer__label">Explore</p>
@@ -36,9 +37,6 @@
         {% if journal.institution %}<li><p>{{ journal.institution }}</p></li>{% endif %}
         {% if journal.instagram_url %}<li><a href="{{ journal.instagram_url }}" target="_blank" rel="noopener">Instagram</a></li>{% endif %}
       </ul>
-    </div>
-    <div class="site-footer__col">
-      <p class="site-footer__copy">&copy; {% now "Y" %}<br>{{ journal.name }} Journal<br>All rights reserved</p>
     </div>
   </div>
 </footer>

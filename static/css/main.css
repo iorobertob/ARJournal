@@ -980,7 +980,7 @@ a.home-current__title:hover { color: var(--color-accent); }
 
 .site-footer__grid {
   display: grid;
-  grid-template-columns: 1.8fr 1fr 1fr 1fr 0.9fr;
+  grid-template-columns: 1.8fr 1fr 1fr 1fr;
   gap: var(--spacing-8);
 }
 
@@ -1032,6 +1032,7 @@ a.home-current__title:hover { color: var(--color-accent); }
   font-size: var(--size-xs);
   line-height: 1.2;
   color: var(--color-amber);
+  margin-top: var(--spacing-6);
 }
 
 /* ── Status Badges ───────────────────────────────────────────── */

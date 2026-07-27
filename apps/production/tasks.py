@@ -782,33 +782,23 @@ def generate_pdf(export_pk):
     _ttl_max    = 52
     _short_ttl  = submission.title[:_ttl_max] + ('…' if len(submission.title) > _ttl_max else '')
 
-    # Footer left: a DOI/ISSN identifier when the article has one; otherwise left
-    # blank (the journal name would just duplicate the © notice on the right).
-    if _doi:
-        _footer_l = f'https://doi.org/{_doi}'
-    elif _issn_o:
-        _footer_l = f'e-ISSN {_issn_o}'
-    elif _issn_p:
-        _footer_l = f'ISSN {_issn_p}'
-    else:
-        _footer_l = ''
-
     # Copyright holder is the journal, not a name token — deriving it from the
     # author's surname produced junk for accounts whose surname is a mail domain.
-    # The year is the article's publication year.
+    # The year is the article's publication year. Shown in the running header.
     _copyright = f'© {_copyright_year} {_jname}' if _copyright_year else f'© {_jname}'
 
     def _css_str(s):
         """Escape a value for use inside a CSS single-quoted content: string."""
         return s.replace('\\', '\\\\').replace("'", "\\'")
 
-    # ── @page rules — running header + footer on all pages ───────
+    # ── @page rules — running header (© + author/title) and a bare
+    #    page number in the footer. No footer rule or extra footer text. ──
     _page_css = f"""
     @page {{
       margin: 2.5cm 2cm 2.8cm 2cm;
 
       @top-left {{
-        content: '{_css_str(_jname)}';
+        content: '{_css_str(_copyright)}';
         font-family: Helvetica, Arial, sans-serif;
         font-size: 7.5pt; color: #999;
         border-bottom: 0.5pt solid #D0D0D0;
@@ -823,29 +813,11 @@ def generate_pdf(export_pk):
         padding-bottom: 5pt; vertical-align: bottom;
         text-align: right; width: 48%;
       }}
-      @bottom-left {{
-        content: '{_css_str(_footer_l)}';
-        font-family: Helvetica, Arial, sans-serif;
-        font-size: 7pt; color: #aaa;
-        border-top: 0.5pt solid #D0D0D0;
-        padding-top: 5pt; vertical-align: top;
-        width: 42%;
-      }}
       @bottom-center {{
-        content: counter(page) " / " counter(pages);
+        content: counter(page);
         font-family: Helvetica, Arial, sans-serif;
         font-size: 8.5pt; color: #888;
-        border-top: 0.5pt solid #D0D0D0;
-        padding-top: 5pt; vertical-align: top;
-        text-align: center; width: 16%;
-      }}
-      @bottom-right {{
-        content: '{_css_str(_copyright)}';
-        font-family: Helvetica, Arial, sans-serif;
-        font-size: 7pt; color: #aaa;
-        border-top: 0.5pt solid #D0D0D0;
-        padding-top: 5pt; vertical-align: top;
-        text-align: right; width: 42%;
+        vertical-align: top; text-align: center;
       }}
     }}
     /* First page: title block replaces running header */

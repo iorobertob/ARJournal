@@ -963,25 +963,34 @@ def generate_pdf(export_pk):
     }
     .article-blockquote p { margin: 0; }
     .article-cite { color: #21252B; text-decoration: none; }
-    /* Footnotes — float: footnote moves each note to the bottom of the page
-       where it is referenced. WeasyPrint auto-generates the in-text call and the
-       note marker from the `footnote` counter, so the manual markers baked into
-       the HTML (.fn-ref-num and .fn-note__num) are hidden here to avoid the
-       number appearing twice. The auto call/marker are styled to match. */
+    /* Footnotes — rendered as ENDNOTES in the PDF.
+       WeasyPrint's `float: footnote` cannot reliably keep a note on the same
+       page as its reference: when that page fills with body text it defers the
+       note to the next page's footnote area instead of reflowing the body. To
+       guarantee correct, predictable output we keep the in-text superscript
+       marker (.fn-ref-num) and collect the note bodies into a "Notes" section
+       at the end of the document (the .article-footnotes block, which the HTML
+       renderer already emits). The inline note copies (.fn-note) are hidden.
+       Numbering here is entirely from the HTML markers — no float:footnote, so
+       WeasyPrint generates no competing counter and nothing is doubled. */
     .fn-wrap { display: inline; }
-    .fn-ref-num { display: none; }
-    .fn-note { float: footnote; font-size: 9pt; color: #444; line-height: 1.4; }
-    .fn-note__num { display: none; }
-    .fn-note::footnote-call {
-      content: counter(footnote);
-      font-size: 0.7em; vertical-align: super; line-height: 0;
-      color: #FF4500; font-weight: bold;
+    .fn-ref-num { font-size: 0.7em; vertical-align: super; line-height: 0;
+                  color: #FF4500; font-weight: bold; }
+    .fn-note { display: none; }
+    .article-footnotes {
+      margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #E5E5E5;
     }
-    .fn-note::footnote-marker {
-      content: counter(footnote) '.';
-      color: #FF4500; font-weight: bold; padding-right: 0.3em;
+    .article-footnotes__title {
+      font-size: 10pt; text-transform: uppercase; letter-spacing: 0.05em;
+      color: #6B6B6B; margin-bottom: 0.6rem;
     }
-    .article-footnotes { display: none; }
+    .article-footnotes__list { list-style: none; padding: 0; margin: 0; }
+    .article-footnote {
+      font-size: 9pt; margin-bottom: 0.4rem;
+      padding-left: 1.4em; text-indent: -1.4em; line-height: 1.45;
+    }
+    .fn-note__num { font-weight: bold; color: #FF4500; margin-right: 0.3em; }
+    .fn-back { display: none; }
     .para-num { display: none; }
     pre.article-verbatim {
       background: #f5f5f5; border: 1px solid #E5E5E5; border-radius: 3px;

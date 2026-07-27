@@ -755,6 +755,20 @@ def generate_pdf(export_pk):
     _year       = str(_issue.year)   if _issue else ''
     _issue_title = html_lib.escape(_issue.title or '') if _issue else ''
 
+    # ── Publication + acceptance dates (cover line + footer copyright year) ──
+    _pub_dt = getattr(build, 'published_at', None) or getattr(build, 'built_at', None)
+    from apps.editorial.models import DecisionType as _DecisionType
+    _accept_decision = (
+        submission.editorial_decisions
+        .filter(decision_type=_DecisionType.ACCEPT)
+        .order_by('-sent_at').first()
+    )
+    _approved_dt = _accept_decision.sent_at if _accept_decision else None
+    _pub_date_str      = _pub_dt.strftime('%d %B %Y') if _pub_dt else ''
+    _approved_date_str = _approved_dt.strftime('%d %B %Y') if _approved_dt else ''
+    # Copyright year: the article's publication year, falling back to the issue year.
+    _copyright_year = str(_pub_dt.year) if _pub_dt else _year
+
     _article_type = ''
     if hasattr(submission, 'get_article_type_display'):
         _article_type = submission.get_article_type_display()
@@ -768,7 +782,8 @@ def generate_pdf(export_pk):
     _ttl_max    = 52
     _short_ttl  = submission.title[:_ttl_max] + ('…' if len(submission.title) > _ttl_max else '')
 
-    # Footer left: prefer DOI → online ISSN → print ISSN → journal name
+    # Footer left: a DOI/ISSN identifier when the article has one; otherwise left
+    # blank (the journal name would just duplicate the © notice on the right).
     if _doi:
         _footer_l = f'https://doi.org/{_doi}'
     elif _issn_o:
@@ -776,11 +791,12 @@ def generate_pdf(export_pk):
     elif _issn_p:
         _footer_l = f'ISSN {_issn_p}'
     else:
-        _footer_l = _jname
+        _footer_l = ''
 
     # Copyright holder is the journal, not a name token — deriving it from the
     # author's surname produced junk for accounts whose surname is a mail domain.
-    _copyright = f'© {_year} {_jname}' if _year else f'© {_jname}'
+    # The year is the article's publication year.
+    _copyright = f'© {_copyright_year} {_jname}' if _copyright_year else f'© {_jname}'
 
     def _css_str(s):
         """Escape a value for use inside a CSS single-quoted content: string."""
@@ -894,6 +910,10 @@ def generate_pdf(export_pk):
       font-family: Helvetica, Arial, sans-serif;
       font-size: 9.5pt; font-style: italic;
       color: #666; margin: 0 0 0.12rem;
+    }
+    .pdf-cover__dates {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 8.5pt; color: #888; margin: 0.2rem 0 0.12rem;
     }
     .pdf-cover__author-orcid {
       font-family: Helvetica, Arial, sans-serif;
@@ -1082,6 +1102,16 @@ def generate_pdf(export_pk):
         f'<p class="pdf-cover__author-affil">{", ".join(_affil_parts)}</p>'
         if _affil_parts else ''
     )
+    # Approved / Published dates line (below the affiliation)
+    _date_bits = []
+    if _approved_date_str:
+        _date_bits.append(f'Approved on {_approved_date_str}')
+    if _pub_date_str:
+        _date_bits.append(f'Published on {_pub_date_str}')
+    _dates_line = (
+        f'<p class="pdf-cover__dates">{" &middot; ".join(_date_bits)}</p>'
+        if _date_bits else ''
+    )
     _orcid_line = (
         f'<p class="pdf-cover__author-orcid">ORCID:&#8239;'
         f'<a href="https://orcid.org/{_orcid}">{_orcid}</a></p>'
@@ -1130,6 +1160,7 @@ def generate_pdf(export_pk):
   {'<p class="pdf-cover__subtitle">' + html_lib.escape(submission.subtitle) + '</p>' if submission.subtitle else ''}
   <p class="pdf-cover__author-name">{_author_name}</p>
   {_affil_line}
+  {_dates_line}
   {_orcid_line}
   {_ids_html}
   {_abs_block}

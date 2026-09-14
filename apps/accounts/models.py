@@ -102,6 +102,15 @@ class User(AbstractUser):
     def has_reviewer_access(self):
         return self.has_role(UserRole.REVIEWER) or self.has_editorial_access()
 
+    def can_purge_content(self):
+        """Prerogative to PERMANENTLY delete articles/records — an override of the
+        journal's default 'never delete the scholarly record' policy, reserved for
+        the super-admin (Django superuser or System Administrator) and the
+        Editor-in-Chief. Every use is recorded in the immutable audit log."""
+        return self.is_superuser or self.has_role(
+            UserRole.SYSTEM_ADMIN, UserRole.EDITOR_IN_CHIEF,
+        )
+
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')

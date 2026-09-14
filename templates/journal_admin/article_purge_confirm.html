@@ -1,0 +1,64 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Permanently delete — {{ submission.title|truncatechars:40 }}{% endblock %}
+
+{% block jadmin_content %}
+<p style="margin-bottom:var(--spacing-4);">
+  <a href="{% url 'journal_admin_article' submission.pk %}">← Back to article</a>
+</p>
+
+<h1 class="jadmin-page-title" style="color:#b91c1c;">Permanently delete this article</h1>
+
+<div class="jadmin-card" style="border:1px solid #fecaca;background:#fef2f2;padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-6);max-width:70ch;">
+  <p style="margin:0 0 var(--spacing-3);font-weight:600;color:#b91c1c;">This cannot be undone.</p>
+  <p style="margin:0 0 var(--spacing-3);font-size:var(--size-sm);color:var(--color-text);">
+    The journal normally never deletes the scholarly record. This override is reserved
+    for removing test, dummy or garbage submissions. It will permanently remove the
+    submission and everything belonging to it:
+  </p>
+  <ul style="margin:0 0 var(--spacing-3) var(--spacing-4);font-size:var(--size-sm);color:var(--color-text);">
+    <li>{{ rev_count }} revision{{ rev_count|pluralize }} (manuscripts, editor content, assets)</li>
+    <li>Any published HTML build, PDF exports and canonical document</li>
+    <li>{{ review_count }} review{{ review_count|pluralize }}, invitations, decisions and assignments</li>
+  </ul>
+  <p style="margin:0;font-size:var(--size-sm);color:var(--color-muted);">
+    A permanent record of this deletion — what it was, who removed it, when, and why —
+    is kept in the <strong>audit log</strong> and cannot be erased.
+  </p>
+</div>
+
+<div class="jadmin-card" style="padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-6);max-width:70ch;">
+  <table style="width:100%;font-size:var(--size-sm);border-collapse:collapse;">
+    <tr><td style="padding:var(--spacing-1) 0;color:var(--color-muted);width:130px;">Title</td><td style="padding:var(--spacing-1) 0;font-weight:600;">{{ submission.title }}</td></tr>
+    <tr><td style="padding:var(--spacing-1) 0;color:var(--color-muted);">Author</td><td style="padding:var(--spacing-1) 0;">{{ submission.author.display_name }}</td></tr>
+    <tr><td style="padding:var(--spacing-1) 0;color:var(--color-muted);">Status</td><td style="padding:var(--spacing-1) 0;">{{ submission.get_status_display }}</td></tr>
+    {% if submission.issue %}<tr><td style="padding:var(--spacing-1) 0;color:var(--color-muted);">Issue</td><td style="padding:var(--spacing-1) 0;">{{ submission.issue }}</td></tr>{% endif %}
+  </table>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<p style="color:#b91c1c;font-size:var(--size-sm);margin-bottom:var(--spacing-3);">{{ message }}</p>
+{% endfor %}
+{% endif %}
+
+<form method="post" style="max-width:70ch;">
+  {% csrf_token %}
+  <div class="form__group" style="margin-bottom:var(--spacing-4);">
+    <label class="form__label" for="reason">Reason for deletion <span style="color:#b91c1c;">*</span></label>
+    <textarea id="reason" name="reason" rows="3" required
+              placeholder="e.g. Test article created during setup — not a real submission."
+              style="width:100%;padding:var(--spacing-2) var(--spacing-3);border:1px solid var(--color-border);border-radius:var(--radius);font-family:var(--font-sans);font-size:var(--size-sm);background:var(--color-bg);">{{ request.POST.reason }}</textarea>
+    <p style="font-size:var(--size-xs);color:var(--color-muted);margin-top:var(--spacing-1);">Recorded permanently in the audit log.</p>
+  </div>
+  <div class="form__group" style="margin-bottom:var(--spacing-4);">
+    <label class="form__label" for="confirm">Type <strong>DELETE</strong> to confirm</label>
+    <input type="text" id="confirm" name="confirm" autocomplete="off" placeholder="DELETE"
+           style="padding:var(--spacing-2) var(--spacing-3);border:1px solid var(--color-border);border-radius:var(--radius);font-family:var(--font-sans);font-size:var(--size-sm);width:200px;background:var(--color-bg);">
+  </div>
+  <div style="display:flex;gap:var(--spacing-3);align-items:center;">
+    <button type="submit" class="btn" style="background:#b91c1c;color:#fff;border:none;">Permanently delete</button>
+    <a href="{% url 'journal_admin_article' submission.pk %}" style="font-size:var(--size-sm);color:var(--color-muted);">Cancel</a>
+  </div>
+</form>
+{% endblock %}

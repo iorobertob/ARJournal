@@ -732,6 +732,28 @@ a.home-current__title:hover { color: var(--color-accent); }
   object-fit: cover;
 }
 
+/* Current-issue label + cover link to the issue page — same look, subtle hover */
+.home-current__issue-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+.home-current__issue-link:hover { color: var(--color-accent); }
+
+.home-current__media-link {
+  display: block;
+  overflow: hidden;            /* clip the subtle hover zoom */
+}
+.home-current__media-link img {
+  display: block;
+  transition: transform var(--transition), opacity var(--transition);
+}
+.home-current__media-link:hover img {
+  transform: scale(1.02);
+  opacity: 0.94;
+}
+
 .media-caption {
   font-size: var(--size-xs);
   line-height: 1.2;

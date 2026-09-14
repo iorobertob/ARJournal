@@ -33,15 +33,7 @@
   </div>
   {% endif %}
 
-  {% for issue in issues %}
-  <div class="prose" style="margin-top: var(--spacing-12);">
-    <h2 class="section-heading">Call for submissions — Issue #{{ issue.number }} ({{ issue.year }})</h2>
-    <p>{{ issue.call_for_submissions|linebreaksbr }}</p>
-    <a href="{% url 'submit_info' %}" class="btn btn--outline">Submit ⟶</a>
-  </div>
-  {% endfor %}
-
-  {% if not posts and not journal.news_text and not issues %}
+  {% if not posts and not journal.news_text %}
   <p style="color: var(--color-muted);">No news at the moment — check back soon.</p>
   {% endif %}
 </section>

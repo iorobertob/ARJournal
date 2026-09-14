@@ -261,7 +261,14 @@ class FeaturedSelection(models.Model):
         sel = cls.objects.filter(starts_at__lte=now, ends_at__gt=now).first()
         if sel:
             return sel
-        published = list(HTMLBuild.objects.filter(is_published=True).values_list('pk', flat=True))
+        # Only auto-feature articles whose issue is also published (an unpublished
+        # issue hides its page but keeps article builds published).
+        published = list(
+            HTMLBuild.objects
+            .filter(is_published=True,
+                    document__revision__submission__issue__is_published=True)
+            .values_list('pk', flat=True)
+        )
         if not published:
             return None
         picks = random.sample(published, min(cls.NUM_FEATURED, len(published)))

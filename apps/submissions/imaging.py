@@ -36,6 +36,62 @@ PRINT_CAP = 1600         # max width worth embedding into a PDF
 WEBP_QUALITY = 82
 
 
+def pad_to_aspect_ratio(uploaded_file, ratio_w, ratio_h, bg=(244, 242, 247), tol=0.01):
+    """Letterbox/pillarbox an uploaded image onto a canvas of the target aspect
+    ratio, **without cropping or stretching** — the whole image is kept at its
+    original proportions and the extra space is filled with a solid background.
+
+    ``uploaded_file`` is a Django UploadedFile / FieldFile. Returns a
+    ``(filename, ContentFile)`` pair to assign to an ImageField, or ``None`` when
+    the image already matches the ratio (within ``tol``) or can't be read as an
+    image. Default ``bg`` is the design system's "ghost" (#F4F2F7), matching the
+    CSS fallback behind issue covers.
+    """
+    try:
+        uploaded_file.seek(0)
+        img = ImageOps.exif_transpose(Image.open(uploaded_file))
+        img.load()
+    except Exception:
+        return None
+    finally:
+        try:
+            uploaded_file.seek(0)   # rewind so a caller can still save the original
+        except Exception:
+            pass
+
+    iw, ih = img.size
+    if iw <= 0 or ih <= 0:
+        return None
+
+    target = ratio_w / ratio_h
+    current = iw / ih
+    if abs(current - target) <= tol * target:
+        return None  # already the expected ratio — leave it untouched
+
+    # Flatten onto the opaque background (also resolves alpha/palette modes).
+    if img.mode in ('RGBA', 'LA', 'P'):
+        rgba = img.convert('RGBA')
+        base = Image.new('RGBA', rgba.size, bg + (255,))
+        base.alpha_composite(rgba)
+        img = base.convert('RGB')
+    elif img.mode != 'RGB':
+        img = img.convert('RGB')
+
+    # Grow only the deficient dimension so nothing is scaled down or cropped.
+    if current > target:                 # too wide → add top/bottom padding
+        canvas_w, canvas_h = iw, round(iw / target)
+    else:                                # too tall/narrow → add left/right padding
+        canvas_w, canvas_h = round(ih * target), ih
+
+    canvas = Image.new('RGB', (canvas_w, canvas_h), bg)
+    canvas.paste(img, ((canvas_w - iw) // 2, (canvas_h - ih) // 2))
+
+    buf = io.BytesIO()
+    canvas.save(buf, 'JPEG', quality=90)
+    stem = os.path.splitext(os.path.basename(getattr(uploaded_file, 'name', 'cover')))[0]
+    return (f'{stem}.jpg', ContentFile(buf.getvalue()))
+
+
 def detect_role(width, height, hint=None):
     """Resolve the image role. An explicit hint wins; otherwise infer from size."""
     if hint in ('content', 'hero', 'logo'):

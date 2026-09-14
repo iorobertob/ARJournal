@@ -279,6 +279,18 @@ def issue_list(request):
     return render(request, 'journal_admin/issue_list.html', {'issues': issues})
 
 
+def _set_issue_cover(issue, uploaded):
+    """Assign an uploaded cover to an Issue, first adapting it to the 3:4 display
+    ratio by padding (no crop, no stretch) when it doesn't already match."""
+    from apps.submissions.imaging import pad_to_aspect_ratio
+    result = pad_to_aspect_ratio(uploaded, 3, 4)
+    if result is None:
+        issue.cover_image = uploaded
+    else:
+        name, content = result
+        issue.cover_image.save(name, content, save=False)
+
+
 @journal_admin_required
 def issue_create(request):
     from apps.journal.models import Issue
@@ -295,7 +307,7 @@ def issue_create(request):
             is_current=True,
         )
         if request.FILES.get('cover_image'):
-            issue.cover_image = request.FILES['cover_image']
+            _set_issue_cover(issue, request.FILES['cover_image'])
             issue.save()
         messages.success(request, f'Issue #{issue.number} created.')
         return redirect('journal_admin_issue_edit', pk=issue.pk)
@@ -327,7 +339,7 @@ def issue_edit(request, pk):
             issue.call_for_submissions = request.POST.get('call_for_submissions', '')
             issue.is_current = bool(request.POST.get('is_current'))
             if request.FILES.get('cover_image'):
-                issue.cover_image = request.FILES['cover_image']
+                _set_issue_cover(issue, request.FILES['cover_image'])
             issue.save()
             messages.success(request, 'Issue updated.')
 
@@ -524,6 +536,323 @@ def article_detail_admin(request, pk):
         'build': build,
         'current_rev': current_rev,
     })
+
+
+# ── Permanent deletion (purge) — prerogative override ────────────
+#
+# The journal never deletes the scholarly record as part of normal workflow.
+# This is a deliberate override for removing test/dummy/garbage submissions,
+# reserved for the super-admin or Editor-in-Chief and always audit-logged. The
+# AuditEvent survives the deletion (its submission FK is SET_NULL), so a durable,
+# tamper-evident trail of *what was removed, by whom, when, and why* remains.
+
+def _cleanup_submission_files(submission):
+    """Best-effort removal of a purged submission's stored files (originals only —
+    generated HLS/derivative packages are left to the periodic cleanup)."""
+    def _rm(filefield):
+        try:
+            if filefield:
+                filefield.delete(save=False)
+        except Exception:
+            pass
+    _rm(getattr(submission, 'cover_image', None))
+    for rev in submission.revisions.all():
+        _rm(getattr(rev, 'manuscript_file', None))
+        _rm(getattr(rev, 'response_letter', None))
+        for asset in rev.assets.all():
+            _rm(getattr(asset, 'file', None))
+
+
+@journal_admin_required
+def article_purge(request, pk):
+    """Permanently delete a submission and everything cascading from it."""
+    from apps.submissions.models import Submission
+    from apps.reviews.models import Review
+    from apps.notifications.models import AuditEvent
+
+    if not request.user.can_purge_content():
+        return render(request, '403.html', {
+            'message': 'Only the Editor-in-Chief or a System Administrator may permanently delete an article.'
+        }, status=403)
+
+    submission = get_object_or_404(Submission, pk=pk)
+    review_count = Review.objects.filter(invitation__submission=submission).count()
+    rev_count = submission.revisions.count()
+
+    if request.method == 'POST':
+        reason = (request.POST.get('reason') or '').strip()
+        confirm = (request.POST.get('confirm') or '').strip()
+        if not reason:
+            messages.error(request, 'A reason is required to permanently delete an article.')
+            return redirect('journal_admin_article_purge', pk=pk)
+        if confirm != 'DELETE':
+            messages.error(request, 'Type DELETE exactly to confirm permanent deletion.')
+            return redirect('journal_admin_article_purge', pk=pk)
+
+        # DOI (if any) for the record.
+        doi = ''
+        try:
+            _doc = getattr(submission.get_current_revision(), 'canonical_document', None)
+            doi = getattr(getattr(_doc, 'doi_deposit', None), 'doi', '') or ''
+        except Exception:
+            pass
+
+        # Snapshot everything meaningful into the audit payload BEFORE deleting,
+        # because the submission FK is cleared once the row is gone.
+        snapshot = {
+            'submission_id': submission.pk,
+            'title': submission.title,
+            'author': submission.author.display_name if submission.author else '',
+            'author_email': submission.author.email if submission.author else '',
+            'status': submission.get_status_display(),
+            'article_type': submission.get_article_type_display() if hasattr(submission, 'get_article_type_display') else submission.article_type,
+            'issue': str(submission.issue) if submission.issue else '',
+            'doi': doi,
+            'revisions': rev_count,
+            'reviews': review_count,
+            'reason': reason,
+        }
+        AuditEvent.objects.create(
+            submission=submission,          # FK → SET_NULL on delete; payload persists
+            actor=request.user,
+            event_type='submission_purged',
+            payload=snapshot,
+        )
+
+        _cleanup_submission_files(submission)
+        title = submission.title
+        submission.delete()
+        messages.success(
+            request,
+            f'“{title}” was permanently deleted. This action is recorded in the audit log.',
+        )
+        return redirect('journal_admin_audit_log')
+
+    return render(request, 'journal_admin/article_purge_confirm.html', {
+        'submission': submission,
+        'rev_count': rev_count,
+        'review_count': review_count,
+    })
+
+
+# ── Audit log — unified article history ──────────────────────────
+#
+# One chronological record combining review results, editorial decisions,
+# publications and every workflow AuditEvent (assignments, invitations,
+# permanent deletions). Aggregated from the source models at read time so the
+# full history is covered without back-filling events.
+
+_HISTORY_CATEGORIES = [
+    ('reviews', 'Review results'),
+    ('decisions', 'Decisions'),
+    ('publications', 'Publications'),
+    ('workflow', 'Workflow'),
+    ('deletions', 'Deletions'),
+]
+
+
+_HISTORY_SORT_KEYS = {
+    'timestamp': lambda r: r['timestamp'],
+    'category': lambda r: r['category_label'].lower(),
+    'event': lambda r: r['event'].lower(),
+    'actor': lambda r: (r['actor'] or '').lower(),
+    'article': lambda r: (r['article_title'] or '').lower(),
+    'details': lambda r: (r['details'] or '').lower(),
+}
+
+
+def _build_history_rows(category='', q='', sort='timestamp', direction='desc'):
+    """Return normalized history rows across all sources, filtered and sorted.
+
+    Each row: {timestamp, category, category_label, event, actor,
+    article_title, article_pk, details}. ``category`` filters to one source,
+    ``q`` is a free-text search over the visible fields, and ``sort``/``direction``
+    order the result (default: newest first).
+    """
+    from apps.notifications.models import AuditEvent
+    from apps.reviews.models import Review
+    from apps.editorial.models import EditorialDecision
+    from apps.production.models import HTMLBuild
+
+    want = lambda c: (not category) or category == c
+    rows = []
+
+    if want('reviews'):
+        for r in (Review.objects.exclude(submitted_at__isnull=True)
+                  .select_related('invitation__reviewer', 'invitation__submission')):
+            sub = r.invitation.submission
+            rows.append({
+                'timestamp': r.submitted_at,
+                'category': 'reviews', 'category_label': 'Review',
+                'event': 'Review submitted',
+                'actor': r.invitation.reviewer.display_name if r.invitation.reviewer else '',
+                'article_title': sub.title if sub else '',
+                'article_pk': sub.pk if sub else None,
+                'details': 'Recommendation: ' + r.get_recommendation_display() if r.recommendation else 'No recommendation',
+            })
+
+    if want('decisions'):
+        for d in EditorialDecision.objects.select_related('editor', 'submission'):
+            rows.append({
+                'timestamp': d.sent_at or d.created_at,
+                'category': 'decisions', 'category_label': 'Decision',
+                'event': d.get_decision_type_display(),
+                'actor': d.editor.display_name if d.editor else '',
+                'article_title': d.submission.title if d.submission else '',
+                'article_pk': d.submission.pk if d.submission else None,
+                'details': f'Round {d.round}',
+            })
+
+    if want('publications'):
+        for b in (HTMLBuild.objects.filter(is_published=True, published_at__isnull=False)
+                  .select_related('document__revision__submission__issue')):
+            sub = b.document.revision.submission
+            rows.append({
+                'timestamp': b.published_at,
+                'category': 'publications', 'category_label': 'Publication',
+                'event': 'Article published',
+                'actor': '',
+                'article_title': sub.title if sub else '',
+                'article_pk': sub.pk if sub else None,
+                'details': str(sub.issue) if sub and sub.issue else (f'{b.access_mode.title()} access' if b.access_mode else ''),
+            })
+
+    if (not category) or category in ('workflow', 'deletions'):
+        for e in AuditEvent.objects.select_related('actor', 'submission'):
+            is_purge = e.event_type == 'submission_purged'
+            cat = 'deletions' if is_purge else 'workflow'
+            if category and category != cat:
+                continue
+            rows.append({
+                'timestamp': e.timestamp,
+                'category': cat,
+                'category_label': 'Deletion' if is_purge else 'Workflow',
+                'event': 'Permanently deleted' if is_purge else e.event_type.replace('_', ' ').capitalize(),
+                'actor': e.actor.display_name if e.actor else '',
+                'article_title': e.submission.title if e.submission else e.payload.get('title', ''),
+                'article_pk': e.submission.pk if e.submission else None,
+                'details': ('Reason: ' + e.payload.get('reason', '')) if is_purge and e.payload.get('reason')
+                           else e.payload.get('note', ''),
+            })
+
+    # Free-text search across the visible columns.
+    if q:
+        ql = q.lower()
+        rows = [
+            r for r in rows
+            if ql in ' '.join([
+                r['category_label'], r['event'], r['actor'] or '',
+                r['article_title'] or '', r['details'] or '',
+            ]).lower()
+        ]
+
+    # Sort: base recency order, then the chosen column (stable → ties stay newest-first).
+    rows.sort(key=lambda r: r['timestamp'], reverse=True)
+    if sort in _HISTORY_SORT_KEYS and sort != 'timestamp':
+        rows.sort(key=_HISTORY_SORT_KEYS[sort], reverse=(direction != 'asc'))
+    elif sort == 'timestamp' and direction == 'asc':
+        rows.reverse()
+    return rows
+
+
+def _can_export_history(user):
+    """CSV export is limited to journal-admin-dashboard access."""
+    return user.is_superuser or user.has_role(
+        UserRole.JOURNAL_ADMIN, UserRole.SYSTEM_ADMIN,
+        UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
+    )
+
+
+def _history_params(request):
+    """Read + normalize the log's category / search / sort params."""
+    category = request.GET.get('category', '')
+    q = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'timestamp')
+    direction = request.GET.get('dir', 'desc')
+    if sort not in _HISTORY_SORT_KEYS:
+        sort = 'timestamp'
+    if direction not in ('asc', 'desc'):
+        direction = 'desc'
+    return category, q, sort, direction
+
+
+@login_required
+def audit_log(request):
+    from django.core.paginator import Paginator
+    from urllib.parse import urlencode
+
+    if not request.user.has_editorial_access():
+        return render(request, '403.html', {'message': 'Editorial access required.'}, status=403)
+
+    category, q, sort, direction = _history_params(request)
+    rows = _build_history_rows(category, q, sort, direction)
+    paginator = Paginator(rows, 100)
+    page = paginator.get_page(request.GET.get('page', 1))
+
+    def qs(**over):
+        params = {'category': category, 'q': q, 'sort': sort, 'dir': direction}
+        params.update(over)
+        return urlencode({k: v for k, v in params.items() if v})
+
+    # Sortable column headers (each toggles/sets sort + direction).
+    columns = []
+    for key, label in [('timestamp', 'When'), ('category', 'Category'), ('event', 'Event'),
+                       ('actor', 'Actor'), ('article', 'Article'), ('details', 'Details')]:
+        active = (sort == key)
+        if active:
+            nxt = 'asc' if direction == 'desc' else 'desc'
+        else:
+            nxt = 'desc' if key == 'timestamp' else 'asc'
+        columns.append({
+            'label': label, 'active': active,
+            'arrow': ('▲' if direction == 'asc' else '▼') if active else '',
+            'url': '?' + qs(sort=key, dir=nxt, page=''),
+        })
+
+    cat_pills = [{'label': 'All', 'active': not category, 'url': '?' + qs(category='', page='')}]
+    for value, label in _HISTORY_CATEGORIES:
+        cat_pills.append({'label': label, 'active': category == value,
+                          'url': '?' + qs(category=value, page='')})
+
+    return render(request, 'journal_admin/audit_log.html', {
+        'page': page,
+        'category': category,
+        'q': q,
+        'sort': sort,
+        'direction': direction,
+        'columns': columns,
+        'cat_pills': cat_pills,
+        'page_qs': qs(page=''),
+        'clear_q_url': '?' + qs(q='', page=''),
+        'total': len(rows),
+        'can_export': _can_export_history(request.user),
+        'export_url': '?' + qs(page=''),
+    })
+
+
+@journal_admin_required
+def audit_log_export(request):
+    """Download the history as CSV (journal-admin-dashboard access only).
+    Honours the current category filter, search and sort."""
+    import csv
+    from django.http import HttpResponse
+
+    category, q, sort, direction = _history_params(request)
+    rows = _build_history_rows(category, q, sort, direction)
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = (
+        f'attachment; filename="inact-history-{timezone.now():%Y%m%d-%H%M}.csv"'
+    )
+    writer = csv.writer(response)
+    writer.writerow(['Timestamp (UTC)', 'Category', 'Event', 'Actor', 'Article', 'Details'])
+    for r in rows:
+        ts = r['timestamp']
+        writer.writerow([
+            ts.strftime('%Y-%m-%d %H:%M:%S') if ts else '',
+            r['category_label'], r['event'], r['actor'], r['article_title'], r['details'],
+        ])
+    return response
 
 
 # ── Email Log ────────────────────────────────────────────────────

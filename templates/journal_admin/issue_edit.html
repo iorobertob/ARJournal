@@ -21,14 +21,14 @@
     <div style="display:flex;gap:var(--spacing-3);align-items:center;margin-top:var(--spacing-1);">
       {% if issue.is_published %}
         <span id="publish-badge" class="role-badge" style="background:#d1fae5;color:#065f46;font-size:var(--size-sm);">Issue live since {{ issue.published_at|date:"d M Y" }}</span>
-        <form method="post" id="form-unpublish" style="display:inline;"
+        <form method="post" id="form-unpublish" data-full-reload style="display:inline;"
               data-confirm="Unpublish this issue? The issue page will be hidden but individual published articles remain accessible.">
           {% csrf_token %}
           <input type="hidden" name="action" value="unpublish">
           <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Unpublish Issue</button>
         </form>
       {% else %}
-        <form method="post" id="form-publish" style="display:inline;"
+        <form method="post" id="form-publish" data-full-reload style="display:inline;"
               data-confirm="Publish Issue #{{ issue.number }}? The issue page will become visible on the public site. Individual articles must be published separately.">
           {% csrf_token %}
           <input type="hidden" name="action" value="publish">
@@ -361,8 +361,11 @@
   sink.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;';
   document.body.appendChild(sink);
 
-  // Point every form at the sink
+  // Point every form at the sink — except those marked data-full-reload
+  // (publish / unpublish), which must submit normally so the browser follows
+  // the redirect and the page reloads with the updated buttons.
   document.querySelectorAll('form').forEach(function (f) {
+    if (f.hasAttribute('data-full-reload')) return;
     f.target = 'jadmin-sink';
   });
 
@@ -432,6 +435,9 @@
   // ── Intercept all submits ────────────────────────────────────
   document.addEventListener('submit', function (e) {
     var form   = e.target;
+    // Publish/unpublish must do a real navigation (full reload → correct buttons),
+    // so leave their target alone and skip the optimistic in-place handling.
+    if (form.hasAttribute('data-full-reload')) return;
     var action = (form.querySelector('[name="action"]') || {}).value;
     form.target = 'jadmin-sink'; // ensure sink target for dynamically added forms
 
@@ -647,13 +653,8 @@
 
     } else if (action === 'save') {
       toast('Issue details saved');
-
-    } else if (action === 'publish') {
-      toast('Issue published!');
-
-    } else if (action === 'unpublish') {
-      toast('Issue unpublished');
     }
+    // publish / unpublish are handled by a full page reload (see data-full-reload).
   });
 
 })();

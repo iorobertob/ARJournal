@@ -15,6 +15,10 @@ urlpatterns = [
     # Articles
     path('articles/', admin_views.article_list, name='journal_admin_articles'),
     path('articles/<int:pk>/', admin_views.article_detail_admin, name='journal_admin_article'),
+    path('articles/<int:pk>/purge/', admin_views.article_purge, name='journal_admin_article_purge'),
+    # Audit log (unified history — reviews, decisions, publications, deletions)
+    path('audit-log/', admin_views.audit_log, name='journal_admin_audit_log'),
+    path('audit-log/export/', admin_views.audit_log_export, name='journal_admin_audit_log_export'),
     # Email log
     path('email-log/', admin_views.email_log, name='journal_admin_email_log'),
     path('email-log/<int:pk>/preview/', admin_views.email_log_preview, name='journal_admin_email_log_preview'),

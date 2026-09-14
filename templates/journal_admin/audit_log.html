@@ -1,0 +1,99 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}History &amp; Audit Log — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--spacing-3);margin-bottom:var(--spacing-3);">
+  <h1 class="jadmin-page-title" style="margin:0;">History &amp; Audit Log</h1>
+  <div style="display:flex;align-items:center;gap:var(--spacing-3);">
+    <span style="font-size:var(--size-sm);color:var(--color-muted);">{{ total }} record{{ total|pluralize }}</span>
+    {% if can_export %}
+    <a href="{% url 'journal_admin_audit_log_export' %}{{ export_url }}" class="btn btn-sm btn-primary">Export CSV ↓</a>
+    {% endif %}
+  </div>
+</div>
+
+<p style="color:var(--color-muted);font-size:var(--size-sm);margin-bottom:var(--spacing-4);max-width:70ch;">
+  A chronological record of review results, editorial decisions, publications and
+  every workflow action (assignments, invitations, permanent deletions). Click a
+  column to sort; search filters the whole history, not just this page.
+</p>
+
+<!-- Search -->
+<form method="get" style="display:flex;gap:var(--spacing-2);align-items:center;margin-bottom:var(--spacing-3);flex-wrap:wrap;">
+  {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+  <input type="hidden" name="sort" value="{{ sort }}">
+  <input type="hidden" name="dir" value="{{ direction }}">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search history…" autocomplete="off"
+         style="padding:var(--spacing-2) var(--spacing-3);border:1px solid var(--color-border);border-radius:var(--radius);font-size:var(--size-sm);font-family:var(--font-sans);width:260px;background:var(--color-bg);">
+  <button type="submit" class="btn btn-sm btn-primary">Search</button>
+  {% if q %}<a href="{% url 'journal_admin_audit_log' %}{{ clear_q_url }}" style="font-size:var(--size-sm);color:var(--color-muted);">Clear</a>{% endif %}
+</form>
+
+<!-- Category filter -->
+<div style="display:flex;gap:var(--spacing-2);margin-bottom:var(--spacing-4);flex-wrap:wrap;">
+  {% for pill in cat_pills %}
+  <a href="{% url 'journal_admin_audit_log' %}{{ pill.url }}"
+     class="btn btn-sm {% if pill.active %}btn-primary{% endif %}"
+     style="{% if not pill.active %}background:var(--color-surface);border:1px solid var(--color-border);{% endif %}">{{ pill.label }}</a>
+  {% endfor %}
+</div>
+
+<div class="jadmin-card" style="padding:0;overflow:hidden;">
+  {% if page.object_list %}
+  <div style="max-height:65vh;overflow:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:var(--size-sm);">
+      <thead>
+        <tr style="text-align:left;">
+          {% for col in columns %}
+          <th style="position:sticky;top:0;z-index:1;background:var(--color-surface);padding:0;border-bottom:1px solid var(--color-border);white-space:nowrap;">
+            <a href="{% url 'journal_admin_audit_log' %}{{ col.url }}"
+               style="display:block;padding:var(--spacing-3) var(--spacing-4);text-decoration:none;color:{% if col.active %}var(--color-accent){% else %}var(--color-text){% endif %};font-weight:600;">
+              {{ col.label }} <span style="font-size:0.8em;">{{ col.arrow }}</span>
+            </a>
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in page.object_list %}
+        <tr style="border-bottom:1px solid var(--color-border);{% if row.category == 'deletions' %}background:#fef2f2;{% endif %}">
+          <td style="padding:var(--spacing-3) var(--spacing-4);white-space:nowrap;color:var(--color-muted);vertical-align:top;">{{ row.timestamp|date:"d M Y H:i" }}</td>
+          <td style="padding:var(--spacing-3) var(--spacing-4);vertical-align:top;">
+            <span style="display:inline-block;padding:1px 8px;border-radius:100px;font-size:var(--size-xs);white-space:nowrap;
+              {% if row.category == 'reviews' %}background:#dbeafe;color:#1e40af;
+              {% elif row.category == 'decisions' %}background:#ede9fe;color:#5b21b6;
+              {% elif row.category == 'publications' %}background:#d1fae5;color:#065f46;
+              {% elif row.category == 'deletions' %}background:#fee2e2;color:#b91c1c;
+              {% else %}background:var(--color-ghost);color:var(--color-muted);{% endif %}">{{ row.category_label }}</span>
+          </td>
+          <td style="padding:var(--spacing-3) var(--spacing-4);font-weight:600;vertical-align:top;{% if row.category == 'deletions' %}color:#b91c1c;{% endif %}">{{ row.event }}</td>
+          <td style="padding:var(--spacing-3) var(--spacing-4);vertical-align:top;">{{ row.actor|default:"—" }}</td>
+          <td style="padding:var(--spacing-3) var(--spacing-4);vertical-align:top;">
+            {% if row.article_pk %}
+              <a href="{% url 'journal_admin_article' row.article_pk %}">{{ row.article_title|truncatechars:56 }}</a>
+            {% elif row.article_title %}
+              {{ row.article_title|truncatechars:56 }}{% if row.category == 'deletions' %} <span style="color:var(--color-muted);">(deleted)</span>{% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td style="padding:var(--spacing-3) var(--spacing-4);color:var(--color-muted);vertical-align:top;">{{ row.details|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:var(--color-muted);font-size:var(--size-sm);padding:var(--spacing-4) var(--spacing-6);">
+    {% if q %}No history matches “{{ q }}”.{% else %}No history to show.{% endif %}
+  </p>
+  {% endif %}
+</div>
+
+{% if page.has_other_pages %}
+<div style="display:flex;gap:var(--spacing-3);align-items:center;justify-content:center;margin-top:var(--spacing-4);font-size:var(--size-sm);">
+  {% if page.has_previous %}<a href="?{{ page_qs }}{% if page_qs %}&{% endif %}page={{ page.previous_page_number }}">← Prev</a>{% endif %}
+  <span style="color:var(--color-muted);">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a href="?{{ page_qs }}{% if page_qs %}&{% endif %}page={{ page.next_page_number }}">Next →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

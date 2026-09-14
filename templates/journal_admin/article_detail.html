@@ -280,6 +280,18 @@
     </div>
 
     <!-- Audit Log -->
+    {% if request.user.can_purge_content %}
+    <div class="jadmin-card" style="border:1px solid #fecaca;background:#fef2f2;padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-4);">
+      <h2 style="font-size:var(--size-base);font-weight:700;margin-bottom:var(--spacing-2);color:#b91c1c;">Danger zone</h2>
+      <p style="font-size:var(--size-sm);color:var(--color-text);margin-bottom:var(--spacing-3);">
+        Permanently delete this article and all its records. For removing test or
+        garbage submissions only — this cannot be undone and is written to the audit log.
+      </p>
+      <a href="{% url 'journal_admin_article_purge' submission.pk %}" class="btn btn-sm"
+         style="background:#b91c1c;color:#fff;border:none;">Permanently delete…</a>
+    </div>
+    {% endif %}
+
     <div class="jadmin-card">
       <h2 style="font-size:var(--size-base);font-weight:700;margin-bottom:var(--spacing-4);">History Log</h2>
       {% if audit_events %}

@@ -46,7 +46,7 @@
   <div class="home-current__info">
     <h2 class="section-heading home-current__heading">Current Issue</h2>
     <div class="home-current__issue-meta">
-      <span class="meta-tag">Issue #{{ current_issue.number }}</span>
+      <a class="meta-tag home-current__issue-link" href="{% url 'issue_detail' current_issue.number %}">Issue #{{ current_issue.number }}</a>
       <span class="filter-tag">{{ current_issue.year }}</span>
     </div>
     <a class="home-current__title" href="{% url 'issue_detail' current_issue.number %}">{{ current_issue.title|default:journal.name }}</a>
@@ -80,10 +80,14 @@
   </div>
   <div class="home-current__media">
     {% if journal.home_hero_image %}
-    <img src="{{ journal.home_hero_image.url }}" alt="{{ journal.home_hero_caption|default:'' }}" loading="eager">
+    <a class="home-current__media-link" href="{% url 'issue_detail' current_issue.number %}">
+      <img src="{{ journal.home_hero_image.url }}" alt="{{ journal.home_hero_caption|default:'' }}" loading="eager">
+    </a>
     {% if journal.home_hero_caption %}<p class="media-caption">{{ journal.home_hero_caption }}</p>{% endif %}
     {% elif current_issue.cover_image %}
-    <img src="{{ current_issue.cover_image.url }}" alt="{{ current_issue.title }}" loading="eager">
+    <a class="home-current__media-link" href="{% url 'issue_detail' current_issue.number %}">
+      <img src="{{ current_issue.cover_image.url }}" alt="{{ current_issue.title }}" loading="eager">
+    </a>
     {% endif %}
   </div>
 </section>

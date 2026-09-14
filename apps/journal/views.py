@@ -66,10 +66,16 @@ def home(request):
                             'document__revision__submission__issue')
         )
 
-    # "Across the archive" — rotating featured selection
+    # "Across the archive" — rotating featured selection. Only surface articles
+    # whose issue is still published: unpublishing an issue hides its page but
+    # leaves the article builds published (accessible by direct link), so without
+    # this filter a featured article lingers here after its issue is unpublished.
     selection = FeaturedSelection.current()
     featured_archive = (
-        selection.articles.select_related(
+        selection.articles
+        .filter(is_published=True,
+                document__revision__submission__issue__is_published=True)
+        .select_related(
             'document__revision__submission__author',
             'document__revision__submission__issue',
         )
@@ -94,7 +100,8 @@ def home(request):
 
     marquee_builds = (
         HTMLBuild.objects
-        .filter(is_published=True)
+        .filter(is_published=True,
+                document__revision__submission__issue__is_published=True)
         .select_related('document__revision__submission__author',
                         'document__revision__submission__issue')
         .order_by('-published_at')
@@ -133,9 +140,11 @@ def home(request):
 
 
 def news(request):
+    # News is manual only — real NewsPost entries. (Issue "call for submissions"
+    # text is intentionally NOT surfaced here as auto-generated cards; editors
+    # publish calls by hand via the News interface.)
     return render(request, 'public/news.html', {
         'posts': NewsPost.objects.filter(is_published=True).select_related('author'),
-        'issues': Issue.objects.filter(is_published=True).exclude(call_for_submissions='')[:10],
     })
 
 

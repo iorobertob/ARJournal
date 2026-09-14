@@ -26,8 +26,8 @@ ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 # ── Site URL — single source of truth for all URL-derived settings ────────────
 # Set this in .env:
 #   dev:        SITE_URL=http://localhost:5002
-#   staging:    SITE_URL=https://misc.lmta.lt/ARJournal
-#   production: SITE_URL=https://your-domain.com
+#   staging:    SITE_URL=https://misc.lmta.lt/journal   (subpath)
+#   production: SITE_URL=https://inact.lmta.lt          (root domain)
 #
 # The path component (e.g. /ARJournal) prefixes STATIC_URL, MEDIA_URL, and the
 # auth redirect URLs. For root-path domains the path is empty and all URLs are
@@ -52,6 +52,7 @@ DJANGO_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'django.contrib.sitemaps',
 ]
 
 THIRD_PARTY_APPS = [

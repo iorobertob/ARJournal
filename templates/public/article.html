@@ -1,8 +1,66 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ submission.title }} — {{ journal.name }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
 {% block body_class %}article-page{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/article.css' %}">{% endblock %}
+
+{% block extra_head %}
+  <link rel="canonical" href="{{ article_url }}">
+
+  {# ── Open Graph (rich link previews) ── #}
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="{{ journal.name }}">
+  <meta property="og:title" content="{{ submission.title }}">
+  <meta property="og:description" content="{{ seo.description }}">
+  <meta property="og:url" content="{{ article_url }}">
+  {% if seo.cover_abs %}<meta property="og:image" content="{{ seo.cover_abs }}">{% endif %}
+
+  {# ── Twitter Card ── #}
+  <meta name="twitter:card" content="{% if seo.cover_abs %}summary_large_image{% else %}summary{% endif %}">
+  <meta name="twitter:title" content="{{ submission.title }}">
+  <meta name="twitter:description" content="{{ seo.description }}">
+  {% if seo.cover_abs %}<meta name="twitter:image" content="{{ seo.cover_abs }}">{% endif %}
+
+  {# ── Google Scholar / Highwire Press citation tags ── #}
+  <meta name="citation_title" content="{{ submission.title }}">
+  {% for a in seo.authors %}<meta name="citation_author" content="{{ a }}">
+  {% endfor %}{% if seo.pub_date %}<meta name="citation_publication_date" content="{{ seo.pub_date|date:'Y/m/d' }}">{% endif %}
+  <meta name="citation_journal_title" content="{{ journal.name }}">
+  {% if journal.publisher %}<meta name="citation_publisher" content="{{ journal.publisher }}">{% endif %}
+  {% if journal.issn_online %}<meta name="citation_issn" content="{{ journal.issn_online }}">{% elif journal.issn_print %}<meta name="citation_issn" content="{{ journal.issn_print }}">{% endif %}
+  {% if seo.volume %}<meta name="citation_volume" content="{{ seo.volume }}">{% endif %}
+  {% if seo.number %}<meta name="citation_issue" content="{{ seo.number }}">{% endif %}
+  {% if doi %}<meta name="citation_doi" content="{{ doi }}">{% endif %}
+  <meta name="citation_abstract_html_url" content="{{ article_url }}">
+  {% if submission.language %}<meta name="citation_language" content="{{ submission.language }}">{% endif %}
+  {% if submission.keywords %}<meta name="citation_keywords" content="{{ submission.keywords|join:'; ' }}">{% endif %}
+
+  {# ── Structured data (schema.org) ── #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ScholarlyArticle",
+    "headline": "{{ submission.title|escapejs }}",
+    "name": "{{ submission.title|escapejs }}",
+    "author": [{% for a in seo.authors %}{"@type": "Person", "name": "{{ a|escapejs }}"}{% if not forloop.last %}, {% endif %}{% endfor %}],
+    {% if seo.pub_date %}"datePublished": "{{ seo.pub_date|date:'c' }}",{% endif %}
+    {% if seo.abstract_text %}"abstract": "{{ seo.abstract_text|escapejs }}",{% endif %}
+    {% if submission.keywords %}"keywords": "{{ submission.keywords|join:', '|escapejs }}",{% endif %}
+    {% if submission.language %}"inLanguage": "{{ submission.language|escapejs }}",{% endif %}
+    {% if seo.cover_abs %}"image": "{{ seo.cover_abs|escapejs }}",{% endif %}
+    {% if doi %}"identifier": "https://doi.org/{{ doi|escapejs }}",{% endif %}
+    "isPartOf": {
+      "@type": "Periodical",
+      "name": "{{ journal.name|escapejs }}"{% if journal.issn_online %},
+      "issn": "{{ journal.issn_online|escapejs }}"{% elif journal.issn_print %},
+      "issn": "{{ journal.issn_print|escapejs }}"{% endif %}
+    },
+    "publisher": {"@type": "Organization", "name": "{{ journal.publisher|default:journal.name|escapejs }}"},
+    "url": "{{ article_url|escapejs }}"
+  }
+  </script>
+{% endblock %}
 
 {% block content %}
 

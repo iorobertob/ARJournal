@@ -3,6 +3,41 @@
 {% load content_filters %}
 {% block title %}{{ journal.name }} — Artistic Research Journal{% endblock %}
 
+{% block extra_head %}
+  <link rel="canonical" href="{{ request.build_absolute_uri }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ journal.name }}">
+  <meta property="og:title" content="{{ journal.name }} — Artistic Research Journal">
+  <meta property="og:description" content="{{ journal.tagline }}">
+  <meta property="og:url" content="{{ request.build_absolute_uri }}">
+  <meta name="twitter:card" content="summary">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Periodical",
+    "name": "{{ journal.name|escapejs }}",
+    "url": "{{ request.build_absolute_uri }}"{% if journal.issn_online %},
+    "issn": "{{ journal.issn_online|escapejs }}"{% elif journal.issn_print %},
+    "issn": "{{ journal.issn_print|escapejs }}"{% endif %},
+    "publisher": {"@type": "Organization", "name": "{{ journal.publisher|default:journal.name|escapejs }}"}
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "{{ journal.name|escapejs }}",
+    "url": "{{ request.build_absolute_uri }}",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "{{ request.scheme }}://{{ request.get_host }}{% url 'archive' %}?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+{% endblock %}
+
 {% block content %}
 
 {% if current_issue %}

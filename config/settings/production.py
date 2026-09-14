@@ -3,6 +3,11 @@ from .base import *
 DEBUG = False
 
 # Security
+# Nginx terminates TLS and proxies to Gunicorn over http, forwarding the original
+# scheme in X-Forwarded-Proto. Trust it so request.is_secure() is True — without
+# this, SECURE_SSL_REDIRECT loops forever and every generated absolute URL
+# (canonical tags, sitemap, emails) comes out as insecure http://.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_SSL_REDIRECT = True

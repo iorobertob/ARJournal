@@ -24,3 +24,7 @@
 
 - Add recommendation for Reviewers, as a splash page, that displays they go into the review workspace (they have to click Continue)
 
+
+## FOR THE ORGAINSATION
+- Assign a contact email and an editorial email. 
+- 

@@ -426,6 +426,38 @@ Key modules: `apps/production/transcode.py` (ffmpeg), `apps/production/tasks.py:
 
 ---
 
+## SEO & Discoverability
+
+The platform ships search-engine and academic-index optimisation out of the box. Everything is derived from `SITE_URL`, so no code changes are needed per environment.
+
+### What's built in
+- **`/sitemap.xml`** — auto-generated (`apps/journal/sitemaps.py`) listing every published article, issue, and public static page, with `lastmod`. Served by Django through Nginx's catch-all `location /`.
+- **`/robots.txt`** — allows public pages, disallows dashboards/API/admin, and links the sitemap (`robots_txt` view in `apps/journal/views.py`).
+- **Per-article `<head>` metadata** (`templates/public/article.html`): unique `<meta description>` from the abstract, `<link rel="canonical">`, Open Graph + Twitter Card tags (rich link previews), **Google Scholar `citation_*` tags** (Highwire Press: title, author, publication date, journal, ISSN, volume/issue, DOI, language), and JSON-LD `ScholarlyArticle` structured data.
+- **Homepage** (`templates/public/home.html`): `Periodical` + `WebSite` JSON-LD (with a sitelinks search box) and Open Graph tags.
+- **One canonical origin.** Canonical / OG / citation URLs are forced to the scheme+host of `SITE_URL` (never `www.*`, never `http://`). Nginx 301-redirects `www.inact.lmta.lt` → `inact.lmta.lt`, and `SECURE_PROXY_SSL_HEADER` makes Django emit `https://` behind the TLS-terminating proxy.
+
+### Production settings that must be correct (`.env`)
+```bash
+SITE_URL=https://inact.lmta.lt          # single source of truth for all URLs
+ALLOWED_HOSTS=inact.lmta.lt,www.inact.lmta.lt
+CORS_ALLOWED_ORIGINS=https://inact.lmta.lt
+DJANGO_SETTINGS_MODULE=config.settings.production
+```
+The `django_site` row (SITE_ID=1) is set to the `SITE_URL` host automatically by migration `journal.0014_set_site_domain`.
+
+### Post-deploy checklist (operational, done once)
+1. **Fill in the ISSN** in journal settings (`issn_online` / `issn_print`) — currently empty, which suppresses `citation_issn`.
+2. **Google Search Console** ([search.google.com/search-console](https://search.google.com/search-console)):
+   - Add a **URL-prefix property** `https://inact.lmta.lt/` (or a DNS-verified Domain property).
+   - Verify ownership (HTML meta tag via the `extra_head` block, an uploaded token file, or DNS).
+   - **Submit `sitemap.xml`.** Then watch the **Pages** report for indexing errors and use **URL Inspection → Request indexing** for new articles.
+   - Google Scholar has no console — its bot discovers articles by crawling and reads the `citation_*` tags; indexing typically follows within a few weeks.
+3. **Crossref DOIs** (biggest citation/discoverability lever): requires a Crossref membership + a DOI prefix, then set in `.env`: `DOI_ENABLED=True`, `CROSSREF_LOGIN`, `CROSSREF_PASSWORD`, `CROSSREF_DEPOSITOR_NAME/EMAIL`, and the prefix + `doi_enabled` toggle in journal settings. Deposit logic lives in `apps/production/integrations/crossref.py::deposit_doi`; a deposited DOI automatically lights up `citation_doi` and the JSON-LD identifier.
+4. **DOAJ** — apply to the Directory of Open Access Journals; being indexed there is one of the strongest OA-journal visibility signals.
+
+---
+
 ## Phase 2: S3 Storage Upgrade
 
 When local storage is no longer sufficient (typically when video assets exceed ~50GB):

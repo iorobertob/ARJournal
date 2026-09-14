@@ -1,7 +1,34 @@
+from urllib.parse import urlparse
+
+from django.conf import settings
+from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView
 from .models import Issue, EditorialBoardMember, FeaturedSelection, JournalConfig, ArticleType, NewsPost
+
+
+def robots_txt(request):
+    """Serve robots.txt: allow crawling of public pages, keep crawlers out of
+    private/dashboard areas, and point to the sitemap.
+
+    On the production root domain (inact.lmta.lt) this is served at /robots.txt,
+    exactly where crawlers look. Disallow paths are still prefixed with the
+    deployment's URL path so they stay correct if the journal is ever hosted under
+    a subpath (staging) — but note a subpath deployment serves this at
+    <subpath>/robots.txt, which crawlers do not read; the host root would then need
+    these rules too."""
+    prefix = urlparse(settings.SITE_URL).path.rstrip('/')
+    private = [
+        'author/', 'editorial/', 'review/', 'api/',
+        'accounts/', 'notifications/', 'journal-admin/', 'admin/', 'production/',
+    ]
+    lines = ['User-agent: *']
+    lines += [f'Disallow: {prefix}/{p}' for p in private]
+    lines.append(f'Allow: {prefix}/')
+    lines.append('')
+    lines.append(f'Sitemap: {settings.SITE_URL.rstrip("/")}/sitemap.xml')
+    return HttpResponse('\n'.join(lines) + '\n', content_type='text/plain')
 
 
 def home(request):
@@ -203,7 +230,11 @@ def article_detail(request, slug):
     except Exception:
         pass
 
-    article_url = request.build_absolute_uri()
+    # Canonical URL: force the scheme + host from SITE_URL (keeping the request's
+    # path) so it's always the one canonical origin — never www.* or http://.
+    _site = urlparse(settings.SITE_URL)
+    _path = urlparse(request.build_absolute_uri()).path
+    article_url = f'{_site.scheme}://{_site.netloc}{_path}'
     identifier = f'https://doi.org/{doi}' if doi else article_url
 
     # Author name parts for citation formatting
@@ -257,12 +288,30 @@ def article_detail(request, slug):
         ),
     }
 
+    # ── SEO / discovery metadata (meta tags, Open Graph, Scholar, JSON-LD) ──
+    import re as _re
+    _abstract_text = _re.sub(r'<[^>]+>', '', submission.abstract or '').strip()
+    _abstract_text = _re.sub(r'\s+', ' ', _abstract_text)
+    meta_description = (_abstract_text[:157].rstrip() + '…') if len(_abstract_text) > 158 else _abstract_text
+    cover_abs = request.build_absolute_uri(submission.cover_url) if submission.cover_url else ''
+    seo = {
+        'description': meta_description,
+        'cover_abs': cover_abs,
+        'authors': [author.display_name] if author.display_name else [],
+        'pub_date': build.published_at or build.built_at,
+        'year': year,
+        'volume': volume,
+        'number': number,
+        'abstract_text': _abstract_text,
+    }
+
     return render(request, 'public/article.html', {
         'build': build,
         'submission': submission,
         'toc': toc,
         'doi': doi,
         'article_url': article_url,
+        'seo': seo,
         'cite_apa':     citations['apa'],
         'cite_mla':     citations['mla'],
         'cite_chicago': citations['chicago'],

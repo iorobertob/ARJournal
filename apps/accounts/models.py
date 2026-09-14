@@ -102,6 +102,15 @@ class User(AbstractUser):
     def has_reviewer_access(self):
         return self.has_role(UserRole.REVIEWER) or self.has_editorial_access()
 
+    def has_journal_admin_access(self):
+        """Access to the Journal Admin dashboard — a stricter subset of editorial
+        access. Mirrors the `journal_admin_required` decorator so navigation only
+        links here for users who can actually enter."""
+        return self.is_superuser or self.has_role(
+            UserRole.JOURNAL_ADMIN, UserRole.SYSTEM_ADMIN,
+            UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
+        )
+
     def can_purge_content(self):
         """Prerogative to PERMANENTLY delete articles/records — an override of the
         journal's default 'never delete the scholarly record' policy, reserved for

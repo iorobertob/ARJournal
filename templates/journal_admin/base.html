@@ -64,7 +64,9 @@
       Audit Log
     </a>
     <a href="{% url 'editorial_dashboard' %}">Editorial Dashboard</a>
+    {% if user.is_staff %}
     <a href="{% url 'admin:index' %}">Django Admin</a>
+    {% endif %}
   </aside>
   <div class="jadmin-main">
     {% if messages %}

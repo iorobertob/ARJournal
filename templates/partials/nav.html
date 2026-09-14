@@ -75,6 +75,8 @@
       <ul class="site-nav__dropdown" x-show="open" @click.away="open = false" x-cloak role="menu">
         {% if user.has_editorial_access %}
         <li><a href="{% url 'editorial_dashboard' %}" role="menuitem">Editorial Dashboard</a></li>
+        {% endif %}
+        {% if user.has_journal_admin_access %}
         <li><a href="{% url 'journal_admin_issues' %}" role="menuitem">Issues &amp; Volumes</a></li>
         <li><a href="{% url 'journal_admin_dashboard' %}" role="menuitem">Journal Admin</a></li>
         {% endif %}

@@ -286,9 +286,14 @@ def add_annotation(request, review_pk):
 
 def editorial_required(view_func):
     from functools import wraps
+    from django.contrib.auth.views import redirect_to_login
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated or not request.user.has_editorial_access():
+        # Logged out → send to login and return here afterwards (e.g. email links),
+        # rather than showing an unfriendly 403.
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        if not request.user.has_editorial_access():
             return render(request, '403.html', {'message': 'Editorial access required.'}, status=403)
         return view_func(request, *args, **kwargs)
     return wrapper

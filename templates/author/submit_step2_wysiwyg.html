@@ -240,7 +240,7 @@
             placeholder="Footnote text…"></textarea>
   <div class="fn-popover__actions">
     <button type="button" id="fn-popover-save" class="btn btn--primary btn--sm">Save</button>
-    <button type="button" id="fn-popover-cancel" class="btn btn--ghost btn--sm">Cancel</button>
+    <button type="button" id="fn-popover-cancel-btn" class="btn btn--ghost btn--sm">Cancel</button>
   </div>
 </div>
 
@@ -284,7 +284,7 @@
         <p class="form__hint">Used when inserting cross-references in the text. Leave blank to auto-assign.</p>
       </div>
       <div class="form__actions">
-        <button type="button" id="media-upload-cancel" class="btn btn--ghost">Cancel</button>
+        <button type="button" id="media-upload-cancel-btn" class="btn btn--ghost">Cancel</button>
         <button type="button" id="media-upload-submit" class="btn btn--primary">Insert</button>
       </div>
     </div>
@@ -309,7 +309,7 @@
         <div id="equation-preview" class="equation-preview-box__content">Preview will appear here</div>
       </div>
       <div class="form__actions">
-        <button type="button" id="equation-cancel" class="btn btn--ghost">Cancel</button>
+        <button type="button" id="equation-cancel-btn" class="btn btn--ghost">Cancel</button>
         <button type="button" id="equation-insert" class="btn btn--primary">Insert</button>
       </div>
     </div>
@@ -570,6 +570,23 @@ TransActEditor.init({
       if (document.activeElement !== headerEl) headerEl.textContent = titleEl.value;
     });
   }
+})();
+</script>
+
+<script>
+// Modal "Cancel" buttons. The compiled editor bundle only binds the top-right
+// "×" (shared id) to close each modal; the bottom Cancel buttons have their own
+// ids and are wired here, mirroring the same hide behaviour.
+(function () {
+  [['media-upload-cancel-btn', 'media-upload-modal'],
+   ['equation-cancel-btn',     'equation-dialog'],
+   ['fn-popover-cancel-btn',   'fn-popover']].forEach(function (pair) {
+    var btn = document.getElementById(pair[0]);
+    var modal = document.getElementById(pair[1]);
+    if (btn && modal) {
+      btn.addEventListener('click', function () { modal.hidden = true; });
+    }
+  });
 })();
 </script>
 {% endblock %}

@@ -200,7 +200,10 @@ def _upsert_asset(revision, f):
         from django.conf import settings as _settings
         if getattr(_settings, 'MEDIA_STREAMING_ENABLED', True):
             try:
-                from apps.submissions.models import SubmissionAsset
+                # NB: SubmissionAsset is imported at module level. A local import
+                # here would make it a function-local name for all of _upsert_asset
+                # and break the image branch's SubmissionAsset.objects.create above
+                # with UnboundLocalError.
                 asset.hls_status = SubmissionAsset.HLS_PENDING
                 asset.save(update_fields=['hls_status'])
                 from apps.production.views import _dispatch_task

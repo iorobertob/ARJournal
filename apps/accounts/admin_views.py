@@ -857,10 +857,17 @@ def audit_log_export(request):
 
 # ── Email Log ────────────────────────────────────────────────────
 
+_EMAIL_LOG_SORT_FIELDS = {
+    'date': 'created_at', 'to': 'to_email', 'subject': 'subject',
+    'status': 'status', 'opened': 'opened_count',
+}
+
+
 @journal_admin_required
 def email_log(request):
     from apps.notifications.models import EmailLog
     from django.core.paginator import Paginator
+    from urllib.parse import urlencode
 
     qs = EmailLog.objects.all()
 
@@ -872,14 +879,43 @@ def email_log(request):
     if q:
         qs = qs.filter(subject__icontains=q) | qs.filter(to_email__icontains=q)
 
+    # Sorting — any column, default by date (newest first).
+    sort = request.GET.get('sort', 'date')
+    direction = request.GET.get('dir', 'desc')
+    if sort not in _EMAIL_LOG_SORT_FIELDS:
+        sort = 'date'
+    if direction not in ('asc', 'desc'):
+        direction = 'desc'
+    field = _EMAIL_LOG_SORT_FIELDS[sort]
+    qs = qs.order_by(('' if direction == 'asc' else '-') + field, '-id')
+
+    total = qs.count()
     paginator = Paginator(qs, 50)
     page = paginator.get_page(request.GET.get('page', 1))
+
+    def build_qs(**over):
+        params = {'status': status_filter, 'q': q, 'sort': sort, 'dir': direction}
+        params.update(over)
+        return urlencode({k: v for k, v in params.items() if v})
+
+    columns = []
+    for key, label in [('date', 'Date'), ('to', 'To'), ('subject', 'Subject'),
+                       ('status', 'Status'), ('opened', 'Opened')]:
+        active = (sort == key)
+        nxt = ('asc' if direction == 'desc' else 'desc') if active else ('desc' if key == 'date' else 'asc')
+        columns.append({
+            'label': label, 'active': active,
+            'arrow': ('▲' if direction == 'asc' else '▼') if active else '',
+            'url': '?' + build_qs(sort=key, dir=nxt, page=''),
+        })
 
     return render(request, 'journal_admin/email_log.html', {
         'page': page,
         'status_filter': status_filter,
         'q': q,
-        'total': qs.count(),
+        'total': total,
+        'columns': columns,
+        'page_qs': build_qs(page=''),
     })
 
 
@@ -894,6 +930,7 @@ def email_log_preview(request, pk):
         'to_email': log.to_email,
         'status': log.status,
         'sent_at': log.sent_at.isoformat() if log.sent_at else None,
+        'created_at': log.created_at.isoformat() if log.created_at else None,
         'error': log.error,
         'opened_count': log.opened_count,
         'opened_at': log.opened_at.isoformat() if log.opened_at else None,

@@ -52,6 +52,10 @@ class EmailLog(models.Model):
         choices=[('pending', 'Pending'), ('sent', 'Sent'), ('failed', 'Failed')],
         default='pending',
     )
+    # When the log row was created (i.e. when the send was attempted). Always
+    # set — unlike sent_at, which stays null when a send fails — so failed
+    # emails still carry a date.
+    created_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True)
     error = models.TextField(blank=True, default='')
     plain_body = models.TextField(blank=True, default='')
@@ -61,7 +65,7 @@ class EmailLog(models.Model):
     opened_count = models.IntegerField(default=0)
 
     class Meta:
-        ordering = ['-sent_at', '-id']
+        ordering = ['-created_at', '-id']
 
     def __str__(self):
         return f'{self.to_email} — {self.subject[:50]} ({self.status})'

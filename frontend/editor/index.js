@@ -33,7 +33,6 @@ import { deserializeDocument } from './deserializer.js';
 let editor = null;
 let bibliography = [];       // array of citation item objects
 let saveTimer = null;
-let footnoteCounter = 0;
 let saveUrl = null;
 let assetUploadUrl = null;
 let bibtexImportUrl = null;
@@ -74,6 +73,8 @@ async function autosave() {
     setStatusMsg('Save failed');
   }
 }
+
+const debouncedAutosave = debounce(autosave, 1200);
 
 function setStatusMsg(msg) {
   const el = document.getElementById('editor-status');
@@ -206,15 +207,48 @@ function editCitation(idx) {
 
 // ── Footnote helpers ──────────────────────────────────────────────────────────
 
+// Renumber every footnoteRef by its position in the document, so numbering always
+// reflects the footnotes actually present (insert/delete/reorder) rather than a
+// monotonic session counter. Applies all changes on one history-less transaction and
+// no-ops when nothing changed, so it is safe to call from onUpdate.
+function renumberFootnotes() {
+  if (!editor) return;
+  const updates = [];
+  let index = 0;
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name === 'footnoteRef') {
+      index += 1;
+      if (node.attrs.number !== index) {
+        updates.push({ pos, attrs: { ...node.attrs, number: index } });
+      }
+    }
+  });
+  if (!updates.length) return;
+  let tr = editor.state.tr;
+  // setNodeMarkup doesn't change doc size, so positions from the walk stay valid.
+  updates.forEach(u => { tr = tr.setNodeMarkup(u.pos, null, u.attrs); });
+  tr.setMeta('addToHistory', false);
+  editor.view.dispatch(tr);
+}
+
 function insertFootnote() {
-  footnoteCounter += 1;
-  const footnoteId = `blk_fn_${String(footnoteCounter).padStart(3, '0')}`;
+  // Stable, collision-proof id independent of any counter (safe across reloads).
+  const footnoteId = `blk_fn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
   editor.chain().focus().insertContent({
     type: 'footnoteRef',
-    attrs: { footnoteId, number: footnoteCounter, noteText: '' },
+    attrs: { footnoteId, number: 0, noteText: '' }, // number filled in by renumberFootnotes
   }).run();
 
-  openFootnotePopover(footnoteId, footnoteCounter, '');
+  renumberFootnotes();
+
+  // Read back the number assigned by renumbering for the popover.
+  let number = '?';
+  editor.state.doc.descendants(node => {
+    if (node.type.name === 'footnoteRef' && node.attrs.footnoteId === footnoteId) {
+      number = node.attrs.number;
+    }
+  });
+  openFootnotePopover(footnoteId, number, '');
 }
 
 function openFootnotePopover(footnoteId, number, noteText) {
@@ -618,8 +652,18 @@ function init(options) {
       FootnoteRef, FigureBlock, MediaBlock, EquationBlock, CiteMark, CrossRef,
     ],
     content: initialContent || { type: 'doc', content: [{ type: 'paragraph' }] },
-    onUpdate: debounce(() => { setStatusMsg('Saving…'); autosave(); }, 1200),
+    onUpdate: () => {
+      // Renumber synchronously on every change (delete, paste, drag-reorder); keep
+      // autosave debounced. renumberFootnotes() no-ops once numbers are correct, so the
+      // transaction it dispatches doesn't recurse.
+      renumberFootnotes();
+      setStatusMsg('Saving…');
+      debouncedAutosave();
+    },
   });
+
+  // Normalize numbers of any stored footnotes to document order on load.
+  renumberFootnotes();
 
   bindToolbar();
   bindEvents();

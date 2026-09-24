@@ -29,6 +29,25 @@ function deserializeInline(nodes) {
   }).filter(n => n.type !== 'text' || n.text);
 }
 
+// Rebuild a TipTap listItem from a canonical item (array of inline nodes plus any
+// nested { type: 'list' } nodes). Recurses for arbitrary nesting depth.
+function deserializeListItem(item) {
+  const inlineNodes = [];
+  const nestedLists = [];
+  (item || []).forEach(n => {
+    if (n && n.type === 'list') nestedLists.push(n);
+    else inlineNodes.push(n);
+  });
+  const content = [{ type: 'paragraph', content: deserializeInline(inlineNodes) }];
+  nestedLists.forEach(nl => {
+    content.push({
+      type: nl.ordered ? 'orderedList' : 'bulletList',
+      content: (nl.items || []).map(deserializeListItem),
+    });
+  });
+  return { type: 'listItem', content };
+}
+
 function deserializeBlock(block) {
   switch (block.type) {
     case 'heading':
@@ -54,10 +73,7 @@ function deserializeBlock(block) {
       const listType = block.ordered ? 'orderedList' : 'bulletList';
       return {
         type: listType,
-        content: (block.items || []).map(item => ({
-          type: 'listItem',
-          content: [{ type: 'paragraph', content: deserializeInline(item) }],
-        })),
+        content: (block.items || []).map(deserializeListItem),
       };
     }
 

@@ -440,6 +440,30 @@ def _format_bib_item(item: dict) -> str:
     return result if result.endswith('.') else result + '.'
 
 
+def _render_list_items(items: list, cm: dict, lm: dict) -> str:
+    """Render list items as <li>…</li>, recursing into nested lists.
+
+    Each item is an array of inline nodes optionally containing nested
+    {'type': 'list', 'ordered': bool, 'items': [...]} nodes (as produced by the
+    WYSIWYG serializer). Leaf items are plain inline arrays (backward compatible).
+    """
+    out = ''
+    for nodes in items:
+        inner = ''
+        for n in nodes:
+            if isinstance(n, dict) and n.get('type') == 'list':
+                sub_tag = 'ol' if n.get('ordered') else 'ul'
+                inner += (
+                    f'<{sub_tag} class="article-list">'
+                    f'{_render_list_items(n.get("items", []), cm, lm)}'
+                    f'</{sub_tag}>'
+                )
+            else:
+                inner += _render_inline(n, cm, lm)
+        out += f'<li>{inner}</li>'
+    return out
+
+
 def _render_block(
     block: dict,
     assets: dict,
@@ -659,16 +683,12 @@ def _render_block(
         )
         return f'<dl id="{bid}" class="article-dl" data-block-id="{bid}">{rows}</dl>'
 
-    # ── Unordered / ordered list ──────────────────────────────────────────────
+    # ── Unordered / ordered list (supports nested lists) ──────────────────────
     if btype == 'list':
         tag = 'ol' if block.get('ordered') else 'ul'
-        items_html = ''.join(
-            '<li>' + ''.join(_render_inline(n, cm, lm) for n in nodes) + '</li>'
-            for nodes in block.get('items', [])
-        )
         return (
             f'<{tag} id="{bid}" class="article-list" data-block-id="{bid}">'
-            f'{items_html}'
+            f'{_render_list_items(block.get("items", []), cm, lm)}'
             f'</{tag}>'
         )
 

@@ -47,6 +47,28 @@ function serializeInline(nodes) {
   }).filter(n => n.type !== 'text' || n.text !== '');
 }
 
+// Serialize a bulletList/orderedList node's items. Each item becomes an array of
+// inline nodes (from its paragraph) optionally followed by nested { type: 'list' }
+// nodes, so arbitrary nesting depth round-trips. Backward compatible: leaf items
+// stay plain inline arrays.
+function serializeListItems(listNode) {
+  return (listNode.content || []).map(li => {
+    const nodes = [];
+    (li.content || []).forEach(child => {
+      if (child.type === 'paragraph') {
+        nodes.push(...serializeInline(child.content));
+      } else if (child.type === 'bulletList' || child.type === 'orderedList') {
+        nodes.push({
+          type: 'list',
+          ordered: child.type === 'orderedList',
+          items: serializeListItems(child),
+        });
+      }
+    });
+    return nodes;
+  });
+}
+
 function serializeBlock(node, fnAccumulator) {
   switch (node.type) {
     case 'heading': {
@@ -82,13 +104,7 @@ function serializeBlock(node, fnAccumulator) {
     case 'bulletList':
     case 'orderedList': {
       const id = nextId('blk_list');
-      const items = (node.content || []).map(li => {
-        const inline = (li.content || []).flatMap(p =>
-          p.type === 'paragraph' ? serializeInline(p.content) : []
-        );
-        return inline;
-      });
-      return { id, type: 'list', ordered: node.type === 'orderedList', items };
+      return { id, type: 'list', ordered: node.type === 'orderedList', items: serializeListItems(node) };
     }
 
     case 'figureBlock': {

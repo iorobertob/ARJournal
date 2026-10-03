@@ -1,5 +1,5 @@
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{arjournal}[2026/04/11 Trans/Act Artistic Research Journal class]
+\ProvidesClass{arjournal}[2026/04/11 inACT Artistic Research Journal class]
 
 \LoadClass[12pt]{article}
 

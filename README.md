@@ -1,4 +1,4 @@
-# Trans/Act — Artistic Research Journal Platform
+# inACT — Artistic Research Journal Platform
 
 A Django-based journal management platform supporting the full lifecycle of an artistic research academic journal: submission, peer review, editorial workflow, and HTML-first publication with multimedia support.
 
@@ -104,7 +104,7 @@ After setup, configure the journal name and settings at:
 `http://localhost:5002/admin/journal/journalconfig/1/change/`
 
 Key fields:
-- **Name** — journal display name (default: *Trans/Act*)
+- **Name** — journal display name (default: *inACT*)
 - **Tagline**, **Description**, **Logo**
 - **ISSN** (print and online)
 - **Review Model** — double blind (default), single blind, open, editorial

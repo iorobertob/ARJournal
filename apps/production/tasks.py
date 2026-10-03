@@ -5,6 +5,38 @@ import tempfile
 from celery import shared_task
 
 
+def _static_data_uri(relpath):
+    """Return a self-contained data: URI for a static file, or '' if not found.
+
+    Reads the file from disk (staticfiles finders in dev, STATIC_ROOT after
+    collectstatic in prod) so embedded assets never depend on a live HTTP
+    server at PDF-render time.
+    """
+    import base64
+    import mimetypes
+    from django.conf import settings
+    path = None
+    try:
+        from django.contrib.staticfiles import finders
+        path = finders.find(relpath)
+    except Exception:
+        path = None
+    if not path:
+        root = getattr(settings, 'STATIC_ROOT', '') or ''
+        candidate = os.path.join(root, relpath) if root else ''
+        if candidate and os.path.exists(candidate):
+            path = candidate
+    if not path or not os.path.exists(path):
+        return ''
+    try:
+        with open(path, 'rb') as f:
+            data = f.read()
+        mime = mimetypes.guess_type(path)[0] or 'image/png'
+        return f'data:{mime};base64,{base64.b64encode(data).decode("ascii")}'
+    except Exception:
+        return ''
+
+
 def _pdf_url_fetcher(url):
     """
     WeasyPrint url_fetcher that serves /media/ assets directly from Django
@@ -727,7 +759,9 @@ def generate_pdf(export_pk):
     # ── Gather metadata ──────────────────────────────────────────
     from apps.journal.models import JournalConfig as _JC
     _journal  = _JC.objects.first()
-    _jname    = _journal.name    if _journal else 'inAct'
+    _jname    = _journal.name    if _journal else 'inACT'
+    # Embedded (self-contained) masthead logo for the cover; falls back to text name.
+    _journal_logo_uri = _static_data_uri('img/brand/inACT-full-orange.png')
     _issn_p   = _journal.issn_print   if _journal else ''
     _issn_o   = _journal.issn_online  if _journal else ''
 
@@ -851,6 +885,10 @@ def generate_pdf(export_pk):
       font-family: Helvetica, Arial, sans-serif;
       font-size: 9pt; font-weight: bold;
       color: #FF4500; letter-spacing: 0.03em;
+      float: left;
+    }
+    .pdf-cover__journal-logo {
+      height: 16pt; width: auto;
       float: left;
     }
     .pdf-cover__issue-ref {
@@ -1124,7 +1162,7 @@ def generate_pdf(export_pk):
 
     _cover_html = f"""<div class="pdf-cover">
   <div class="pdf-cover__journal-bar">
-    <span class="pdf-cover__journal-name">{html_lib.escape(_jname)}</span>
+    {f'<img class="pdf-cover__journal-logo" src="{_journal_logo_uri}" alt="{html_lib.escape(_jname)}">' if _journal_logo_uri else f'<span class="pdf-cover__journal-name">{html_lib.escape(_jname)}</span>'}
     {'<span class="pdf-cover__issue-ref">' + _issue_ref + '</span>' if _issue_ref else ''}
   </div>
   {'<p class="pdf-cover__article-type">' + html_lib.escape(_article_type) + '</p>' if _article_type else ''}

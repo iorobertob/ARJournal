@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# inAct Journal — bare-metal deploy (staging & production)
+# inACT Journal — bare-metal deploy (staging & production)
 #
 # Production target: https://inact.lmta.lt  ·  app dir: /var/www/inact
 # One script for both environments. All differences live in .env.
@@ -82,7 +82,7 @@ pick_python() {
 }
 
 echo ""
-echo "${BOLD}inAct Journal — Deploy${RESET}  ($(date '+%Y-%m-%d %H:%M %Z'))"
+echo "${BOLD}inACT Journal — Deploy${RESET}  ($(date '+%Y-%m-%d %H:%M %Z'))"
 echo "  App dir  : $APP_DIR"
 echo "  Run as   : $RUN_AS"
 echo "  Mode     : $( $UPDATE_ONLY && echo update || echo 'first deploy' )"
@@ -266,7 +266,7 @@ step "Writing systemd units"
 
 cat > /etc/systemd/system/"${GUNICORN_SERVICE}.service" << EOF
 [Unit]
-Description=inAct Journal — Gunicorn
+Description=inACT Journal — Gunicorn
 After=network.target postgresql.service
 
 [Service]
@@ -291,7 +291,7 @@ EOF
 
 cat > /etc/systemd/system/"${CELERY_SERVICE}.service" << EOF
 [Unit]
-Description=inAct Journal — Celery worker
+Description=inACT Journal — Celery worker
 After=network.target redis.service
 
 [Service]
@@ -314,7 +314,7 @@ EOF
 
 cat > /etc/systemd/system/"${CELERY_BEAT_SERVICE}.service" << EOF
 [Unit]
-Description=inAct Journal — Celery Beat scheduler
+Description=inACT Journal — Celery Beat scheduler
 After=network.target redis.service
 
 [Service]
@@ -340,7 +340,7 @@ EOF
 # email worker, which in turn does not consume this queue.
 cat > /etc/systemd/system/"${TRANSCODE_SERVICE}.service" << EOF
 [Unit]
-Description=inAct Journal — Celery transcode worker (ffmpeg/HLS)
+Description=inACT Journal — Celery transcode worker (ffmpeg/HLS)
 After=network.target redis.service
 
 [Service]
@@ -400,7 +400,7 @@ if ! $UPDATE_ONLY; then
 server {
     listen 80;
     server_name ${DOMAINS_CSV//,/ };
-    location / { return 200 'inAct - awaiting TLS certificate'; add_header Content-Type "text/plain; charset=utf-8"; }
+    location / { return 200 'inACT - awaiting TLS certificate'; add_header Content-Type "text/plain; charset=utf-8"; }
 }
 NGINX
     ln -sf "/etc/nginx/sites-available/${NGINX_SITE}" "/etc/nginx/sites-enabled/${NGINX_SITE}"
@@ -461,7 +461,7 @@ print('Superuser ' + ('created' if created else 'updated') + ':', u.email, '| ro
 from apps.journal.models import JournalConfig
 j = JournalConfig.get()
 if not j.name:
-    j.name = 'inAct'; j.submission_open = True; j.save()
+    j.name = 'inACT'; j.submission_open = True; j.save()
     print('Journal config seeded.')
 "
 fi

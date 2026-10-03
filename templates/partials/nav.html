@@ -3,7 +3,7 @@
   <nav class="site-nav container" aria-label="Main navigation">
     <a href="{% url 'home' %}" class="site-nav__logo" aria-label="{{ journal.name }} — home">
       {% if journal.logo %}<img src="{{ journal.logo.url }}" alt="{{ journal.name }}">
-      {% else %}<img src="{% static 'img/brand/logo-inact-header.svg' %}" alt="{{ journal.name }}">{% endif %}
+      {% else %}<img src="{% static 'img/brand/inACT-full-black.svg' %}" alt="{{ journal.name }}">{% endif %}
     </a>
     <ul class="site-nav__links" role="list">
       <li><a href="{% if current_issue %}{% url 'issue_detail' current_issue.number %}{% else %}{% url 'home' %}{% endif %}" {% if request.resolver_match.url_name == 'issue_detail' %}aria-current="page"{% endif %}>Current Issue</a></li>

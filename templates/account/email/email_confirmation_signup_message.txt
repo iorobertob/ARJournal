@@ -1,4 +1,4 @@
-Welcome to inAct: Journal of Artistic Research.
+Welcome to inACT: Journal of Artistic Research.
 
 To activate your account, please confirm your email address by visiting the link below:
 
@@ -6,7 +6,7 @@ To activate your account, please confirm your email address by visiting the link
 
 This link will expire in {{ expiration_days }} day{{ expiration_days|pluralize }}.
 
-If you did not create an account with inAct, you can safely ignore this message.
+If you did not create an account with inACT, you can safely ignore this message.
 
-The inAct Editorial Office
+The inACT Editorial Office
 https://in-act-journal.org

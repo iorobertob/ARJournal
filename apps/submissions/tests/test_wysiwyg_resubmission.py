@@ -31,7 +31,7 @@ class WysiwygResubmissionTest(TestCase):
 
     def setUp(self):
         JournalConfig.objects.get_or_create(pk=1, defaults={
-            'name': 'inAct', 'tagline': 'Test', 'submission_open': True,
+            'name': 'inACT', 'tagline': 'Test', 'submission_open': True,
         })
         self.author = make_user('author@test.com', [UserRole.AUTHOR],
                                 first_name='Au', last_name='Thor')

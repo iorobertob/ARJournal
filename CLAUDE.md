@@ -1,4 +1,4 @@
-# CLAUDE.md — Trans/Act Journal Platform
+# CLAUDE.md — inACT Journal Platform
 
 ## Project Overview
 Django-based academic journal platform for artistic research. Full lifecycle: submission → peer review → editorial workflow → HTML publication with multimedia.
@@ -27,7 +27,7 @@ python manage.py migrate
 ### Creating the superuser
 Password is set in `.env` as `DJANGO_SUPERUSER_PASSWORD`.
 ```bash
-python manage.py createsuperuser --email admin@trans-act-journal.org
+python manage.py createsuperuser --email admin@inact.lmta.lt
 ```
 
 ### Celery / Redis
@@ -86,7 +86,7 @@ Video & audio are **never served as a downloadable file**. On upload they are tr
 - `apps/journal/context_processors.py` — injects `journal` into all templates
 - `config/settings/base.py` — all settings with django-environ
 
-## Design System — inAct identity (Figma "TRANS/ACT", 2026)
+## Design System — inACT identity (Figma "inACT", 2026)
 - CSS variables in `static/css/main.css`; @font-face in `static/css/fonts.css`
 - Palette: Orange `#FF4500` (accent), Shadow `#21252B` (text), White `#FBFAFC` (bg),
   Ghost `#F4F2F7`, Silver `#E4E2E7` (borders), Ash `#6E667A`, lavender `#A9A1B4` (captions),
@@ -95,7 +95,7 @@ Video & audio are **never served as a downloadable file**. On upload they are tr
   **Space Grotesk** (bundled, `static/fonts/space-grotesk/`). Drop purchased FK Grotesk
   Neue woff2 files into `static/fonts/fk-grotesk-neue/` (see README.txt there) — they
   activate automatically via @font-face, no code changes.
-- Logotype: dotted inAct SVGs in `static/img/brand/` (header/footer/orange/white).
+- Logotype: dotted inACT SVGs in `static/img/brand/` (header/footer/orange/white).
   Logotype typeface **G.B. Jones** by Nat Pyper (free: librarystack.org/g-b-jones) goes
   into `static/fonts/gb-jones/` if ever needed as a text font.
 - Type scale (Desktop-18): H1 36/40 · H2 28/34 · H3 22/28 · body 16/20 ·
@@ -119,7 +119,7 @@ Every new UI element — cards, info boxes, warning panels, form groups, confirm
 ```
 templates/
 ├── base.html               — site shell
-├── partials/nav.html       — sticky header nav (dotted inAct logo + search)
+├── partials/nav.html       — sticky header nav (dotted inACT logo + search)
 ├── partials/footer.html    — full-width orange footer
 ├── public/                 — homepage, issue, article, archive, about, submit
 ├── author/                 — dashboard, 4-step submission wizard

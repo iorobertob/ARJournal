@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Trans/Act Journal — development update script
+# inACT Journal — development update script
 #
 # Run this after pulling new code to sync your local environment:
 #   bash scripts/deploy_dev.sh

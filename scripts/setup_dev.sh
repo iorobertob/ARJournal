@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Trans/Act Journal — one-command dev setup (without Docker)
+# inACT Journal — one-command dev setup (without Docker)
 set -e
 
-echo "=== Trans/Act Journal — Dev Setup ==="
+echo "=== inACT Journal — Dev Setup ==="
 
 # Check Python
 python3 -c "import sys; assert sys.version_info >= (3, 11), 'Python 3.11+ required'" 2>/dev/null || {
@@ -130,8 +130,8 @@ echo "Seeding journal config..."
 python manage.py shell -c "
 from apps.journal.models import JournalConfig
 j = JournalConfig.get()
-if not j.name or j.name == 'Trans/Act':
-    j.name = 'Trans/Act'
+if not j.name or j.name == 'inACT':
+    j.name = 'inACT'
     j.tagline = 'A journal for artistic research'
     j.submission_open = True
     j.save()

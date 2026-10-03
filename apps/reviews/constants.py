@@ -1,4 +1,4 @@
-"""Shared definitions for the InAct peer-review evaluation form.
+"""Shared definitions for the inACT peer-review evaluation form.
 
 The evaluation criteria and additional questions are stored on
 ``Review.scores`` (a JSONField) under the ``criteria`` and ``questions`` keys.
@@ -11,7 +11,7 @@ same order.
 # (slug, label) — slug is used as the form field suffix: criterion_<slug>.
 EVALUATION_CRITERIA = [
     ('originality', 'Originality and significance of the contribution'),
-    ('relevance', 'Relevance to the aims and scope of InAct'),
+    ('relevance', 'Relevance to the aims and scope of inACT'),
     ('methodology', 'Quality of research design, methodology, or artistic process'),
     ('literature', 'Critical engagement with relevant literature and context'),
     ('argumentation', 'Clarity and coherence of argumentation'),

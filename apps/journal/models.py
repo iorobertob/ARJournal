@@ -6,7 +6,7 @@ from django.utils import timezone
 
 class JournalConfig(models.Model):
     """Singleton model — journal-wide configuration, editable from admin dashboard."""
-    name = models.CharField(max_length=255, default='inAct')
+    name = models.CharField(max_length=255, default='inACT')
     tagline = models.CharField(max_length=500, blank=True, default='')
     description = models.TextField(blank=True, default='')
     issn_print = models.CharField(max_length=20, blank=True, default='')

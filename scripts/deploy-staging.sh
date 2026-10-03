@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Trans/Act Journal — STAGING deploy script
+# inACT Journal — STAGING deploy script
 # Target: https://misc.lmta.lt/<subpath>  (subpath on shared server)
 # Tested on Ubuntu 22.04 LTS / Debian 12
 #
@@ -140,7 +140,7 @@ sudo -u "$RUN_AS" env DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS" \
 log "Writing systemd unit: transact-staging-gunicorn.service..."
 cat > /etc/systemd/system/transact-staging-gunicorn.service << EOF
 [Unit]
-Description=Trans/Act Journal STAGING — Gunicorn (port ${GUNICORN_PORT})
+Description=inACT Journal STAGING — Gunicorn (port ${GUNICORN_PORT})
 After=network.target postgresql.service
 
 [Service]
@@ -167,7 +167,7 @@ EOF
 log "Writing systemd unit: transact-staging-celery.service..."
 cat > /etc/systemd/system/transact-staging-celery.service << EOF
 [Unit]
-Description=Trans/Act Journal STAGING — Celery worker
+Description=inACT Journal STAGING — Celery worker
 After=network.target redis.service
 
 [Service]
@@ -218,7 +218,7 @@ else:
 from apps.journal.models import JournalConfig
 j = JournalConfig.get()
 if not j.name:
-    j.name = 'Trans/Act'; j.tagline = 'A journal for artistic research'
+    j.name = 'inACT'; j.tagline = 'A journal for artistic research'
     j.submission_open = True; j.save(); print('Journal config seeded.')
 "
 fi
@@ -229,7 +229,7 @@ SCRIPT_NAME_VAL=$(grep '^SCRIPT_NAME=' "$APP_DIR/.env" 2>/dev/null | cut -d= -f2
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 echo "============================================================"
-echo "  Trans/Act Journal STAGING deployed."
+echo "  inACT Journal STAGING deployed."
 echo ""
 echo "  Gunicorn running on 127.0.0.1:${GUNICORN_PORT}"
 echo ""

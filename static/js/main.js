@@ -1,4 +1,4 @@
-/* Trans/Act Journal — main.js */
+/* inACT Journal — main.js */
 
 // ── Alpine modal store ────────────────────────────────────────
 document.addEventListener('alpine:init', function () {

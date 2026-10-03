@@ -1,4 +1,4 @@
-# Trans/Act Journal — Site Map
+# inACT Journal — Site Map
 
 ## Public Site
 

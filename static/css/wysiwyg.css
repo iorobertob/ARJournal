@@ -1,5 +1,5 @@
 /* Lightweight WYSIWYG editor — pairs with static/js/wysiwyg.js.
-   Styled to match the inAct design system (see main.css tokens). */
+   Styled to match the inACT design system (see main.css tokens). */
 
 .wysiwyg {
   border: 1px solid var(--color-silver, #E4E2E7);

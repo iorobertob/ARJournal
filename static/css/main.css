@@ -1025,7 +1025,7 @@ a.home-current__title:hover { color: var(--color-accent); }
   font-size: var(--size-xs);
   font-weight: 700;
   letter-spacing: 0.01em;
-  color: var(--color-clay);
+  color: var(--color-accent);
   margin-bottom: var(--spacing-3);
 }
 
@@ -1050,7 +1050,7 @@ a.home-current__title:hover { color: var(--color-accent); }
 .site-footer .site-footer__copy {
   font-size: var(--size-xs);
   line-height: 1.2;
-  color: var(--color-ash);
+  color: var(--color-accent);
   margin-top: var(--spacing-8);
   padding-top: var(--spacing-6);
   border-top: 1px solid rgba(33, 37, 43, 0.15);

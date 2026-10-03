@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Footer section headings ("Explore", "Information", "Contact") are no longer
-  uppercased and no longer have a divider line between them and their links.
+  uppercased and no longer have a divider line between them and their links,
+  and are now orange (`#FF4500`) along with the copyright block, matching the logo.
 - All body text is left-aligned instead of justified.
 - Buttons use tighter internal padding (~5pt).
 - Journal descriptor wording changed from "Journal of […]" to "Journal on […]"

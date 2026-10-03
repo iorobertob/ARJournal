@@ -142,14 +142,28 @@ def user_delete(request, pk):
 def homepage_settings(request):
     """Homepage content: hero & contribute images, mission text, and the
     'Across the archive' featured selection with its rotation period."""
-    from apps.journal.models import JournalConfig, FeaturedSelection
+    from apps.journal.models import JournalConfig, FeaturedSelection, NewsPost
     from apps.production.models import HTMLBuild
 
     journal = JournalConfig.get()
 
     if request.method == 'POST':
         action = request.POST.get('action', 'content')
-        if action == 'featured':
+        if action == 'pin_news':
+            post_pk = request.POST.get('pinned_news_post')
+            if post_pk:
+                post = NewsPost.objects.filter(pk=post_pk, is_published=True).first()
+                if post:
+                    post.is_pinned = True
+                    post.save()
+                    messages.success(request, f'"{post.title}" is now pinned to the homepage.')
+                else:
+                    messages.error(request, 'Post not found or not published.')
+            else:
+                NewsPost.objects.filter(is_pinned=True).update(is_pinned=False)
+                messages.success(request, 'Homepage news post unpinned.')
+            return redirect('journal_admin_homepage')
+        elif action == 'featured':
             ids = request.POST.getlist('featured_articles')
             builds = HTMLBuild.objects.filter(pk__in=ids, is_published=True)
             if builds:
@@ -188,11 +202,15 @@ def homepage_settings(request):
                         'document__revision__submission__issue')
         .order_by('-published_at')
     )
+    news_posts = NewsPost.objects.filter(is_published=True).order_by('-published_at')
+    pinned_news = NewsPost.objects.filter(is_pinned=True).first()
     return render(request, 'journal_admin/homepage.html', {
         'journal': journal,
         'selection': selection,
         'selected_pks': selected_pks,
         'published_builds': published,
+        'news_posts': news_posts,
+        'pinned_news': pinned_news,
     })
 
 
@@ -971,17 +989,17 @@ def news_edit(request, pk=None):
         if post is None:
             post = NewsPost(author=request.user)
         post.title = title
-        post.summary = (request.POST.get('summary') or '').strip()
+        post.summary = (request.POST.get('summary') or '').strip()[:500]
         post.body = sanitize_html(request.POST.get('body', ''))
         post.is_published = bool(request.POST.get('is_published'))
         # Unpublishing clears the publish stamp so re-publishing re-dates it.
         if not post.is_published:
             post.published_at = None
-        if request.FILES.get('thumbnail'):
-            post.thumbnail = request.FILES['thumbnail']
-        if request.POST.get('remove_thumbnail') and post.thumbnail:
-            post.thumbnail.delete(save=False)
-            post.thumbnail = None
+        if request.FILES.get('featured_image'):
+            post.featured_image = request.FILES['featured_image']
+        if request.POST.get('remove_featured_image') and post.featured_image:
+            post.featured_image.delete(save=False)
+            post.featured_image = None
         post.save()
         messages.success(
             request,

@@ -38,7 +38,7 @@
 
 .dashboard-column__heading {
   font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -92,7 +92,7 @@
   justify-content: center;
   background: var(--color-accent);
   color: #fff;
-  font-size: 0.68rem;
+  font-size: var(--size-xs);
   font-weight: 700;
   padding: 0 var(--spacing-2);
   border-radius: 100px;
@@ -129,7 +129,7 @@
   padding: var(--spacing-3) var(--spacing-4);
   background: var(--color-surface);
   font-weight: 600;
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-muted);
@@ -164,7 +164,7 @@
   display: flex;
   gap: var(--spacing-6);
   margin-bottom: var(--spacing-10);
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   font-weight: 600;
   color: var(--color-light);
   text-transform: uppercase;
@@ -225,7 +225,7 @@
   border-radius: 50%;
   background: var(--color-muted);
   color: #fff;
-  font-size: 10px;
+  font-size: var(--size-2xs);
   font-weight: 700;
   font-style: normal;
   line-height: 1;
@@ -547,7 +547,7 @@
 .assets-table th {
   background: var(--color-surface);
   font-weight: 600;
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-muted);
@@ -660,7 +660,7 @@
 
 .workspace-toc__label {
   font-family: var(--font-sans);
-  font-size: 0.68rem;
+  font-size: var(--size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -714,7 +714,7 @@
 
 .workspace-main__article-type {
   font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -911,7 +911,7 @@
 
 .notif-card__type {
   font-family: var(--font-sans);
-  font-size: 0.68rem;
+  font-size: var(--size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -924,7 +924,7 @@
 
 .notif-card__new {
   font-family: var(--font-sans);
-  font-size: 0.62rem;
+  font-size: var(--size-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;

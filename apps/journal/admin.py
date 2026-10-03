@@ -39,8 +39,8 @@ class EditorialBoardMemberAdmin(admin.ModelAdmin):
 
 @admin.register(NewsPost)
 class NewsPostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'author', 'is_published', 'published_at', 'updated_at')
-    list_filter = ('is_published',)
+    list_display = ('title', 'author', 'is_published', 'is_pinned', 'published_at', 'updated_at')
+    list_filter = ('is_published', 'is_pinned')
     search_fields = ('title', 'summary', 'body')
     prepopulated_fields = {'slug': ('title',)}
     date_hierarchy = 'published_at'

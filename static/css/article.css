@@ -17,7 +17,7 @@
 
 .article-hero__issue {
   font-family: var(--font-sans);
-  font-size: 1.5rem;          /* ~2x the previous size, still below the 36px title */
+  font-size: var(--size-xl);  /* H3-level display label above article title */
   line-height: 1.2;
   margin-bottom: var(--spacing-3);
 }
@@ -114,7 +114,7 @@
 
 .article-toc__label {
   font-family: var(--font-sans);
-  font-size: 0.68rem;
+  font-size: var(--size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -186,7 +186,7 @@
   cursor: pointer;
   color: var(--color-muted);
   line-height: 1;
-  font-size: 7px;
+  font-size: var(--size-2xs);
   border-radius: 3px;
   transition: transform 0.2s ease;
   transform: rotate(0deg);
@@ -212,7 +212,7 @@
 /* Section labels — use p.selector to win the specificity battle */
 p.article-meta-sidebar__label {
   font-family: var(--font-sans);
-  font-size: 0.68rem;
+  font-size: var(--size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -295,7 +295,7 @@ p.article-meta-sidebar__label {
 
 .article-issue-label {
   font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -501,7 +501,7 @@ p.article-meta-sidebar__label {
 }
 
 .media-placeholder__type {
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -549,7 +549,7 @@ p.article-meta-sidebar__label {
 .article-table th {
   background: var(--color-surface);
   font-weight: 600;
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-muted);
@@ -651,7 +651,7 @@ p.article-meta-sidebar__label {
 
 .article-footnotes__title {
   font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -700,7 +700,7 @@ p.article-meta-sidebar__label {
 
 .article-bibliography h2 {
   font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -826,7 +826,7 @@ p.article-meta-sidebar__label {
 .cite-modal__close {
   background: none;
   border: none;
-  font-size: 1rem;
+  font-size: var(--size-base);
   color: var(--color-muted);
   cursor: pointer;
   padding: 4px 8px;
@@ -851,7 +851,7 @@ p.article-meta-sidebar__label {
   border: none;
   border-bottom: 2px solid transparent;
   padding: var(--spacing-2) var(--spacing-4);
-  font-size: 0.78rem;
+  font-size: var(--size-xs);
   font-family: var(--font-sans);
   font-weight: 500;
   color: var(--color-muted);
@@ -870,7 +870,7 @@ p.article-meta-sidebar__label {
 .cite-panel.active { display: flex; }
 
 .cite-panel__format-note {
-  font-size: 0.72rem;
+  font-size: var(--size-xs);
   font-family: var(--font-sans);
   color: var(--color-muted);
   text-transform: uppercase;
@@ -885,7 +885,7 @@ p.article-meta-sidebar__label {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   font-family: 'SF Mono', 'Fira Mono', 'Consolas', monospace;
-  font-size: 0.78rem;
+  font-size: var(--size-xs);
   line-height: 1.65;
   color: var(--color-text);
   white-space: pre-wrap;
@@ -901,7 +901,7 @@ p.article-meta-sidebar__label {
   border: 1.5px solid var(--color-accent);
   background: transparent;
   color: var(--color-accent);
-  font-size: 0.78rem;
+  font-size: var(--size-xs);
   font-family: var(--font-sans);
   font-weight: 500;
   cursor: pointer;

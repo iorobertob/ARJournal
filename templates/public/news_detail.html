@@ -9,9 +9,9 @@
   <p class="news-article__date">{{ post.display_date|date:"j F Y" }}{% if post.author %} · {{ post.author.get_full_name|default:post.author.email }}{% endif %}</p>
   <h1 class="news-article__title">{{ post.title }}</h1>
 
-  {% if post.thumbnail %}
+  {% if post.featured_image %}
   <div class="news-article__hero">
-    <img src="{{ post.thumbnail.url }}" alt="">
+    <img src="{{ post.featured_image.url }}" alt="">
   </div>
   {% endif %}
 
@@ -26,17 +26,17 @@
       {% for p in more %}
       <a href="{% url 'news_detail' p.slug %}" class="news-card">
         <div class="news-card__thumb">
-          {% if p.thumbnail %}
-          <img src="{{ p.thumbnail.url }}" alt="" loading="lazy">
+          {% if p.featured_image %}
+          <img src="{{ p.featured_image.url }}" alt="" loading="lazy">
           {% else %}
           <span class="news-card__thumb-fallback">{{ journal.name }}</span>
           {% endif %}
         </div>
         <div class="news-card__body">
-          <p class="news-card__date">{{ p.display_date|date:"j F Y" }}</p>
           <h2 class="news-card__title">{{ p.title }}</h2>
+          <p class="news-card__date">{{ p.display_date|date:"j F Y" }}</p>
           {% if p.summary %}<p class="news-card__summary">{{ p.summary }}</p>{% endif %}
-          <span class="news-card__more link-arrow dir-link">Read more</span>
+          <span class="news-card__cta">Find out more ⟶</span>
         </div>
       </a>
       {% endfor %}

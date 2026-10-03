@@ -28,30 +28,36 @@
    ============================================================ */
 
 /* ── FK Grotesk Neue (drop-in, licensed) ──────────────────── */
+/* woff2 (web-optimised) takes priority when present;
+   OTF from FONT/ is the active fallback until woff2 is purchased. */
 @font-face {
   font-family: 'FK Grotesk Neue';
-  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Regular.woff2') format('woff2');
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Regular.woff2') format('woff2'),
+       url('../fonts/FONT/FKGroteskNeue-Regular.otf') format('opentype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'FK Grotesk Neue';
-  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Italic.woff2') format('woff2');
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Italic.woff2') format('woff2'),
+       url('../fonts/FONT/FKGroteskNeue-Italic.otf') format('opentype');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
 }
 @font-face {
   font-family: 'FK Grotesk Neue';
-  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Bold.woff2') format('woff2');
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Bold.woff2') format('woff2'),
+       url('../fonts/FONT/FKGroteskNeue-Bold.otf') format('opentype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'FK Grotesk Neue';
-  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-BoldItalic.woff2') format('woff2');
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-BoldItalic.woff2') format('woff2'),
+       url('../fonts/FONT/FKGroteskNeue-BoldItalic.otf') format('opentype');
   font-weight: 700;
   font-style: italic;
   font-display: swap;

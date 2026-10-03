@@ -77,10 +77,32 @@
         // Some engines want the tag wrapped in angle brackets.
         try { document.execCommand('formatBlock', false, item.val); }
         catch (e) { document.execCommand('formatBlock', false, '<' + item.val + '>'); }
+        // Chrome injects <span style="color:…"> when converting heading→paragraph
+        // to "preserve" computed colour. Strip those spans immediately.
+        if (item.val === 'P') {
+          document.execCommand('removeFormat');
+          stripColorSpans(area);
+        }
       } else {
         document.execCommand(item.cmd, false, null);
       }
       sync();
+    }
+
+    // Walk every element inside the area and remove any inline color/font-color
+    // that Chrome's contenteditable adds when converting heading blocks.
+    function stripColorSpans(root) {
+      root.querySelectorAll('[style]').forEach(function (el) {
+        el.style.color = '';
+        el.style.backgroundColor = '';
+        // If the span is now style-less, unwrap it to avoid empty spans.
+        if (!el.getAttribute('style') || el.getAttribute('style').trim() === '') {
+          el.removeAttribute('style');
+        }
+      });
+      root.querySelectorAll('[color]').forEach(function (el) {
+        el.removeAttribute('color');
+      });
     }
 
     TOOLBAR.forEach(function (item) {
@@ -100,6 +122,31 @@
       b.addEventListener('mousedown', function (e) { e.preventDefault(); });
       b.addEventListener('click', function () { exec(item); });
       bar.appendChild(b);
+    });
+
+    // Intercept paste: strip colour-related inline styles before inserting so
+    // Chrome can't re-apply the heading colour to pasted content.
+    area.addEventListener('paste', function (e) {
+      e.preventDefault();
+      var html = e.clipboardData && e.clipboardData.getData('text/html');
+      if (html) {
+        var tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        // Remove all inline styles that carry colour information.
+        tmp.querySelectorAll('[style]').forEach(function (el) {
+          el.style.color = '';
+          el.style.backgroundColor = '';
+          if (!el.getAttribute('style') || el.getAttribute('style').trim() === '') {
+            el.removeAttribute('style');
+          }
+        });
+        tmp.querySelectorAll('[color]').forEach(function (el) { el.removeAttribute('color'); });
+        document.execCommand('insertHTML', false, tmp.innerHTML);
+      } else {
+        var text = e.clipboardData && e.clipboardData.getData('text/plain');
+        if (text) { document.execCommand('insertText', false, text); }
+      }
+      sync();
     });
 
     area.addEventListener('input', sync);

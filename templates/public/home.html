@@ -91,13 +91,6 @@
     {% endif %}
   </div>
 </section>
-{% else %}
-<section class="hero hero--empty">
-  <div class="container">
-    <h1>{{ journal.name }}</h1>
-    <p>{{ journal.tagline|default:"A journal for artistic research" }}</p>
-  </div>
-</section>
 {% endif %}
 
 <!-- Mission bar -->
@@ -107,6 +100,29 @@
   </p>
   <a href="{% url 'about' %}" class="btn btn--inverse">Find out more ⟶</a>
 </section>
+
+{% if pinned_news %}
+<!-- Pinned news post -->
+<section class="container home-news">
+  <a href="{% url 'news_detail' pinned_news.slug %}" class="news-card news-card--featured">
+    <div class="news-card__thumb">
+      {% if pinned_news.featured_image %}
+      <img src="{{ pinned_news.featured_image.url }}" alt="" loading="lazy">
+      {% else %}
+      <span class="news-card__thumb-fallback">{{ journal.name }}</span>
+      {% endif %}
+    </div>
+    <div class="news-card__body">
+      <h2 class="news-card__title">{{ pinned_news.title }}</h2>
+      <p class="news-card__date">{{ pinned_news.display_date|date:"j F Y" }}</p>
+      {% if pinned_news.summary %}
+      <p class="news-card__summary">{{ pinned_news.summary }}</p>
+      {% endif %}
+      <span class="news-card__cta">Find out more ⟶</span>
+    </div>
+  </a>
+</section>
+{% endif %}
 
 {% if journal.show_filtered_section and marquee_articles %}
 <!-- Filtered marquee -->

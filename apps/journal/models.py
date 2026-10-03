@@ -308,12 +308,19 @@ class NewsPost(models.Model):
         blank=True, default='',
         help_text='WYSIWYG rich-text content (sanitized on save).',
     )
-    thumbnail = models.ImageField(upload_to='news/', blank=True, null=True)
+    featured_image = models.ImageField(
+        upload_to='news/', blank=True, null=True,
+        help_text='Shown as the card thumbnail and as the hero image at the top of the detail page.',
+    )
     author = models.ForeignKey(
         'accounts.User', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='news_posts',
     )
     is_published = models.BooleanField(default=False)
+    is_pinned = models.BooleanField(
+        default=False,
+        help_text='Pin this post to the homepage. Only one post can be pinned at a time.',
+    )
     published_at = models.DateTimeField(
         null=True, blank=True,
         help_text='Set automatically when first published; drives chronological order.',
@@ -331,9 +338,11 @@ class NewsPost(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = self._unique_slug()
-        # Stamp the publish time the first time it goes live.
         if self.is_published and self.published_at is None:
             self.published_at = timezone.now()
+        # Enforce single-pinned constraint before saving.
+        if self.is_pinned:
+            NewsPost.objects.exclude(pk=self.pk).filter(is_pinned=True).update(is_pinned=False)
         super().save(*args, **kwargs)
 
     def _unique_slug(self):

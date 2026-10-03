@@ -127,6 +127,8 @@ def home(request):
     )
     categories = ArticleType.choices
 
+    pinned_news = NewsPost.objects.filter(is_pinned=True, is_published=True).first()
+
     return render(request, 'public/home.html', {
         'current_issue': current_issue,
         'toc_editorial': toc_editorial,
@@ -136,6 +138,7 @@ def home(request):
         'marquee_articles': marquee_articles,
         'filter_years': years,
         'filter_categories': categories,
+        'pinned_news': pinned_news,
     })
 
 

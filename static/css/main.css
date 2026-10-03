@@ -531,10 +531,10 @@ a.filter-tag:hover, button.filter-tag:hover { background: var(--color-accent-dar
   align-items: center;
   justify-content: center;
   gap: var(--spacing-2);
-  padding: 5pt 10pt;
+  padding: 3px 7px;
   font-family: var(--font-sans);
   font-size: var(--size-xs);
-  line-height: 1.33;
+  line-height: 1.2;
   font-weight: 400;
   text-decoration: none;
   border-radius: var(--radius);
@@ -603,7 +603,7 @@ a.filter-tag:hover, button.filter-tag:hover { background: var(--color-accent-dar
 .btn--ghost:hover, .btn-ghost:hover { color: var(--color-accent); }
 
 .btn--small, .btn--sm, .btn-sm {
-  padding: var(--spacing-1) var(--spacing-3);
+  padding: 2px 6px;
   font-size: var(--size-xs);
 }
 
@@ -616,7 +616,7 @@ a.filter-tag:hover, button.filter-tag:hover { background: var(--color-accent-dar
 }
 
 .btn--large {
-  padding: 7pt 14pt;
+  padding: 5px 11px;
   font-size: var(--size-sm);
 }
 

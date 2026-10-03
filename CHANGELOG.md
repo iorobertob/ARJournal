@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   uppercased and no longer have a divider line between them and their links,
   and are now orange (`#FF4500`) along with the copyright block, matching the logo.
 - All body text is left-aligned instead of justified.
-- Buttons use tighter internal padding (~5pt).
+- Buttons use much tighter internal padding and line-height to match the Figma
+  "Directorial link" spec (base `3px 7px`, line-height 1.2).
 - Journal descriptor wording changed from "Journal of […]" to "Journal on […]"
   across the site, emails, PDF, and the stored journal description text.
 

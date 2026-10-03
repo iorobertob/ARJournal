@@ -134,7 +134,7 @@ p:last-child { margin-bottom: 0; }
   max-width: 70ch;
   line-height: var(--leading-loose);
   font-size: var(--size-base);
-  text-align: justify;
+  text-align: left;
   /* soften the gaps justification opens up (needs lang on <html>) */
   hyphens: auto;
   -webkit-hyphens: auto;
@@ -531,7 +531,7 @@ a.filter-tag:hover, button.filter-tag:hover { background: var(--color-accent-dar
   align-items: center;
   justify-content: center;
   gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-4);
+  padding: 5pt 10pt;
   font-family: var(--font-sans);
   font-size: var(--size-xs);
   line-height: 1.33;
@@ -616,7 +616,7 @@ a.filter-tag:hover, button.filter-tag:hover { background: var(--color-accent-dar
 }
 
 .btn--large {
-  padding: var(--spacing-3) var(--spacing-6);
+  padding: 7pt 14pt;
   font-size: var(--size-sm);
 }
 
@@ -1024,12 +1024,9 @@ a.home-current__title:hover { color: var(--color-accent); }
   font-family: var(--font-sans);
   font-size: var(--size-xs);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.01em;
   color: var(--color-clay);
   margin-bottom: var(--spacing-3);
-  padding-bottom: var(--spacing-2);
-  border-bottom: 1px solid rgba(118, 77, 64, 0.35);
 }
 
 .site-footer ul {
@@ -1410,7 +1407,7 @@ a.home-current__title:hover { color: var(--color-accent); }
   color: var(--color-muted);
   line-height: var(--leading-loose);
   margin-bottom: var(--spacing-4);
-  text-align: justify;
+  text-align: left;
   hyphens: auto;
   -webkit-hyphens: auto;
 }

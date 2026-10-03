@@ -402,7 +402,7 @@ p.article-meta-sidebar__label {
   scroll-margin-top: 80px;
   cursor: default;
   transition: background var(--transition);
-  text-align: justify;
+  text-align: left;
 }
 
 /* Hover + pointer only active when annotation mode is on */

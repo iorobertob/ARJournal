@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Footer section headings ("Explore", "Information", "Contact") are no longer
+  uppercased and no longer have a divider line between them and their links.
+- All body text is left-aligned instead of justified.
+- Buttons use tighter internal padding (~5pt).
+- Journal descriptor wording changed from "Journal of […]" to "Journal on […]"
+  across the site, emails, PDF, and the stored journal description text.
+
 ## [1.0.0] - 2026-10-03
 
 First tagged release. Highlights of the most recent work:

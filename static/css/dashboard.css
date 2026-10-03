@@ -724,7 +724,7 @@
   font-family: var(--font-serif);
   font-size: var(--size-sm);
   line-height: var(--leading-loose);
-  text-align: justify;
+  text-align: left;
   max-width: none;
   padding-left: 2.5rem; /* room for .para-num absolute elements */
 }

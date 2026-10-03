@@ -131,7 +131,7 @@ def _html_wrapper(body_html: str) -> str:
                    style="display:block;height:34px;width:auto;border:0;outline:none;text-decoration:none;">
               <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;
                          font-size:10px;color:#999999;text-transform:uppercase;
-                         letter-spacing:0.14em;">Journal of Artistic Research</p>
+                         letter-spacing:0.14em;">Journal on Artistic Research</p>
             </td>
           </tr>
           <!-- Divider -->
@@ -151,7 +151,7 @@ def _html_wrapper(body_html: str) -> str:
             <td style="padding:20px 40px 32px;border-top:1px solid #e8e7e3;">
               <p style="margin:0;font-family:Arial,Helvetica,sans-serif;
                          font-size:11px;color:#999999;line-height:1.65;">
-                inACT: Journal of Artistic Research &mdash;
+                inACT: Journal on Artistic Research &mdash;
                 <a href="{site_url}" style="color:#FF4500;text-decoration:none;">{domain}</a><br>
                 This is an automated message. Please do not reply to this email.
               </p>
@@ -317,7 +317,7 @@ def notify_submission_received(submission_pk):
     # ── HTML ─────────────────────────────────────────────────────────────────
     html_body = (
         _greeting(sub.author.display_name)
-        + _p('Thank you for submitting your work to <strong>inACT: Journal of '
+        + _p('Thank you for submitting your work to <strong>inACT: Journal on '
              'Artistic Research</strong>. We have successfully received your submission.')
         + _detail_box('Submission title', sub.title)
         + _p('Our editorial team will carry out a technical check to ensure your '
@@ -332,7 +332,7 @@ def notify_submission_received(submission_pk):
     # ── Plain text ────────────────────────────────────────────────────────────
     plain = (
         f'Dear {sub.author.display_name},\n\n'
-        f'Thank you for submitting your work to inACT: Journal of Artistic Research. '
+        f'Thank you for submitting your work to inACT: Journal on Artistic Research. '
         f'We have successfully received your submission.\n\n'
         f'Submission: {sub.title}\n\n'
         f'Our editorial team will carry out a technical check and notify you of next steps. '
@@ -379,7 +379,7 @@ def notify_reviewer_invited(invitation_pk):
     # ── HTML ─────────────────────────────────────────────────────────────────
     html_body = (
         _greeting(inv.reviewer.display_name)
-        + _p('The editorial board of <strong>inACT: Journal of Artistic Research</strong> '
+        + _p('The editorial board of <strong>inACT: Journal on Artistic Research</strong> '
              'would like to invite you to serve as a peer reviewer for the following submission.')
         + _detail_box('Submission title', inv.submission.title)
         + _detail_box('Review deadline', deadline_str)
@@ -396,7 +396,7 @@ def notify_reviewer_invited(invitation_pk):
     # ── Plain text ────────────────────────────────────────────────────────────
     plain = (
         f'Dear {inv.reviewer.display_name},\n\n'
-        f'The editorial board of inACT: Journal of Artistic Research invites you '
+        f'The editorial board of inACT: Journal on Artistic Research invites you '
         f'to review the following submission.\n\n'
         f'Title: {inv.submission.title}\n'
         f'Review deadline: {deadline_str}\n\n'
@@ -524,7 +524,7 @@ def notify_decision_sent(decision_pk):
     # ── HTML ─────────────────────────────────────────────────────────────────
     html_body = (
         _greeting(submission.author.display_name)
-        + _p(f'The editorial board of <strong>inACT: Journal of Artistic Research</strong> '
+        + _p(f'The editorial board of <strong>inACT: Journal on Artistic Research</strong> '
              f'has reached a decision regarding your submission.')
         + _detail_box('Submission title', submission.title)
         + _decision_badge(decision_label, color=badge_color, bg=badge_bg)
@@ -539,7 +539,7 @@ def notify_decision_sent(decision_pk):
     # ── Plain text ────────────────────────────────────────────────────────────
     plain = (
         f'Dear {submission.author.display_name},\n\n'
-        f'The editorial board of inACT: Journal of Artistic Research has reached '
+        f'The editorial board of inACT: Journal on Artistic Research has reached '
         f'a decision regarding your submission "{submission.title}".\n\n'
         f'Decision: {decision_label}\n\n'
         f'{decision.letter}\n\n'
@@ -837,7 +837,7 @@ def notify_returned_to_author(submission_pk):
 
     html_body = (
         _greeting(sub.author.display_name)
-        + _p('Thank you for your submission to <strong>inACT: Journal of Artistic '
+        + _p('Thank you for your submission to <strong>inACT: Journal on Artistic '
              'Research</strong>. Our editorial team has reviewed your manuscript and '
              'is returning it for correction before it can proceed to peer review.')
         + _detail_box('Submission title', sub.title)
@@ -953,7 +953,7 @@ def notify_article_published(submission_pk):
     html_body = (
         _greeting(author.display_name)
         + _p('Congratulations — your article has been published in '
-             '<strong>inACT: Journal of Artistic Research</strong>.')
+             '<strong>inACT: Journal on Artistic Research</strong>.')
         + _detail_box('Article title', sub.title)
         + _p('Your work is now accessible to readers online.')
         + _btn(article_url, 'View published article')
@@ -964,7 +964,7 @@ def notify_article_published(submission_pk):
     plain = (
         f'Dear {author.display_name},\n\n'
         f'Congratulations — your article "{sub.title}" has been published in '
-        f'inACT: Journal of Artistic Research.\n\n'
+        f'inACT: Journal on Artistic Research.\n\n'
         f'Read it here:\n{article_url}\n\n'
         f'Warm regards,\nThe inACT Editorial Office'
     )
@@ -1251,7 +1251,7 @@ def notify_editors_issue_published(issue_pk):
     for editor in _editors_email_opted_in(all_editors):
         html_body = (
             _greeting(editor.display_name)
-            + _p(f'Issue #{_e(str(issue.number))}{_e(vol_str)} of <strong>inACT: Journal of '
+            + _p(f'Issue #{_e(str(issue.number))}{_e(vol_str)} of <strong>inACT: Journal on '
                  f'Artistic Research</strong> has been published with '
                  f'{article_count} article{"s" if article_count != 1 else ""}.')
             + _btn(issue_url, 'View published issue')

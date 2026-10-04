@@ -300,9 +300,9 @@ class NewsPost(models.Model):
     chronologically ordered rich row cards."""
     title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=280, unique=True, blank=True)
-    summary = models.CharField(
-        max_length=500, blank=True, default='',
-        help_text='Short teaser shown on the news card. Falls back to the start of the body.',
+    summary = models.TextField(
+        blank=True, default='',
+        help_text='Rich-text teaser shown on the news card (WYSIWYG). Falls back to the start of the body.',
     )
     body = models.TextField(
         blank=True, default='',

@@ -2,7 +2,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.http import HttpResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView
 from .models import Issue, EditorialBoardMember, FeaturedSelection, JournalConfig, ArticleType, NewsPost
@@ -170,6 +170,15 @@ def partners(request):
 
 def imprint(request):
     return render(request, 'public/imprint.html', {})
+
+
+def current_issue(request):
+    issue = Issue.objects.filter(is_current=True, is_published=True).first()
+    if not issue:
+        issue = Issue.objects.filter(is_published=True).order_by('-number').first()
+    if issue:
+        return redirect('issue_detail', number=issue.number)
+    return render(request, 'public/no_issue.html', {})
 
 
 def issue_detail(request, number):

@@ -11,7 +11,7 @@
     <div class="site-footer__col">
       <p class="site-footer__label">Explore</p>
       <ul>
-        <li><a href="{% if current_issue %}{% url 'issue_detail' current_issue.number %}{% else %}{% url 'home' %}{% endif %}">Current issue</a></li>
+        <li><a href="{% url 'current_issue' %}">Current issue</a></li>
         <li><a href="{% url 'archive' %}">Archive</a></li>
         <li><a href="{% url 'news' %}">News</a></li>
         <li><a href="{% url 'about' %}">About</a></li>

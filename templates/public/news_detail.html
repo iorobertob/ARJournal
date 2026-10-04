@@ -35,7 +35,7 @@
         <div class="news-card__body">
           <h2 class="news-card__title">{{ p.title }}</h2>
           <p class="news-card__date">{{ p.display_date|date:"j F Y" }}</p>
-          {% if p.summary %}<p class="news-card__summary">{{ p.summary }}</p>{% endif %}
+          {% if p.summary %}<div class="news-card__summary">{{ p.summary|safe }}</div>{% endif %}
           <span class="news-card__cta">Find out more ⟶</span>
         </div>
       </a>

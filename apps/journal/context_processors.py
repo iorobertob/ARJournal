@@ -2,7 +2,7 @@ from .models import JournalConfig, Issue
 
 
 def journal_config(request):
-    current_issue = Issue.objects.filter(is_current=True).first()
+    current_issue = Issue.objects.filter(is_current=True, is_published=True).first()
     unread_notifications_count = 0
     recent_notifications = []
     if request.user.is_authenticated:

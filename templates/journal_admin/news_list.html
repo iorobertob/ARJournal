@@ -55,7 +55,7 @@
           {{ post.display_date|date:"j M Y, H:i" }}{% if post.author %} · {{ post.author.get_full_name|default:post.author.email }}{% endif %}
         </div>
         {% if post.summary %}
-        <p style="margin:var(--spacing-2) 0 0;color:var(--color-text-muted);font-size:var(--size-sm);">{{ post.summary|truncatechars:140 }}</p>
+        <p style="margin:var(--spacing-2) 0 0;color:var(--color-text-muted);font-size:var(--size-sm);">{{ post.summary|striptags|truncatechars:140 }}</p>
         {% endif %}
       </div>
       <div class="jadmin-news-row__actions">

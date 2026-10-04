@@ -989,7 +989,7 @@ def news_edit(request, pk=None):
         if post is None:
             post = NewsPost(author=request.user)
         post.title = title
-        post.summary = (request.POST.get('summary') or '').strip()[:500]
+        post.summary = (request.POST.get('summary') or '').strip()
         post.body = sanitize_html(request.POST.get('body', ''))
         post.is_published = bool(request.POST.get('is_published'))
         # Unpublishing clears the publish stamp so re-publishing re-dates it.

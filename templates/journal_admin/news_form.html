@@ -32,10 +32,10 @@
 
     <div class="form-group">
       <label for="id_summary">Summary <span style="color:var(--color-text-muted);font-weight:400;">(optional teaser shown on the news card)</span></label>
-      <textarea name="summary" id="id_summary" rows="2" class="form-control"
-                maxlength="500"
-                placeholder="A short one- or two-sentence teaser.">{{ post.summary|default:'' }}</textarea>
-      <p style="margin:var(--spacing-1) 0 0;font-size:var(--size-xs);color:var(--color-text-muted);">Max 500 characters.</p>
+      <textarea name="summary" id="id_summary" rows="3" class="form-control"
+                data-wysiwyg
+                placeholder="A short teaser shown on the news card.">{{ post.summary|default:'' }}</textarea>
+      <p style="margin:var(--spacing-1) 0 0;font-size:var(--size-xs);color:var(--color-text-muted);">Rich text. Shown on the news card below the title.</p>
     </div>
 
     <div class="form-group">

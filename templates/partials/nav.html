@@ -6,7 +6,7 @@
       {% else %}<img src="{% static 'img/brand/inACT-full-black.svg' %}" alt="{{ journal.name }}">{% endif %}
     </a>
     <ul class="site-nav__links" role="list">
-      <li><a href="{% if current_issue %}{% url 'issue_detail' current_issue.number %}{% else %}{% url 'home' %}{% endif %}" {% if request.resolver_match.url_name == 'issue_detail' %}aria-current="page"{% endif %}>Current Issue</a></li>
+      <li><a href="{% url 'current_issue' %}" {% if request.resolver_match.url_name == 'issue_detail' or request.resolver_match.url_name == 'current_issue' %}aria-current="page"{% endif %}>Current Issue</a></li>
       <li><a href="{% url 'archive' %}" {% if request.resolver_match.url_name == 'archive' %}aria-current="page"{% endif %}>Archive</a></li>
       <li><a href="{% url 'news' %}" {% if request.resolver_match.url_name == 'news' %}aria-current="page"{% endif %}>News</a></li>
       <li><a href="{% url 'about' %}" {% if request.resolver_match.url_name == 'about' %}aria-current="page"{% endif %}>About</a></li>
@@ -103,7 +103,7 @@
   <!-- Mobile nav drawer -->
   <div class="site-nav__mobile-menu" x-show="mobileOpen" x-cloak x-transition>
     <ul>
-      <li><a href="{% if current_issue %}{% url 'issue_detail' current_issue.number %}{% else %}{% url 'home' %}{% endif %}">Current Issue</a></li>
+      <li><a href="{% url 'current_issue' %}">Current Issue</a></li>
       <li><a href="{% url 'archive' %}">Archive</a></li>
       <li><a href="{% url 'news' %}">News</a></li>
       <li><a href="{% url 'about' %}">About</a></li>

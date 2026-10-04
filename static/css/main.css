@@ -1734,8 +1734,8 @@ a.home-current__title:hover { color: var(--color-accent); }
   grid-template-areas: "body thumb";
   grid-template-columns: 1fr 240px;
   gap: var(--spacing-8);
-  align-items: stretch;
-  padding: var(--spacing-4) var(--spacing-6);
+  align-items: start;
+  padding: var(--spacing-6);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-white);
@@ -1806,6 +1806,8 @@ a.home-current__title:hover { color: var(--color-accent); }
   color: var(--color-text);
   line-height: var(--leading-normal, 1.5);
 }
+.news-card__summary > :first-child { margin-top: 0; }
+.news-card__summary > :last-child { margin-bottom: 0; }
 .news-card__cta {
   display: inline-block;
   margin-top: var(--spacing-3);

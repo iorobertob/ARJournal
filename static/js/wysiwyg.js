@@ -152,12 +152,30 @@
     area.addEventListener('input', sync);
     area.addEventListener('blur', sync);
 
+    // Token reference hint — collapsed by default.
+    var hint = document.createElement('details');
+    hint.className = 'wysiwyg__tokens';
+    hint.innerHTML =
+      '<summary>Available tokens</summary>' +
+      '<ul>' +
+        '<li><code>{{editorial_email}}</code> — editorial e-mail address</li>' +
+        '<li><code>{{contact_email}}</code> — general contact e-mail address</li>' +
+        '<li><code>{{journal_name}}</code> — journal name</li>' +
+        '<li><code>{{institution}}</code> — institution name</li>' +
+        '<li><code>{{publisher}}</code> — publisher name</li>' +
+        '<li><code>{{issn_print}}</code> — ISSN (print)</li>' +
+        '<li><code>{{issn_online}}</code> — ISSN (online)</li>' +
+        '<li><code>{{tagline}}</code> — journal tagline</li>' +
+      '</ul>' +
+      '<p>Type a token directly in the editor. It will be replaced with the live value when visitors read the page, so changing it in Journal Identity updates every page automatically.</p>';
+
     // Swap the textarea out for the editor, keeping the textarea in the form.
     textarea.style.display = 'none';
     textarea.parentNode.insertBefore(wrap, textarea);
     wrap.appendChild(bar);
     wrap.appendChild(area);
     wrap.appendChild(textarea);
+    wrap.parentNode.insertBefore(hint, wrap.nextSibling);
 
     if (textarea.form) {
       textarea.form.addEventListener('submit', sync);

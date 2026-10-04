@@ -435,15 +435,17 @@ def notify_reviewer_invited(invitation_pk):
 def notify_review_submitted(review_pk):
     """Notify handling editors AND the author that a review has been submitted."""
     from apps.reviews.models import Review
-    review = Review.objects.select_related('invitation__submission__author').get(pk=review_pk)
+    review = Review.objects.select_related('invitation__submission__author',
+                                           'invitation__reviewer').get(pk=review_pk)
     submission = review.invitation.submission
     author = submission.author
+    reviewer = review.invitation.reviewer
     subject_editors = f'Review submitted — {submission.title[:70]}'
 
-    # ── Notify editors ────────────────────────────────────────────────────────
+    # ── Notify editors (never notify the reviewer about their own submission) ─
     for assignment in submission.assignments.filter(is_active=True).select_related('editor__profile'):
         editor = assignment.editor
-        if not editor:
+        if not editor or editor.pk == reviewer.pk:
             continue
         try:
             if not editor.profile.email_notifications:
@@ -474,10 +476,11 @@ def notify_review_submitted(review_pk):
         except Exception as exc:
             _log_email(editor.email, subject_editors, 'failed', str(exc))
 
-    # ── In-app badge for all editorial users ─────────────────────────────────
+    # ── In-app badge for editorial users, excluding the reviewer themselves ───
     try:
+        editorial_recipients = [u for u in _editorial_users() if u.pk != reviewer.pk]
         _notify_editors_inapp(
-            _editorial_users(),
+            editorial_recipients,
             'review_submitted',
             f'Peer review submitted for "{submission.title[:55]}".',
             f'/editorial/submission/{submission.pk}/',
@@ -1007,6 +1010,8 @@ def send_review_reminders():
     upcoming = ReviewerInvitation.objects.filter(
         status=InvitationStatus.ACCEPTED,
         deadline__lte=(now() + timedelta(days=5)).date(),
+    ).exclude(
+        review__status='submitted',  # skip invitations where the review is already done
     ).select_related('reviewer', 'submission')
 
     for inv in upcoming:

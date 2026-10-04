@@ -79,6 +79,34 @@
 .wysiwyg__area ol { margin: 0 0 var(--spacing-3, 12px); padding-left: var(--spacing-6, 24px); }
 .wysiwyg__area li { margin-bottom: var(--spacing-1, 4px); }
 .wysiwyg__area a { color: var(--color-accent, #FF4500); text-decoration: underline; }
+/* Token reference hint rendered after the editor */
+.wysiwyg__tokens {
+  margin-top: var(--spacing-2, 8px);
+  font-size: var(--size-xs, 12px);
+  color: var(--color-muted, #6E667A);
+}
+.wysiwyg__tokens summary {
+  cursor: pointer;
+  user-select: none;
+  color: var(--color-accent, #FF4500);
+  letter-spacing: 0.03em;
+}
+.wysiwyg__tokens ul {
+  margin: var(--spacing-2, 8px) 0 0;
+  padding-left: var(--spacing-4, 16px);
+  list-style: disc;
+}
+.wysiwyg__tokens li { margin-bottom: var(--spacing-1, 4px); }
+.wysiwyg__tokens code {
+  font-family: monospace;
+  font-size: 0.95em;
+  background: var(--color-ghost, #F4F2F7);
+  padding: 1px 4px;
+  border-radius: 2px;
+  color: var(--color-shadow, #21252B);
+}
+.wysiwyg__tokens p { margin: var(--spacing-2, 8px) 0 0; }
+
 .wysiwyg__area blockquote {
   margin: 0 0 var(--spacing-3, 12px);
   padding-left: var(--spacing-4, 16px);

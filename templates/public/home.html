@@ -116,7 +116,7 @@
       <h2 class="news-card__title">{{ pinned_news.title }}</h2>
       <p class="news-card__date">{{ pinned_news.display_date|date:"j F Y" }}</p>
       {% if pinned_news.summary %}
-      <div class="news-card__summary">{{ pinned_news.summary|safe }}</div>
+      <div class="news-card__summary">{{ pinned_news.summary|richtext }}</div>
       {% endif %}
       <span class="news-card__cta">Find out more ⟶</span>
     </div>

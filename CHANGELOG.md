@@ -97,5 +97,6 @@ First tagged release. Highlights of the most recent work:
   persist through save and reload. The serializer, deserializer, and the
   HTML/PDF renderer all handle arbitrary list nesting.
 
-[Unreleased]: https://github.com/iorobertob/ARJournal/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/iorobertob/ARJournal/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/iorobertob/ARJournal/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/iorobertob/ARJournal/releases/tag/v1.0.0

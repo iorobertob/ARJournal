@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **FK Grotesk Neue web fonts now active.** Converted the licensed OTF files to
+  `woff2` and committed them to `static/fonts/fk-grotesk-neue/` (the path the
+  `@font-face` rules already point to). Previously the font files lived only in
+  the gitignored `static/fonts/FONT/` folder, so they were never deployed and the
+  site fell back to Space Grotesk.
+
 ## [1.1.0] - 2026-10-04
 
 ### Added

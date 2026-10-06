@@ -1,0 +1,91 @@
+{% extends "journal_admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if partner %}Edit partner{% else %}New partner{% endif %} — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);gap:var(--spacing-4);">
+  <h1 class="jadmin-page-title" style="margin:0;">{% if partner %}Edit partner{% else %}New partner{% endif %}</h1>
+  <div style="display:flex;gap:var(--spacing-3);align-items:center;">
+    <a href="{% url 'journal_admin_partners' %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
+    <button type="submit" form="partner-form" class="btn btn-primary">Save partner</button>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="partner-form">
+  {% csrf_token %}
+
+  <div class="jadmin-card">
+    <div class="form-group">
+      <label for="id_name">Name</label>
+      <input type="text" name="name" id="id_name" class="form-control" required
+             value="{{ partner.name|default:'' }}" placeholder="e.g. Lithuanian Academy of Music and Theatre">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_location">Location <span style="color:var(--color-text-muted);font-weight:400;">(optional)</span></label>
+        <input type="text" name="location" id="id_location" class="form-control"
+               value="{{ partner.location|default:'' }}" placeholder="e.g. Lithuania">
+      </div>
+      <div class="form-group">
+        <label for="id_url">Website <span style="color:var(--color-text-muted);font-weight:400;">(optional)</span></label>
+        <input type="url" name="url" id="id_url" class="form-control"
+               value="{{ partner.url|default:'' }}" placeholder="https://…">
+      </div>
+    </div>
+  </div>
+
+  <div class="jadmin-card">
+    <div class="jadmin-card__title">Logo</div>
+    <div class="form-group">
+      {% if partner.logo %}
+      <div style="margin-bottom:var(--spacing-3);display:flex;align-items:center;gap:var(--spacing-4);flex-wrap:wrap;">
+        <img src="{{ partner.logo.url }}" alt="Current logo" style="max-height:64px;max-width:200px;object-fit:contain;background:var(--color-bg);padding:var(--spacing-2);border:1px solid var(--color-border);border-radius:2px;">
+        <label style="display:flex;align-items:center;gap:var(--spacing-2);cursor:pointer;font-size:var(--size-sm);color:var(--color-text-muted);">
+          <input type="checkbox" name="remove_logo" style="width:16px;height:16px;accent-color:var(--color-accent);">
+          Remove current logo
+        </label>
+      </div>
+      {% endif %}
+      <input type="file" name="logo" id="id_logo" accept=".svg,.png,.jpg,.jpeg,.webp,image/*" class="form-control">
+      <p style="margin:var(--spacing-2) 0 0;font-size:var(--size-xs);color:var(--color-text-muted);">SVG (preferred) or transparent PNG. Wide/horizontal logos display best.</p>
+    </div>
+  </div>
+
+  <div class="jadmin-card">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_order">Order</label>
+        <input type="number" name="order" id="id_order" class="form-control"
+               value="{{ partner.order|default:0 }}" min="0" step="1">
+        <p style="margin:var(--spacing-2) 0 0;font-size:var(--size-xs);color:var(--color-text-muted);">Lower numbers appear first.</p>
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end;">
+        <label style="display:flex;align-items:center;gap:var(--spacing-2);cursor:pointer;">
+          <input type="checkbox" name="is_active" {% if partner is None or partner.is_active %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--color-accent);">
+          <span>Active <span style="color:var(--color-text-muted);font-weight:400;">— visible on the public site.</span></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;">
+    <button type="submit" class="btn btn-primary">Save partner</button>
+  </div>
+</form>
+
+{% if partner %}
+<div class="jadmin-card" style="margin-top:var(--spacing-6);border-color:var(--color-danger,#b91c1c);">
+  <div class="jadmin-card__title" style="color:var(--color-danger,#b91c1c);">Danger zone</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--spacing-4);flex-wrap:wrap;">
+    <p style="margin:0;color:var(--color-text-muted);font-size:var(--size-sm);">Permanently delete this partner.</p>
+    <form method="post" action="{% url 'journal_admin_partner_delete' partner.pk %}"
+          data-confirm="Delete “{{ partner.name|escapejs }}”? This cannot be undone." data-confirm-ok="Delete">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm" style="background:transparent;border:1px solid var(--color-danger,#b91c1c);color:var(--color-danger,#b91c1c);">Delete partner</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

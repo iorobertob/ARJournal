@@ -36,6 +36,7 @@
 </main>
 
 {% include 'partials/footer.html' %}
+{% if is_public_page %}{% include 'partials/partner_logos.html' %}{% endif %}
 
 <!-- Global modal -->
 <div x-data x-show="$store.modal.show" x-cloak

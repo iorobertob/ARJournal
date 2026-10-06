@@ -1,0 +1,88 @@
+{% extends "journal_admin/base.html" %}
+{% load static %}
+
+{% block title %}Partners — Journal Admin{% endblock %}
+
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/wysiwyg.css' %}">
+{% endblock %}
+
+{% block extra_js %}{{ block.super }}
+<script src="{% static 'js/wysiwyg.js' %}" defer></script>
+{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title" style="margin:0 0 var(--spacing-6);">Partners</h1>
+
+<form method="post" action="{% url 'journal_admin_partners' %}" class="jadmin-card">
+  {% csrf_token %}
+  <div class="jadmin-card__title">Intro text</div>
+  <p style="margin:0 0 var(--spacing-3);font-size:var(--size-xs);color:var(--color-text-muted);">
+    Optional text shown at the top of the public <a href="{% url 'partners' %}" target="_blank">Partners page</a>,
+    above the logos. Leave blank for the default sentence.
+  </p>
+  <div class="form-group" style="margin-bottom:var(--spacing-4);">
+    <textarea name="footer_partners" id="id_footer_partners" rows="4" class="form-control" data-wysiwyg>{{ journal.footer_partners }}</textarea>
+  </div>
+  <div style="display:flex;justify-content:flex-end;">
+    <button type="submit" class="btn btn-primary">Save intro text</button>
+  </div>
+</form>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin:var(--spacing-8) 0 var(--spacing-6);">
+  <h2 class="jadmin-card__title" style="margin:0;font-size:var(--size-lg);">Institutions</h2>
+  <a href="{% url 'journal_admin_partner_create' %}" class="btn btn-primary">+ New Partner</a>
+</div>
+
+<div class="jadmin-card">
+  {% if partners %}
+  <div style="display:flex;flex-direction:column;gap:var(--spacing-4);">
+    {% for partner in partners %}
+    <div class="jadmin-board-row">
+      <div class="jadmin-board-avatar" style="border-radius:2px;background:var(--color-bg);display:flex;align-items:center;justify-content:center;padding:var(--spacing-2);">
+        {% if partner.logo %}
+        <img src="{{ partner.logo.url }}" alt="" style="max-width:100%;max-height:100%;object-fit:contain;">
+        {% else %}
+        <span style="font-size:var(--size-xs);color:var(--color-text-muted);">No logo</span>
+        {% endif %}
+      </div>
+      <div class="jadmin-board-row__body">
+        <div style="display:flex;align-items:center;gap:var(--spacing-3);flex-wrap:wrap;">
+          <strong style="font-size:var(--size-base);">{{ partner.name }}</strong>
+          {% if partner.is_active %}
+          <span class="role-badge" style="background:#d1fae5;color:#065f46;">Active</span>
+          {% else %}
+          <span class="role-badge" style="background:#fee2e2;color:#991b1b;">Hidden</span>
+          {% endif %}
+          <span class="role-badge" style="background:var(--color-surface);color:var(--color-text-muted);">Order {{ partner.order }}</span>
+        </div>
+        <div style="color:var(--color-text-muted);font-size:var(--size-sm);margin-top:var(--spacing-1);">
+          {% if partner.location %}{{ partner.location }}{% endif %}{% if partner.url %} · {{ partner.url }}{% endif %}
+        </div>
+      </div>
+      <div class="jadmin-board-row__actions">
+        <a href="{% url 'journal_admin_partner_edit' partner.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Edit</a>
+        <form method="post" action="{% url 'journal_admin_partner_delete' partner.pk %}"
+              data-confirm="Delete “{{ partner.name|escapejs }}”? This cannot be undone." data-confirm-ok="Delete"
+              style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm" style="background:transparent;border:1px solid var(--color-border);color:var(--color-danger,#b91c1c);">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:var(--spacing-12);color:var(--color-muted);">
+    <p style="font-size:var(--size-lg);margin-bottom:var(--spacing-4);">No partners yet.</p>
+    <a href="{% url 'journal_admin_partner_create' %}" class="btn btn-primary">Add your first partner</a>
+  </div>
+  {% endif %}
+</div>
+
+<p style="margin-top:var(--spacing-4);font-size:var(--size-xs);color:var(--color-text-muted);">
+  Partners appear on the public <a href="{% url 'partners' %}" target="_blank">Partners page</a> and in the
+  logo strip below the footer on public pages, ordered by the “Order” value (lowest first), then name.
+  Only active partners are shown. SVG and PNG logos are supported; transparent logos look best.
+</p>
+{% endblock %}

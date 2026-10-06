@@ -54,6 +54,9 @@
     <a href="{% url 'journal_admin_board' %}" class="{% if 'journal_admin_board' in request.resolver_match.url_name %}active{% endif %}">
       Editorial Board
     </a>
+    <a href="{% url 'journal_admin_partners' %}" class="{% if 'journal_admin_partner' in request.resolver_match.url_name %}active{% endif %}">
+      Partners
+    </a>
     <a href="{% url 'journal_admin_settings' %}" class="{% if request.resolver_match.url_name == 'journal_admin_settings' %}active{% endif %}">
       Journal Settings
     </a>

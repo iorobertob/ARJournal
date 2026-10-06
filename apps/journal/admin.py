@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import JournalConfig, Issue, Section, EditorialBoardMember, NewsPost
+from .models import JournalConfig, Issue, Section, EditorialBoardMember, NewsPost, Partner
 
 
 @admin.register(JournalConfig)
@@ -34,6 +34,12 @@ class IssueAdmin(admin.ModelAdmin):
 @admin.register(EditorialBoardMember)
 class EditorialBoardMemberAdmin(admin.ModelAdmin):
     list_display = ('name', 'role', 'institution', 'country', 'order', 'is_active')
+    list_editable = ('order', 'is_active')
+
+
+@admin.register(Partner)
+class PartnerAdmin(admin.ModelAdmin):
+    list_display = ('name', 'location', 'order', 'is_active')
     list_editable = ('order', 'is_active')
 
 

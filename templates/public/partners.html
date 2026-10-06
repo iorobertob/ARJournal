@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load content_filters %}
+{% load content_filters static %}
 {% block title %}Partners — {{ journal.name }}{% endblock %}
 
 {% block content %}
@@ -9,9 +9,27 @@
     {% if journal.footer_partners %}
     {{ journal.footer_partners|richtext }}
     {% else %}
-    <p style="color: var(--color-muted);">Partner information will be published here soon.</p>
+    <p>{{ journal.name }} is published in collaboration with the following partner institutions.</p>
     {% endif %}
     {% if journal.publisher %}<p>Published by {{ journal.publisher }}.</p>{% endif %}
   </div>
+
+  {% if partner_institutions %}
+  <ul class="partners-list">
+    {% for p in partner_institutions %}
+    <li class="partner-card">
+      {% if p.logo %}
+      <a class="partner-card__logo" href="{{ p.url }}" target="_blank" rel="noopener noreferrer" title="{{ p.name }}">
+        <img src="{{ p.logo.url }}" alt="{{ p.name }}" loading="lazy">
+      </a>
+      {% endif %}
+      <div class="partner-card__text">
+        <a href="{{ p.url }}" target="_blank" rel="noopener noreferrer" class="partner-card__name">{{ p.name }}</a>
+        {% if p.location %}<p class="partner-card__location">{{ p.location }}</p>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
 </section>
 {% endblock %}

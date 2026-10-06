@@ -1,0 +1,19 @@
+{% load static %}
+{% if partner_institutions %}
+<section class="partner-strip" aria-label="Partner institutions">
+  <div class="container">
+    <p class="partner-strip__label">In partnership with</p>
+    <ul class="partner-strip__logos">
+      {% for p in partner_institutions %}
+      {% if p.logo %}
+      <li class="partner-strip__item">
+        <a href="{{ p.url }}" target="_blank" rel="noopener noreferrer" title="{{ p.name }}">
+          <img src="{{ p.logo.url }}" alt="{{ p.name }}" loading="lazy">
+        </a>
+      </li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}

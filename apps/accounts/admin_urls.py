@@ -27,6 +27,11 @@ urlpatterns = [
     path('board/new/', admin_views.board_edit, name='journal_admin_board_create'),
     path('board/<int:pk>/edit/', admin_views.board_edit, name='journal_admin_board_edit'),
     path('board/<int:pk>/delete/', admin_views.board_delete, name='journal_admin_board_delete'),
+    # Partner institutions
+    path('partners/', admin_views.partner_list, name='journal_admin_partners'),
+    path('partners/new/', admin_views.partner_edit, name='journal_admin_partner_create'),
+    path('partners/<int:pk>/edit/', admin_views.partner_edit, name='journal_admin_partner_edit'),
+    path('partners/<int:pk>/delete/', admin_views.partner_delete, name='journal_admin_partner_delete'),
     # News / blog posts
     path('news/', admin_views.news_list, name='journal_admin_news'),
     path('news/new/', admin_views.news_edit, name='journal_admin_news_create'),

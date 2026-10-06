@@ -236,7 +236,8 @@ def journal_settings(request):
         journal.mission_text = sanitize_html(request.POST.get('mission_text', ''))
         journal.methodology_text = sanitize_html(request.POST.get('methodology_text', ''))
         journal.editorial_board_text = sanitize_html(request.POST.get('editorial_board_text', ''))
-        journal.footer_partners = sanitize_html(request.POST.get('footer_partners', ''))
+        # footer_partners (Partners intro text) is edited on the Partners dashboard,
+        # not here — intentionally omitted so settings saves never clear it.
         journal.submission_guidelines = sanitize_html(request.POST.get('submission_guidelines', ''))
         journal.policy_text = sanitize_html(request.POST.get('policy_text', ''))
         journal.terms_text = sanitize_html(request.POST.get('terms_text', ''))
@@ -1074,3 +1075,66 @@ def board_delete(request, pk):
         member.delete()
         messages.success(request, 'Board member deleted.')
     return redirect('journal_admin_board')
+
+
+# ── Partner institutions ──────────────────────────────────────────────
+@journal_admin_required
+def partner_list(request):
+    from apps.journal.models import Partner, JournalConfig
+    journal = JournalConfig.get()
+    if request.method == 'POST':
+        # Intro text shown above the logos on the public Partners page.
+        # Save only this field so it never disturbs other JournalConfig content.
+        from apps.journal.sanitize import sanitize_html
+        journal.footer_partners = sanitize_html(request.POST.get('footer_partners', ''))
+        journal.save(update_fields=['footer_partners', 'updated_at'])
+        messages.success(request, 'Partners intro text saved.')
+        return redirect('journal_admin_partners')
+    partners = Partner.objects.all()
+    return render(request, 'journal_admin/partner_list.html',
+                  {'partners': partners, 'journal': journal})
+
+
+@journal_admin_required
+def partner_edit(request, pk=None):
+    """Create (pk=None) or edit a partner institution."""
+    from apps.journal.models import Partner
+
+    partner = get_object_or_404(Partner, pk=pk) if pk else None
+
+    if request.method == 'POST':
+        name = (request.POST.get('name') or '').strip()
+        if not name:
+            messages.error(request, 'Name is required.')
+            return render(request, 'journal_admin/partner_form.html', {'partner': partner})
+
+        if partner is None:
+            partner = Partner()
+        partner.name = name
+        partner.location = (request.POST.get('location') or '').strip()
+        partner.url = (request.POST.get('url') or '').strip()
+        try:
+            partner.order = int(request.POST.get('order') or 0)
+        except (TypeError, ValueError):
+            partner.order = 0
+        partner.is_active = bool(request.POST.get('is_active'))
+        if request.FILES.get('logo'):
+            partner.logo = request.FILES['logo']
+        if request.POST.get('remove_logo') and partner.logo:
+            partner.logo.delete(save=False)
+            partner.logo = None
+        partner.save()
+        messages.success(request, f'Partner “{partner.name}” saved.')
+        return redirect('journal_admin_partners')
+
+    return render(request, 'journal_admin/partner_form.html', {'partner': partner})
+
+
+@journal_admin_required
+def partner_delete(request, pk):
+    from apps.journal.models import Partner
+    partner = get_object_or_404(Partner, pk=pk)
+    if request.method == 'POST':
+        partner.delete()
+        messages.success(request, 'Partner deleted.')
+    return redirect('journal_admin_partners')

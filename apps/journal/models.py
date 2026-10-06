@@ -294,6 +294,25 @@ class EditorialBoardMember(models.Model):
         return f'{self.name} — {self.role}'
 
 
+class Partner(models.Model):
+    """A partner / consortium institution shown on the public Partners page
+    and in the site-wide logo strip below the footer."""
+    name = models.CharField(max_length=255)
+    location = models.CharField(max_length=255, blank=True, default='',
+                                help_text='e.g. country or faculty, shown under the name')
+    url = models.URLField(blank=True, default='', help_text='Official website (opens in a new tab)')
+    # FileField (not ImageField) so SVG logos are accepted — Pillow cannot read SVG.
+    logo = models.FileField(upload_to='partners/', blank=True, null=True)
+    order = models.PositiveIntegerField(default=0, help_text='Lower numbers appear first')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
 class NewsPost(models.Model):
     """A blog-style news / announcement post, authored by editors and admins
     via the Journal Admin dashboard and shown on the public /news/ page as

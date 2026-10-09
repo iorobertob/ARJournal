@@ -1006,7 +1006,9 @@ def news_edit(request, pk=None):
             request,
             'News post published.' if post.is_published else 'News post saved as draft.',
         )
-        return redirect('journal_admin_news')
+        # Stay in the editor (Post/Redirect/Get to the same post) rather than
+        # kicking the user back to the list, like a typical CMS.
+        return redirect('journal_admin_news_edit', pk=post.pk)
 
     return render(request, 'journal_admin/news_form.html', {'post': post})
 
@@ -1062,7 +1064,8 @@ def board_edit(request, pk=None):
             member.photo = None
         member.save()
         messages.success(request, f'Board member “{member.name}” saved.')
-        return redirect('journal_admin_board')
+        # Stay in the editor (like the News editor) instead of returning to the list.
+        return redirect('journal_admin_board_edit', pk=member.pk)
 
     return render(request, 'journal_admin/board_form.html', {'member': member})
 
@@ -1125,7 +1128,8 @@ def partner_edit(request, pk=None):
             partner.logo = None
         partner.save()
         messages.success(request, f'Partner “{partner.name}” saved.')
-        return redirect('journal_admin_partners')
+        # Stay in the editor (like the News editor) instead of returning to the list.
+        return redirect('journal_admin_partner_edit', pk=partner.pk)
 
     return render(request, 'journal_admin/partner_form.html', {'partner': partner})
 

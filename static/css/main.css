@@ -1707,11 +1707,15 @@ a.home-current__title:hover { color: var(--color-accent); }
   border-radius: 0;
   display: block;
   align-self: stretch;
+  /* transparent (not the base ghost) so the contain letterbox is invisible */
+  background: transparent;
 }
+/* Show the whole image, scaled and centred both axes, within its half column. */
 .news-card.news-card--featured .news-card__thumb img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
 }
 .news-card.news-card--featured .news-card__title {

@@ -65,7 +65,19 @@
     area.innerHTML = val ? (HTML_RE.test(val) ? val : plainToHtml(val)) : '<p><br></p>';
 
     function sync() {
-      textarea.value = isBlank(area.innerHTML) ? '' : area.innerHTML.trim();
+      // contenteditable wraps each new line in a <div> (and some engines leave
+      // bare text). The sanitizer drops <div>, which would merge separate lines
+      // onto one. Convert those line-wrappers to <p> on a clone before saving so
+      // every break survives. (Harmless when defaultParagraphSeparator already
+      // yields <p>; essential for pasted content and non-Chrome engines.)
+      var clone = area.cloneNode(true);
+      Array.prototype.forEach.call(clone.querySelectorAll('div'), function (d) {
+        var p = document.createElement('p');
+        while (d.firstChild) { p.appendChild(d.firstChild); }
+        if (d.parentNode) { d.parentNode.replaceChild(p, d); }
+      });
+      var html = clone.innerHTML;
+      textarea.value = isBlank(html) ? '' : html.trim();
     }
 
     function exec(item) {
@@ -184,6 +196,9 @@
   }
 
   function init() {
+    // Make Enter insert <p> (kept by the sanitizer) instead of the browser
+    // default <div> (dropped by the sanitizer → lines merge). Chrome/Safari.
+    try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) {}
     var nodes = document.querySelectorAll('textarea[data-wysiwyg]');
     Array.prototype.forEach.call(nodes, enhance);
   }

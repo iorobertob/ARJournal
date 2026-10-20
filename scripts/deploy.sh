@@ -371,6 +371,8 @@ echo "  Units written: ${GUNICORN_SERVICE}, ${CELERY_SERVICE}, ${CELERY_BEAT_SER
 # and certbot can validate, obtain the cert, then swap in the real SSL config.
 if ! $UPDATE_ONLY; then
   step "Nginx + TLS certificate"
+  # Webroot for ACME HTTP-01 challenges (served over plain HTTP, never redirected).
+  mkdir -p /var/www/certbot/.well-known/acme-challenge
   DOMAINS_CSV="$(_env_val ALLOWED_HOSTS)"
   PRIMARY="$(echo "$DOMAINS_CSV" | cut -d, -f1)"
   SU_EMAIL=$(_env_val DJANGO_SUPERUSER_EMAIL)
@@ -400,6 +402,7 @@ if ! $UPDATE_ONLY; then
 server {
     listen 80;
     server_name ${DOMAINS_CSV//,/ };
+    location ^~ /.well-known/acme-challenge/ { root /var/www/certbot; default_type "text/plain"; }
     location / { return 200 'inACT - awaiting TLS certificate'; add_header Content-Type "text/plain; charset=utf-8"; }
 }
 NGINX
@@ -409,9 +412,11 @@ NGINX
     systemctl enable --now nginx
     systemctl reload nginx
 
-    # certonly + nginx authenticator: obtains the cert without rewriting our config,
-    # and records the nginx authenticator so `certbot renew` works unattended later.
-    if certbot certonly --nginx "${CERT_DOMAINS[@]}" --non-interactive --agree-tos \
+    # certonly + webroot authenticator: serves the challenge from /var/www/certbot
+    # over plain HTTP (the :80 block above carves it out before the HTTPS redirect),
+    # and records the webroot authenticator so `certbot renew` works unattended later.
+    # (The nginx authenticator fails here because the :80 vhost is a blanket 301.)
+    if certbot certonly --webroot -w /var/www/certbot "${CERT_DOMAINS[@]}" --non-interactive --agree-tos \
          --email "${SU_EMAIL:-admin@${PRIMARY}}"; then
       echo "  Certificate obtained — installing SSL config."
       install_ssl_conf

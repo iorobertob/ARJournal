@@ -1,0 +1,84 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}New User — Journal Admin{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">New User</h1>
+
+<div class="jadmin-card" style="max-width:560px;">
+  <p style="margin:0 0 var(--spacing-6);color:var(--color-text-muted);font-size:var(--size-sm);">
+    Create an account and assign its platform roles. A temporary password is generated
+    automatically and emailed to the new user, who should change it after signing in.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <!-- Email -->
+    <div class="form-group" style="margin-bottom:var(--spacing-5);">
+      <label for="id_email">Email address</label>
+      <input type="email" name="email" id="id_email" class="form-control" required
+             value="{{ form.email|default:'' }}" placeholder="name@institution.edu">
+    </div>
+
+    <!-- Name -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="id_first_name">First name <span style="color:var(--color-text-muted);font-weight:400;">(optional)</span></label>
+        <input type="text" name="first_name" id="id_first_name" class="form-control"
+               value="{{ form.first_name|default:'' }}">
+      </div>
+      <div class="form-group">
+        <label for="id_last_name">Last name <span style="color:var(--color-text-muted);font-weight:400;">(optional)</span></label>
+        <input type="text" name="last_name" id="id_last_name" class="form-control"
+               value="{{ form.last_name|default:'' }}">
+      </div>
+    </div>
+
+    <!-- Platform roles -->
+    <div class="form-group" style="margin:var(--spacing-6) 0;">
+      <label>
+        Platform roles
+        <small style="font-weight:400;color:var(--color-muted);">(select one or more)</small>
+      </label>
+      <div class="check-options">
+        {% for value, label in roles %}
+        <label class="check-option">
+          <input type="checkbox" name="roles" value="{{ value }}"
+                 {% if value in form.roles %}checked{% endif %}>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+      <small style="display:block;margin-top:var(--spacing-3);color:var(--color-muted);font-size:0.78rem;">
+        At least one role required. Defaults to Author if none selected.
+      </small>
+    </div>
+
+    <!-- Options -->
+    <div class="form-group" style="margin-bottom:var(--spacing-5);">
+      <label>Options</label>
+      <label class="check-option check-option--single" for="id_send_email">
+        <input type="checkbox" name="send_email" id="id_send_email" {% if form.send_email %}checked{% endif %}>
+        <span>
+          Email a temporary password to the new user
+          <span class="check-option__sub">Uncheck to create the account silently; the password will be shown to you once so you can share it.</span>
+        </span>
+      </label>
+      <label class="check-option check-option--single" for="id_is_active" style="margin-top:var(--spacing-3);">
+        <input type="checkbox" name="is_active" id="id_is_active" {% if form.is_active %}checked{% endif %}>
+        <span>
+          Account active
+          <span class="check-option__sub">Uncheck to create a suspended account that cannot sign in yet.</span>
+        </span>
+      </label>
+    </div>
+
+    <div style="display:flex;gap:var(--spacing-3);">
+      <button type="submit" class="btn btn-primary">Create user</button>
+      <a href="{% url 'journal_admin_users' %}" class="btn"
+         style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -89,6 +89,86 @@ def user_list(request):
 
 
 @journal_admin_required
+def user_create(request):
+    """Create a new account, assign roles, and email a temporary password."""
+    import secrets
+    import string
+
+    valid_roles = dict(UserRole.choices)
+
+    if request.method == 'POST':
+        email = (request.POST.get('email') or '').strip().lower()
+        first_name = (request.POST.get('first_name') or '').strip()
+        last_name = (request.POST.get('last_name') or '').strip()
+        selected_roles = [r for r in request.POST.getlist('roles') if r in valid_roles]
+        if not selected_roles:
+            selected_roles = [UserRole.AUTHOR]
+        is_active = bool(request.POST.get('is_active'))
+        send_email = bool(request.POST.get('send_email'))
+
+        form = {
+            'email': email, 'first_name': first_name, 'last_name': last_name,
+            'roles': selected_roles, 'is_active': is_active, 'send_email': send_email,
+        }
+        ctx = {'roles': UserRole.choices, 'form': form}
+
+        if not email:
+            messages.error(request, 'An email address is required.')
+            return render(request, 'journal_admin/user_create.html', ctx)
+        if User.objects.filter(email__iexact=email).exists():
+            messages.error(request, f'A user with the email {email} already exists.')
+            return render(request, 'journal_admin/user_create.html', ctx)
+
+        # Readable, strong temporary password.
+        alphabet = string.ascii_letters + string.digits
+        temp_password = ''.join(secrets.choice(alphabet) for _ in range(14))
+
+        user = User.objects.create_user(
+            email=email, password=temp_password,
+            first_name=first_name, last_name=last_name,
+            roles=selected_roles, is_active=is_active,
+        )
+
+        from apps.notifications.models import AuditEvent
+        AuditEvent.objects.create(
+            event_type='account_created',
+            actor=request.user,
+            payload={'created_user': user.email, 'roles': selected_roles},
+        )
+
+        if send_email:
+            try:
+                from apps.notifications.tasks import notify_account_created
+                notify_account_created(user.pk, temp_password)
+                messages.success(
+                    request,
+                    f'Account for {user.email} created — a welcome email with a '
+                    f'temporary password was sent.',
+                )
+            except Exception as exc:
+                # Account exists but the email failed: surface the password so the
+                # admin can share it manually, and the new user isn't locked out.
+                messages.warning(
+                    request,
+                    f'Account for {user.email} created, but the welcome email could '
+                    f'not be sent ({exc}). Share this temporary password securely: '
+                    f'{temp_password}',
+                )
+        else:
+            messages.success(
+                request,
+                f'Account for {user.email} created. No email was sent — share this '
+                f'temporary password securely: {temp_password}',
+            )
+        return redirect('journal_admin_users')
+
+    return render(request, 'journal_admin/user_create.html', {
+        'roles': UserRole.choices,
+        'form': {'is_active': True, 'send_email': True, 'roles': [UserRole.AUTHOR]},
+    })
+
+
+@journal_admin_required
 def user_edit(request, pk):
     user = get_object_or_404(User, pk=pk)
     if request.method == 'POST':

@@ -3,7 +3,10 @@
 {% block title %}Users &amp; Roles — Journal Admin{% endblock %}
 
 {% block jadmin_content %}
-<h1 class="jadmin-page-title">Users &amp; Roles</h1>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-6);gap:var(--spacing-4);flex-wrap:wrap;">
+  <h1 class="jadmin-page-title" style="margin:0;">Users &amp; Roles</h1>
+  <a href="{% url 'journal_admin_user_create' %}" class="btn btn-primary">+ New User</a>
+</div>
 
 <div class="jadmin-card">
 

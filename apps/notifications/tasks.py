@@ -306,6 +306,59 @@ def _editors_email_opted_in(editors):
 # ── Notification tasks ────────────────────────────────────────────────────────
 
 @shared_task
+def notify_account_created(user_pk, temp_password):
+    """Welcome a newly-created account with its temporary password + a login link."""
+    from apps.accounts.models import User
+    user = User.objects.get(pk=user_pk)
+
+    subject = 'Your inACT account has been created'
+    login_url = f'{_site_url()}/accounts/login/'
+    change_url = f'{_site_url()}/accounts/password/change/'
+    roles = ', '.join(user.get_roles_display()) or 'Author'
+
+    html_body = (
+        _greeting(user.display_name)
+        + _p('An account has been created for you on <strong>inACT: Journal on '
+             'Artistic Research</strong>. You can sign in with the credentials below.')
+        + _detail_box('Email', user.email)
+        + _detail_box('Temporary password', temp_password)
+        + _detail_box('Your role(s)', roles)
+        + _p('For your security, please sign in and change this temporary password '
+             'as soon as possible from your account settings.')
+        + _btn(login_url, 'Sign in to inACT')
+        + _signature()
+    )
+
+    plain = (
+        f'Dear {user.display_name},\n\n'
+        f'An account has been created for you on inACT: Journal on Artistic Research. '
+        f'You can sign in with the credentials below.\n\n'
+        f'Email: {user.email}\n'
+        f'Temporary password: {temp_password}\n'
+        f'Your role(s): {roles}\n\n'
+        f'For your security, please sign in and change this temporary password as soon '
+        f'as possible.\n'
+        f'Sign in: {login_url}\n'
+        f'Change password: {change_url}\n\n'
+        f'Warm regards,\nThe inACT Editorial Office'
+    )
+
+    try:
+        _send(user.email, subject, plain, html_body)
+        from .models import Notification
+        Notification.objects.create(
+            user=user,
+            notification_type='general',
+            message='Welcome to inACT. Your account has been created — '
+                    'please change your temporary password.',
+            url='/accounts/password/change/',
+        )
+    except Exception as exc:
+        _log_email(user.email, subject, 'failed', str(exc))
+        raise
+
+
+@shared_task
 def notify_submission_received(submission_pk):
     """Confirm to the author that their submission has been received."""
     from apps.submissions.models import Submission

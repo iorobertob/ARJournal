@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from .models import JournalConfig, Issue, Partner
 
 
@@ -22,6 +24,7 @@ def journal_config(request):
         'journal': JournalConfig.get(),
         'partner_institutions': Partner.objects.filter(is_active=True),
         'is_public_page': is_public_page,
+        'turnstile_site_key': settings.TURNSTILE_SITE_KEY,
         'current_issue': current_issue,
         'unread_notifications_count': unread_notifications_count,
         'recent_notifications': recent_notifications,

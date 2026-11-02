@@ -1040,6 +1040,44 @@ def notify_article_published(submission_pk):
 
 
 @shared_task
+def purge_unverified_accounts(days=7, dry_run=False):
+    """Celery beat: delete abandoned unverified self-signup accounts.
+
+    Removes bot/spam registrations that were never email-verified. Conservative
+    guards ensure legitimate and admin-created accounts are never touched: only
+    users who went through allauth signup (have an EmailAddress row), have NO
+    verified email, hold no role beyond Author, have no ORCID, have no
+    submissions, and are not staff/superuser. Returns the number affected.
+    """
+    from datetime import timedelta
+    from allauth.account.models import EmailAddress
+    from apps.accounts.models import User, UserRole
+    from apps.submissions.models import Submission
+
+    cutoff = timezone.now() - timedelta(days=days)
+    candidates = User.objects.filter(
+        date_joined__lt=cutoff, is_staff=False, is_superuser=False,
+    )
+    deleted = 0
+    for user in candidates.iterator():
+        emails = EmailAddress.objects.filter(user=user)
+        if not emails.exists():
+            continue  # admin-created / legacy account — never touch
+        if emails.filter(verified=True).exists():
+            continue  # email verified — a real account
+        if set(user.roles or []) - {UserRole.AUTHOR}:
+            continue  # holds a privileged/assigned role
+        if user.orcid_id:
+            continue  # linked a real ORCID identity
+        if Submission.objects.filter(author=user).exists():
+            continue  # has created content
+        if not dry_run:
+            user.delete()
+        deleted += 1
+    return deleted
+
+
+@shared_task
 def cleanup_expired_pdf_exports():
     """Celery beat: remove expired ephemeral PDF exports."""
     from apps.production.models import PDFExport

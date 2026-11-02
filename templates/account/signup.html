@@ -9,8 +9,16 @@
   <p class="auth-card__subtitle">Register to submit to {{ journal.name }}</p>
 </div>
 
-{% if form.errors %}
+{% if form.non_field_errors %}
+<div class="alert alert--error">
+  {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+</div>
+{% elif form.errors %}
 <div class="alert alert--error">Please correct the errors below.</div>
+{% endif %}
+
+{% if turnstile_site_key %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 {% endif %}
 
 <form method="post" action="{% url 'account_signup' %}" class="auth-form">
@@ -18,6 +26,12 @@
   {% if redirect_field_value %}
   <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
   {% endif %}
+
+  {# Honeypot — hidden from humans; bots that fill it are rejected. #}
+  <div aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;height:0;overflow:hidden;" tabindex="-1">
+    <label for="website_hp">Leave this field empty</label>
+    <input type="text" name="website" id="website_hp" tabindex="-1" autocomplete="off">
+  </div>
 
   <div class="form-group">
     <label for="{{ form.email.id_for_label }}">Email address</label>
@@ -45,6 +59,12 @@
     <ul class="errorlist">{% for e in form.password2.errors %}<li>{{ e }}</li>{% endfor %}</ul>
     {% endif %}
   </div>
+
+  {% if turnstile_site_key %}
+  <div class="form-group">
+    <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+  </div>
+  {% endif %}
 
   <button type="submit" class="auth-submit">Create account</button>
 </form>

@@ -157,6 +157,22 @@ ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_EMAIL_SUBJECT_PREFIX = ''   # our subject templates already include the journal name
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
+
+# Anti-abuse: hardened signup form (honeypot + disposable-email block + Turnstile).
+ACCOUNT_FORMS = {'signup': 'apps.accounts.forms.SignupForm'}
+
+# Rate limits (allauth built-in). Format: "<count>/<period>/<scope>", comma-separated.
+ACCOUNT_RATE_LIMITS = {
+    'signup': '6/m/ip,20/h/ip',          # cap automated registration bursts
+    'login_failed': '5/5m/ip',           # brute-force protection
+    'confirm_email': '1/3m/key',         # limit verification-email resends
+    'reset_password': '5/m/ip,20/h/ip',  # limit password-reset email abuse
+}
+
+# Cloudflare Turnstile (bot challenge on signup). Empty secret → disabled (dev/test).
+TURNSTILE_SITE_KEY = env('TURNSTILE_SITE_KEY', default='')
+TURNSTILE_SECRET_KEY = env('TURNSTILE_SECRET_KEY', default='')
 LOGIN_URL            = f'{_prefix}/accounts/login/'
 LOGIN_REDIRECT_URL   = f'{_prefix}/author/dashboard/'
 LOGOUT_REDIRECT_URL  = f'{_prefix}/' if _prefix else '/'
@@ -249,6 +265,18 @@ CELERY_TASK_ROUTES = {
     'apps.production.tasks.generate_submission_cover_derivatives': {'queue': 'transcode'},
 }
 
+# Cache. Set REDIS_CACHE_URL in production so allauth's signup/login rate limits
+# are shared across all Gunicorn workers (counters live in the cache). Left unset
+# (e.g. dev, which has no Redis) falls back to Django's per-process memory cache.
+_redis_cache_url = env('REDIS_CACHE_URL', default='')
+if _redis_cache_url:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': _redis_cache_url,
+        }
+    }
+
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
     'cleanup-pdf-exports': {
@@ -258,6 +286,10 @@ CELERY_BEAT_SCHEDULE = {
     'send-review-reminders': {
         'task': 'apps.notifications.tasks.send_review_reminders',
         'schedule': crontab(hour=9, minute=0),
+    },
+    'purge-unverified-accounts': {
+        'task': 'apps.notifications.tasks.purge_unverified_accounts',
+        'schedule': crontab(hour=3, minute=30),
     },
 }
 

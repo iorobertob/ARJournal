@@ -14,7 +14,7 @@ function deserializeInline(nodes) {
       };
       case 'cite': return {
         type: 'text', text: n.text || n.ref,
-        marks: [{ type: 'cite', attrs: { ref: n.ref, label: n.text || '' } }],
+        marks: [{ type: 'cite', attrs: { ref: n.ref, label: n.text || '', page: n.page || '' } }],
       };
       case 'footnote_ref': return {
         type: 'footnoteRef',

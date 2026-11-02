@@ -22,7 +22,7 @@ function serializeInline(nodes) {
       const link = marks.find(m => m.type === 'link');
       const cite = marks.find(m => m.type === 'cite');
 
-      if (cite) return { type: 'cite', ref: cite.attrs.ref, keys: [cite.attrs.ref], text: n.text };
+      if (cite) return { type: 'cite', ref: cite.attrs.ref, keys: [cite.attrs.ref], text: n.text, page: cite.attrs.page || '' };
       if (link) return { type: 'link', href: link.attrs.href, text: n.text };
       if (bold) return { type: 'bold', text: n.text };
       if (italic) return { type: 'italic', text: n.text };

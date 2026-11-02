@@ -244,6 +244,32 @@
   </div>
 </div>
 
+<!-- ── Citation page (locator) popover ──────────────────────────────────── -->
+<div id="cite-page-popover" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-label="Add citation page">
+  <div class="modal-box">
+    <div class="modal-box__header">
+      <h3 class="modal-box__title" id="cite-page-title">Add page (optional)</h3>
+      <button type="button" id="cite-page-close" class="modal-box__close" aria-label="Close">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-4);">
+      <div class="form__group">
+        <label class="form__label" for="cite-page-input">Page or page range</label>
+        <input type="text" id="cite-page-input" class="form__input" placeholder="e.g. 45 or 45–47" autocomplete="off">
+        <p class="form__hint">
+          The citation will read
+          <strong>(<span id="cite-page-preview">Surname Year</span>, page)</strong>.
+          Leave blank for just <strong>(Surname Year)</strong>. You can change the page
+          later by clicking the citation in the text.
+        </p>
+      </div>
+      <div class="form__actions">
+        <button type="button" id="cite-page-skip" class="btn btn--ghost">Insert without page</button>
+        <button type="button" id="cite-page-insert" class="btn btn--primary">Insert citation</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Cross-reference picker ────────────────────────────────────────────── -->
 <div id="crossref-picker" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-label="Insert cross-reference">
   <div class="modal-box">

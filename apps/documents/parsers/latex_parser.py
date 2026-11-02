@@ -226,8 +226,11 @@ def _parse_inline_content(
                 elif cmd in ('cite', 'citep', 'citet', 'citealp', 'citealt'):
                     keys = [ck.strip() for ck in arg.split(',')]
                     cite_keys.update(keys)
-                    label = opt_arg if opt_arg else arg
-                    nodes.append({'type': 'cite', 'ref': keys[0], 'keys': keys, 'text': label})
+                    # Optional [page] locator → structured page field, so the
+                    # renderer shows "(Surname Year, page)" (Cambridge style).
+                    page = opt_arg.strip()
+                    nodes.append({'type': 'cite', 'ref': keys[0], 'keys': keys,
+                                  'text': arg, 'page': page})
                 elif cmd == 'footnote':
                     fn_num = counters.get('fn', 0) + 1
                     counters['fn'] = fn_num

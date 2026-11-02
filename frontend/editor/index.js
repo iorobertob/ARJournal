@@ -1,4 +1,4 @@
-import { Editor } from '@tiptap/core';
+import { Editor, getMarkRange } from '@tiptap/core';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
@@ -160,15 +160,133 @@ function renderBibliography() {
   }
 }
 
-function insertCitation(item) {
-  const label = item.authors?.length
+function insertCitation(item, page) {
+  const base = (item.authors?.length
     ? `${item.authors[0].split(',')[0]} ${item.year || ''}`
-    : item.citeKey;
+    : item.citeKey).trim();
+  const pg = (page || '').trim();
+  // Cambridge style: page after a comma — "Surname Year, page" (or just "Surname Year").
+  const label = pg ? `${base}, ${pg}` : base;
   editor.chain().focus()
-    .setMark('cite', { ref: item.citeKey, label })
+    .setMark('cite', { ref: item.citeKey, label, page: pg })
     .insertContent(label)
     .unsetMark('cite')
     .run();
+}
+
+// ── Citation page (locator) popover ──────────────────────────────────────────
+// Clicking "Cite" asks for an optional page before inserting; clicking an
+// existing citation in the text reopens this popover to edit its page. The
+// in-text citation reads "(Surname Year, page)".
+let _pendingCiteItem = null;   // set when inserting a new citation
+let _editCite = null;          // set when editing an existing one: {from,to,ref,label,oldPage}
+
+// Author-date base ("Surname Year") for a citeKey, from the bibliography if
+// known, otherwise derived from the existing label (stripping a trailing page).
+function citeBase(ref, oldLabel, oldPage) {
+  const item = bibliography.find(b => b.citeKey === ref);
+  if (item) {
+    return (item.authors?.length
+      ? `${item.authors[0].split(',')[0]} ${item.year || ''}`
+      : item.citeKey).trim();
+  }
+  let base = (oldLabel || ref || '').trim();
+  if (oldPage) {
+    const esc = String(oldPage).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    base = base.replace(new RegExp('\\s*,\\s*' + esc + '\\s*$'), '').trim();
+  }
+  return base;
+}
+
+function _showCitePopover({ page, previewBase, title, okLabel, skipLabel }) {
+  const pop = document.getElementById('cite-page-popover');
+  const input = document.getElementById('cite-page-input');
+  if (!pop || !input) return false;
+  input.value = page || '';
+  const el = id => document.getElementById(id);
+  if (el('cite-page-preview')) el('cite-page-preview').textContent = previewBase || 'Surname Year';
+  if (el('cite-page-title')) el('cite-page-title').textContent = title;
+  if (el('cite-page-insert')) el('cite-page-insert').textContent = okLabel;
+  if (el('cite-page-skip')) el('cite-page-skip').textContent = skipLabel;
+  pop.hidden = false;
+  setTimeout(() => { input.focus(); input.select(); }, 0);
+  return true;
+}
+
+function openCitePagePopover(item) {
+  if (!item) return;
+  _editCite = null;
+  _pendingCiteItem = item;
+  const base = (item.authors?.length
+    ? `${item.authors[0].split(',')[0]} ${item.year || ''}`
+    : item.citeKey).trim();
+  const ok = _showCitePopover({
+    page: '', previewBase: base,
+    title: 'Add page (optional)', okLabel: 'Insert citation', skipLabel: 'Insert without page',
+  });
+  if (!ok) insertCitation(item, '');  // graceful fallback if the popover DOM is missing
+}
+
+// Open the popover to edit an existing citation found at a document range.
+function openCitePageEdit(range, attrs) {
+  _pendingCiteItem = null;
+  _editCite = { from: range.from, to: range.to, ref: attrs.ref, label: attrs.label, oldPage: attrs.page || '' };
+  _showCitePopover({
+    page: attrs.page || '', previewBase: citeBase(attrs.ref, attrs.label, attrs.page),
+    title: 'Edit citation page', okLabel: 'Update', skipLabel: 'Remove page',
+  });
+}
+
+function closeCitePagePopover() {
+  const pop = document.getElementById('cite-page-popover');
+  if (pop) pop.hidden = true;
+  _pendingCiteItem = null;
+  _editCite = null;
+}
+
+function confirmCitePagePopover() {
+  const input = document.getElementById('cite-page-input');
+  const page = input ? input.value : '';
+
+  if (_editCite) {
+    const ec = _editCite;
+    closeCitePagePopover();
+    const base = citeBase(ec.ref, ec.label, ec.oldPage);
+    const pg = (page || '').trim();
+    const newLabel = pg ? `${base}, ${pg}` : base;
+    editor.chain().focus()
+      .setTextSelection({ from: ec.from, to: ec.to })
+      .deleteSelection()
+      .setMark('cite', { ref: ec.ref, label: newLabel, page: pg })
+      .insertContent(newLabel)
+      .unsetMark('cite')
+      .run();
+    autosave();
+    return;
+  }
+
+  const item = _pendingCiteItem;
+  closeCitePagePopover();
+  if (item) insertCitation(item, page);
+}
+
+// Clicking an existing citation in the document opens the edit popover.
+function bindCiteClickToEdit() {
+  if (!editor) return;
+  editor.view.dom.addEventListener('click', (e) => {
+    const el = e.target.closest('a.editor-cite');
+    if (!el || !editor.view.dom.contains(el)) return;
+    e.preventDefault();
+    let pos;
+    try { pos = editor.view.posAtDOM(el, 0); } catch (err) { return; }
+    const markType = editor.schema.marks.cite;
+    const range = getMarkRange(editor.state.doc.resolve(pos), markType);
+    if (!range) return;
+    const node = editor.state.doc.nodeAt(range.from);
+    const mark = node && node.marks.find(m => m.type === markType);
+    if (!mark) return;
+    openCitePageEdit(range, mark.attrs);
+  });
 }
 
 function addBibItem(item) {
@@ -547,13 +665,27 @@ function bindEvents() {
     const citeBtn = e.target.closest('.bib-item__cite-btn');
     const delBtn  = e.target.closest('.bib-item__del-btn');
     const editBtn = e.target.closest('.bib-item__edit-btn');
-    if (citeBtn) insertCitation(bibliography[+citeBtn.dataset.idx]);
+    if (citeBtn) openCitePagePopover(bibliography[+citeBtn.dataset.idx]);
     if (delBtn) {
       bibliography.splice(+delBtn.dataset.idx, 1);
       renderBibliography();
       autosave();
     }
     if (editBtn) editCitation(+editBtn.dataset.idx);
+  });
+
+  // Citation page popover
+  document.getElementById('cite-page-insert')?.addEventListener('click', confirmCitePagePopover);
+  document.getElementById('cite-page-skip')?.addEventListener('click', () => {
+    // "Insert without page" / "Remove page" — confirm with an empty page.
+    const input = document.getElementById('cite-page-input');
+    if (input) input.value = '';
+    confirmCitePagePopover();
+  });
+  document.getElementById('cite-page-close')?.addEventListener('click', closeCitePagePopover);
+  document.getElementById('cite-page-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); confirmCitePagePopover(); }
+    if (e.key === 'Escape') { e.preventDefault(); closeCitePagePopover(); }
   });
 
   // Bibliography live search — filters the References list as the user types
@@ -667,6 +799,7 @@ function init(options) {
 
   bindToolbar();
   bindEvents();
+  bindCiteClickToEdit();
 }
 
 // Expose globally for Django template

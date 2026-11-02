@@ -789,8 +789,19 @@ def _render_inline(
     if ntype == 'cite':
         ref_raw = node.get('ref', '')
         ref = escape(ref_raw)
-        # Prefer the author-date label from cite_map; fall back to the raw key.
-        label = escape((cite_map or {}).get(ref_raw) or node.get('text', ref_raw))
+        # Author-date label from cite_map (authoritative: correct surname form,
+        # "et al", and a/b/c suffixes). Append the optional page locator so the
+        # citation reads "(Surname Year: page)".
+        cm_label = (cite_map or {}).get(ref_raw)
+        page = str(node.get('page', '') or '').strip().replace('--', '–')
+        if cm_label:
+            # Cambridge style: page follows the year after a comma — "(Surname Year, 45)".
+            full = f'{cm_label}, {page}' if page else cm_label
+        else:
+            # Not in the bibliography — fall back to the author's own text
+            # (which may already carry a locator), to avoid duplicating it.
+            full = node.get('text', ref_raw)
+        label = escape(full)
         return (
             f'<a href="#ref-{ref}" class="article-cite" data-ref="{ref}">'
             f'({label})'

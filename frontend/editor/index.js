@@ -803,7 +803,7 @@ function init(options) {
 }
 
 // Expose globally for Django template
-window.TransActEditor = {
+window.InactEditor = {
   init,
   updateNodeAtPos(pos, attrs) {
     if (!editor) return;

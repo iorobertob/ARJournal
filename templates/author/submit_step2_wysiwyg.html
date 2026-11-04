@@ -378,7 +378,7 @@
 
 <script src="{% static 'js/editor.bundle.js' %}"></script>
 <script>
-TransActEditor.init({
+InactEditor.init({
   saveUrl:          "{% url 'wysiwyg_autosave' pk=submission.pk rev=revision.pk %}",
   assetUploadUrl:   "{% url 'wysiwyg_asset_upload' pk=submission.pk rev=revision.pk %}",
   bibtexImportUrl:  "{% url 'wysiwyg_bibtex_import' pk=submission.pk %}",
@@ -496,7 +496,7 @@ TransActEditor.init({
       }
     }
 
-    TransActEditor.updateNodeAtPos(_figPos, newAttrs);
+    InactEditor.updateNodeAtPos(_figPos, newAttrs);
     modal.hidden = true;
     _figPos = null; _figAttrs = null;
   });

@@ -362,9 +362,11 @@ p.article-meta-sidebar__label {
   text-align: left;
 }
 
-/* Abstract body text at 70% — the "Abstract" heading keeps its inherited size. */
+/* Abstract body text matches the article body size; the "Abstract" heading
+   keeps its inherited (larger) size. */
 .article-body-content .article-abstract p {
-  font-size: calc(var(--size-2xl) * 0.7);
+  font-size: var(--size-base);
+  line-height: var(--leading-loose);
 }
 
 .article-body-content .article-keywords {

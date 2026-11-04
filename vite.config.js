@@ -5,7 +5,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, 'frontend/editor/index.js'),
-      name: 'TransActEditor',
+      name: 'InactEditor',
       fileName: 'editor.bundle',
       formats: ['iife'],
     },

@@ -4,7 +4,7 @@ Management command: generate the sample PDF for the author template pack.
 Usage:
     python manage.py generate_sample_pdf
 
-Writes template_pack/transact_sample_article.pdf — a fully rendered sample
+Writes template_pack/inact_sample_article.pdf — a fully rendered sample
 article demonstrating every feature of the inACT publication format:
 inline markup, block quotations, footnotes, citations, figures, tables,
 and bibliography.
@@ -295,7 +295,7 @@ def _build_pdf_html(html_content: str, site_url: str) -> str:
     <li><strong>arjournal.cls</strong> &mdash; document class with all custom macros</li>
     <li><strong>arjournal_template.tex</strong> &mdash; comprehensive tutorial; read this file to learn every feature</li>
     <li><strong>arjournal_references_template.bib</strong> &mdash; bibliography template with example entries</li>
-    <li><strong>transact_sample_article.pdf</strong> &mdash; this document</li>
+    <li><strong>inact_sample_article.pdf</strong> &mdash; this document</li>
   </ul>
   <p class="sample-banner__body" style="margin-top:10px;">
     Download the latest template pack at any time:<br>
@@ -320,13 +320,13 @@ def _build_pdf_html(html_content: str, site_url: str) -> str:
 
 class Command(BaseCommand):
     help = (
-        'Generate transact_sample_article.pdf in the template_pack directory. '
+        'Generate inact_sample_article.pdf in the template_pack directory. '
         'Run this whenever the PDF stylesheet or this command is updated.'
     )
 
     def handle(self, *args, **options):
         template_dir = settings.BASE_DIR / 'template_pack'
-        out_path = template_dir / 'transact_sample_article.pdf'
+        out_path = template_dir / 'inact_sample_article.pdf'
         site_url = getattr(settings, 'SITE_URL', 'https://in-act-journal.org').rstrip('/')
 
         # Parse the .tex template → canonical JSON → HTML

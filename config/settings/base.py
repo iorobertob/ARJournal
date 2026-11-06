@@ -294,6 +294,16 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+# Account purge allowlist — accounts the unverified-account cleanup must NEVER
+# delete. Domains here are a permanent, code-level skip (lmta.lt by default);
+# additional emails/domains can be managed at runtime via the DB allowlist
+# (`python manage.py purge_allowlist add …`). Both are honored by the task and
+# by the daily beat run, so exempt accounts never even appear in a dry run.
+ACCOUNT_PURGE_PROTECTED_DOMAINS = env.list(
+    'ACCOUNT_PURGE_PROTECTED_DOMAINS', default=['lmta.lt'])
+ACCOUNT_PURGE_PROTECTED_EMAILS = env.list(
+    'ACCOUNT_PURGE_PROTECTED_EMAILS', default=[])
+
 # Email (django-anymail)
 ANYMAIL_BACKEND = env('ANYMAIL_BACKEND', default='console')
 if ANYMAIL_BACKEND == 'mailersend':

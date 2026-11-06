@@ -161,3 +161,42 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f'Profile: {self.user.email}'
+
+
+class PurgeExemption(models.Model):
+    """A runtime allowlist entry protecting an email or whole domain from the
+    unverified-account cleanup. Managed over the CLI via
+    `python manage.py purge_allowlist add|remove|list`.
+
+    `value` is stored normalized (lower-cased; a domain has no leading '@').
+    """
+    KIND_EMAIL = 'email'
+    KIND_DOMAIN = 'domain'
+    KIND_CHOICES = [(KIND_EMAIL, 'Email address'), (KIND_DOMAIN, 'Domain')]
+
+    value = models.CharField(max_length=255, unique=True)
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES)
+    note = models.CharField(max_length=255, blank=True, default='')
+    created_by = models.ForeignKey(
+        'accounts.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='purge_exemptions_created',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['kind', 'value']
+
+    def __str__(self):
+        return f'{self.get_kind_display()}: {self.value}'
+
+    @staticmethod
+    def normalize(raw):
+        """Return (kind, value) for a raw CLI token. '@example.com' or a bare
+        'example.com' (no local part) is a domain; anything with a local part is
+        an email. Values are lower-cased."""
+        v = (raw or '').strip().lower()
+        if v.startswith('@'):
+            return (PurgeExemption.KIND_DOMAIN, v[1:])
+        if '@' in v:
+            return (PurgeExemption.KIND_EMAIL, v)
+        return (PurgeExemption.KIND_DOMAIN, v)

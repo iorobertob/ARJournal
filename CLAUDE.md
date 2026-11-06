@@ -161,6 +161,7 @@ See `apps/api/urls.py` and `design/openapi.yaml` for full endpoint list.
 ## Celery Beat Tasks
 - `cleanup_expired_pdf_exports` — delete expired PDF files
 - `send_review_reminders` — email reviewers with upcoming deadlines
+- `purge_unverified_accounts` — daily (03:30 UTC) delete of abandoned unverified self-signups (age ≥ `days`, default 7; no verified email, no role beyond Author, no ORCID, no submissions, not staff). Run manually / preview with `python manage.py purge_unverified_accounts --dry-run [--days N]` — a dry run **lists the exact accounts** (id/email/join date) and deletes nothing. Each real deletion writes an immutable `AuditEvent` (`account_purged`, shown in the admin Audit Log under **Deletions**) plus a logger line. **Allowlist:** `lmta.lt` domain is a permanent skip (`ACCOUNT_PURGE_PROTECTED_DOMAINS`/`_EMAILS` in settings, env-overridable); add runtime exemptions via `python manage.py purge_allowlist add|remove|list <email|domain>` (DB model `accounts.PurgeExemption`). Exempt accounts never appear in the dry run. All of this lives in `apps/notifications/tasks.py` (`_build_purge_exempt_checker`).
 
 ## S3 Upgrade Path
 Set `USE_S3=True` in `.env` + bucket credentials. `django-storages` is already installed. See README.md §Phase 2.

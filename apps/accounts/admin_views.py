@@ -818,17 +818,29 @@ def _build_history_rows(category='', q='', sort='timestamp', direction='desc'):
 
     if (not category) or category in ('workflow', 'deletions'):
         for e in AuditEvent.objects.select_related('actor', 'submission'):
-            is_purge = e.event_type == 'submission_purged'
+            is_sub_purge = e.event_type == 'submission_purged'
+            is_acct_purge = e.event_type == 'account_purged'
+            is_purge = is_sub_purge or is_acct_purge
             cat = 'deletions' if is_purge else 'workflow'
             if category and category != cat:
                 continue
+            if is_acct_purge:
+                event = 'Account deleted'
+                # No submission — surface the purged account's email as the subject.
+                title = e.payload.get('email', '')
+            elif is_sub_purge:
+                event = 'Permanently deleted'
+                title = e.submission.title if e.submission else e.payload.get('title', '')
+            else:
+                event = e.event_type.replace('_', ' ').capitalize()
+                title = e.submission.title if e.submission else e.payload.get('title', '')
             rows.append({
                 'timestamp': e.timestamp,
                 'category': cat,
                 'category_label': 'Deletion' if is_purge else 'Workflow',
-                'event': 'Permanently deleted' if is_purge else e.event_type.replace('_', ' ').capitalize(),
-                'actor': e.actor.display_name if e.actor else '',
-                'article_title': e.submission.title if e.submission else e.payload.get('title', ''),
+                'event': event,
+                'actor': e.actor.display_name if e.actor else ('Automated cleanup' if is_acct_purge else ''),
+                'article_title': title,
                 'article_pk': e.submission.pk if e.submission else None,
                 'details': ('Reason: ' + e.payload.get('reason', '')) if is_purge and e.payload.get('reason')
                            else e.payload.get('note', ''),

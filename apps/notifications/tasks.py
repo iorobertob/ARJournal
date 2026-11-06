@@ -5,10 +5,13 @@ EmailMultiAlternatives. The HTML uses table-based layout with inline
 styles for broad email-client compatibility.
 """
 import html as _html
+import logging
 from celery import shared_task
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1039,27 +1042,64 @@ def notify_article_published(submission_pk):
         _log_email(author.email, subject, 'failed', str(exc))
 
 
+def _build_purge_exempt_checker():
+    """Return `is_exempt(email) -> bool`, combining the permanent settings
+    allowlist (ACCOUNT_PURGE_PROTECTED_DOMAINS / _EMAILS, e.g. lmta.lt) with the
+    runtime DB allowlist (accounts.PurgeExemption). Loaded once per run."""
+    from apps.accounts.models import PurgeExemption
+
+    emails = {e.strip().lower() for e in getattr(settings, 'ACCOUNT_PURGE_PROTECTED_EMAILS', []) if e.strip()}
+    domains = {d.strip().lower().lstrip('@') for d in getattr(settings, 'ACCOUNT_PURGE_PROTECTED_DOMAINS', []) if d.strip()}
+    for ex in PurgeExemption.objects.all():
+        if ex.kind == PurgeExemption.KIND_EMAIL:
+            emails.add(ex.value)
+        else:
+            domains.add(ex.value)
+
+    def is_exempt(email):
+        email = (email or '').strip().lower()
+        if not email:
+            return False
+        if email in emails:
+            return True
+        domain = email.rsplit('@', 1)[-1]
+        return any(domain == d or domain.endswith('.' + d) for d in domains)
+
+    return is_exempt
+
+
 @shared_task
-def purge_unverified_accounts(days=7, dry_run=False):
+def purge_unverified_accounts(days=7, dry_run=False, trigger='beat'):
     """Celery beat: delete abandoned unverified self-signup accounts.
 
     Removes bot/spam registrations that were never email-verified. Conservative
     guards ensure legitimate and admin-created accounts are never touched: only
     users who went through allauth signup (have an EmailAddress row), have NO
     verified email, hold no role beyond Author, have no ORCID, have no
-    submissions, and are not staff/superuser. Returns the number affected.
+    submissions, and are not staff/superuser.
+
+    Returns a list of dicts (one per affected account) describing exactly which
+    accounts were (or, in a dry run, would be) deleted — each with ``id``,
+    ``email`` and ``date_joined`` (ISO). On a real run, every deletion is also
+    recorded as an immutable ``AuditEvent`` (event_type ``account_purged``) and
+    a logger line; a dry run writes neither — it only reports.
     """
     from datetime import timedelta
     from allauth.account.models import EmailAddress
     from apps.accounts.models import User, UserRole
     from apps.submissions.models import Submission
+    from apps.notifications.models import AuditEvent
+
+    is_exempt = _build_purge_exempt_checker()
 
     cutoff = timezone.now() - timedelta(days=days)
     candidates = User.objects.filter(
         date_joined__lt=cutoff, is_staff=False, is_superuser=False,
     )
-    deleted = 0
+    affected = []
     for user in candidates.iterator():
+        if is_exempt(user.email):
+            continue  # allowlisted email/domain (e.g. lmta.lt) — never touch
         emails = EmailAddress.objects.filter(user=user)
         if not emails.exists():
             continue  # admin-created / legacy account — never touch
@@ -1071,10 +1111,33 @@ def purge_unverified_accounts(days=7, dry_run=False):
             continue  # linked a real ORCID identity
         if Submission.objects.filter(author=user).exists():
             continue  # has created content
+
+        record = {
+            'id': user.pk,
+            'email': user.email,
+            'date_joined': user.date_joined.isoformat(),
+        }
         if not dry_run:
+            # Record BEFORE deleting so the account's details survive.
+            AuditEvent.objects.create(
+                submission=None,
+                actor=None,  # automated cleanup — no human actor
+                event_type='account_purged',
+                payload={
+                    **record,
+                    'reason': 'unverified self-signup abandoned',
+                    'days': days,
+                    'trigger': trigger,
+                },
+            )
+            logger.info(
+                'purge_unverified_accounts: deleting user #%s <%s> '
+                '(joined %s, age >= %s days, trigger=%s)',
+                record['id'], record['email'], record['date_joined'], days, trigger,
+            )
             user.delete()
-        deleted += 1
-    return deleted
+        affected.append(record)
+    return affected
 
 
 @shared_task

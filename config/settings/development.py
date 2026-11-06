@@ -2,6 +2,14 @@ from .base import *
 
 DEBUG = True
 
+# Cache-bust static assets in dev so edits show up on a normal reload (no hard
+# refresh needed). Django 5.x honours the STORAGES dict, not the deprecated
+# STATICFILES_STORAGE setting, so override the staticfiles backend here.
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'config.cachebust_storage.CacheBustingStaticFilesStorage'},
+}
+
 # No Redis in dev — all tasks run synchronously in-process
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True

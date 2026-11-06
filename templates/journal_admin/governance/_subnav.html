@@ -1,0 +1,10 @@
+{% with n=request.resolver_match.url_name %}
+<nav class="gov-subnav">
+  <a href="{% url 'governance_home' %}" class="{% if n == 'governance_home' %}active{% endif %}">Overview &amp; Report</a>
+  <a href="{% url 'governance_submissions' %}" class="{% if n == 'governance_submissions' %}active{% endif %}">Submissions</a>
+  <a href="{% url 'governance_calls' %}" class="{% if 'governance_call' in n %}active{% endif %}">Calls</a>
+  <a href="{% url 'governance_meetings' %}" class="{% if 'governance_meeting' in n %}active{% endif %}">Meetings &amp; Minutes</a>
+  <a href="{% url 'governance_timeline' %}" class="{% if n == 'governance_timeline' %}active{% endif %}">Timeline</a>
+  <a href="{% url 'governance_access' %}" class="{% if n == 'governance_access' %}active{% endif %}">Access</a>
+</nav>
+{% endwith %}

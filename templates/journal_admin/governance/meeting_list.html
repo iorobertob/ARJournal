@@ -1,0 +1,44 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Governance — Meetings &amp; Minutes{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Governance</h1>
+{% include "journal_admin/governance/_subnav.html" %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-5);">
+  <p style="color:var(--color-muted);font-size:var(--size-sm);margin:0;">Minutes from editorial team / subteam meetings. TODO items and planned actions live inside each meeting's minutes.</p>
+  <a href="{% url 'governance_meeting_create' %}" class="btn btn-primary">+ New meeting</a>
+</div>
+
+{% for m in meetings %}
+<div class="jadmin-card" style="margin-bottom:var(--spacing-4);padding:var(--spacing-4) var(--spacing-6);">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:var(--spacing-4);flex-wrap:wrap;">
+    <div style="flex:1;min-width:240px;">
+      <div style="font-weight:600;font-size:var(--size-md);">{{ m.title }}</div>
+      <div style="font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">
+        {{ m.meeting_date|date:"d M Y" }}{% if m.team_label %} · {{ m.team_label }}{% endif %}
+        {% if m.attendees.all %} · {{ m.attendees.count }} attendee{{ m.attendees.count|pluralize }}{% endif %}
+      </div>
+    </div>
+    <div style="white-space:nowrap;">
+      <a href="{% url 'governance_meeting_edit' m.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Open</a>
+      <form method="post" action="{% url 'governance_meeting_delete' m.pk %}" style="display:inline;"
+            data-confirm="Delete the minutes for “{{ m.title }}”?" data-confirm-ok="Delete">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-accent-dark);">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% if m.minutes %}
+  <div style="margin-top:var(--spacing-3);font-size:var(--size-sm);color:var(--color-text);border-top:1px solid var(--color-border-light);padding-top:var(--spacing-3);">
+    {{ m.minutes|striptags|truncatewords:40 }}
+  </div>
+  {% endif %}
+</div>
+{% empty %}
+<div class="jadmin-card" style="padding:var(--spacing-6);text-align:center;color:var(--color-muted);">
+  No meetings logged yet.
+</div>
+{% endfor %}
+{% endblock %}

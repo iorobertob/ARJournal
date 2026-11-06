@@ -43,6 +43,9 @@ urlpatterns = [
     # Journal admin (custom platform admin — not Django admin)
     path('journal-admin/', include('apps.accounts.admin_urls')),
 
+    # Governance (minutes, reports, per-call planning, timeline)
+    path('journal-admin/governance/', include('apps.governance.urls')),
+
     # Notifications
     path('notifications/', include('apps.notifications.urls')),
 

@@ -34,6 +34,11 @@ class Submission(models.Model):
         related_name='corresponding_submissions',
     )
     issue = models.ForeignKey(Issue, on_delete=models.SET_NULL, null=True, blank=True, related_name='submissions')
+    call = models.ForeignKey(
+        'journal.Call', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='submissions',
+        help_text='The call for submissions this article was submitted to (optional).',
+    )
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True)
     issue_order = models.PositiveIntegerField(default=0)
     title = models.CharField(max_length=1000)

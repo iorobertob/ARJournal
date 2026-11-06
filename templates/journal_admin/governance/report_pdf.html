@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Submissions report</title>
+<style>
+  @page { size: A4; margin: 18mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #21252B; font-size: 10pt; line-height: 1.4; }
+  h1 { font-size: 20pt; margin: 0 0 4pt; }
+  h2 { font-size: 13pt; margin: 18pt 0 6pt; border-bottom: 1pt solid #E4E2E7; padding-bottom: 3pt; }
+  .meta { color: #6E667A; font-size: 9pt; margin-bottom: 10pt; }
+  .filters { background: #F4F2F7; padding: 6pt 10pt; border-radius: 2pt; font-size: 9pt; margin-bottom: 12pt; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8pt; }
+  th, td { text-align: left; padding: 4pt 6pt; border-bottom: 0.5pt solid #E4E2E7; vertical-align: top; }
+  th { color: #6E667A; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.4pt; }
+  .agg-table td:last-child { text-align: right; white-space: nowrap; }
+  .num { color: #6E667A; }
+  .two-col { display: flex; gap: 16pt; }
+  .two-col > div { flex: 1; }
+</style>
+</head>
+<body>
+  <h1>Submissions report</h1>
+  <div class="meta">
+    {{ journal.name }} · Generated {{ generated_at|date:"d M Y, H:i" }} · {{ agg.total }} submission{{ agg.total|pluralize }}
+  </div>
+
+  {% if filters.call or filters.issue or filters.year or filters.status or filters.discipline or filters.date_from or filters.date_to or filters.q %}
+  <div class="filters">
+    <strong>Filters:</strong>
+    {% if filters.call %}call={{ filters.call }} {% endif %}
+    {% if filters.issue %}issue={{ filters.issue }} {% endif %}
+    {% if filters.year %}year={{ filters.year }} {% endif %}
+    {% if filters.status %}status={{ filters.status }} {% endif %}
+    {% if filters.discipline %}discipline={{ filters.discipline }} {% endif %}
+    {% if filters.date_from %}from {{ filters.date_from }} {% endif %}
+    {% if filters.date_to %}to {{ filters.date_to }} {% endif %}
+    {% if filters.q %}search “{{ filters.q }}” {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="two-col">
+    <div>
+      <h2>By status</h2>
+      <table class="agg-table">
+        {% for r in agg.by_status.rows %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }} ({{ r.pct }}%)</td></tr>{% empty %}<tr><td>No data</td><td></td></tr>{% endfor %}
+      </table>
+    </div>
+    <div>
+      <h2>By call</h2>
+      <table class="agg-table">
+        {% for r in agg.by_call.rows %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }} ({{ r.pct }}%)</td></tr>{% empty %}<tr><td>No data</td><td></td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h2>By discipline</h2>
+      <table class="agg-table">
+        {% for r in agg.by_discipline.rows %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }} ({{ r.pct }}%)</td></tr>{% empty %}<tr><td>No data</td><td></td></tr>{% endfor %}
+      </table>
+    </div>
+    <div>
+      <h2>By year</h2>
+      <table class="agg-table">
+        {% for r in agg.by_year.rows %}<tr><td>{{ r.label }}</td><td class="num">{{ r.count }} ({{ r.pct }}%)</td></tr>{% empty %}<tr><td>No data</td><td></td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+
+  <h2>Submissions</h2>
+  <table>
+    <thead><tr><th>Topic / Title</th><th>Author</th><th>Disciplines</th><th>Call</th><th>Status</th><th>Submitted</th></tr></thead>
+    <tbody>
+    {% for s in submissions %}
+      <tr>
+        <td>{{ s.title }}</td>
+        <td>{{ s.author.display_name }}</td>
+        <td>{{ s.disciplines|join:", " }}</td>
+        <td>{{ s.call.title|default:"—" }}</td>
+        <td>{{ s.get_status_display }}</td>
+        <td>{{ s.submission_date|date:"d M Y"|default:s.created_at|date:"d M Y" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">No submissions match the current filters.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

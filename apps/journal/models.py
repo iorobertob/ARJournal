@@ -384,3 +384,69 @@ class NewsPost(models.Model):
     def get_absolute_url(self):
         from django.urls import reverse
         return reverse('news_detail', args=[self.slug])
+
+
+class Call(models.Model):
+    """A call for submissions — a named submission window that articles can be
+    grouped under for governance reporting and planning.
+
+    A call is optional on a submission: existing submissions stay valid with no
+    call and can be assigned to one later. A call may be linked to an Issue
+    (where accepted work lands) and to a NewsPost (where the call is published).
+    """
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=280, unique=True, blank=True)
+    description = models.TextField(
+        blank=True, default='',
+        help_text='Internal description / scope of the call (sanitized rich text).',
+    )
+    opens_at = models.DateField(null=True, blank=True, help_text='Submission window opens.')
+    closes_at = models.DateField(null=True, blank=True, help_text='Submission deadline.')
+    issue = models.ForeignKey(
+        'Issue', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='calls',
+        help_text='The issue this call feeds into (optional).',
+    )
+    news_post = models.ForeignKey(
+        'NewsPost', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='calls',
+        help_text='The public news post announcing this call (optional).',
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text='Inactive calls are hidden from the default pickers but keep their submissions.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-opens_at', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from django.utils.text import slugify
+            base = slugify(self.title) or 'call'
+            slug = base
+            n = 2
+            qs = Call.objects.all()
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            while qs.filter(slug=slug).exists():
+                slug = f'{base}-{n}'
+                n += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    @property
+    def is_open(self):
+        """True when today falls within the submission window (inclusive)."""
+        from django.utils import timezone
+        today = timezone.now().date()
+        if self.opens_at and today < self.opens_at:
+            return False
+        if self.closes_at and today > self.closes_at:
+            return False
+        return True

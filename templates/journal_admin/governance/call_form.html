@@ -1,0 +1,63 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Governance — {% if call %}Edit call{% else %}New call{% endif %}{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Governance</h1>
+{% include "journal_admin/governance/_subnav.html" %}
+
+<div style="max-width:720px;">
+  <a href="{% url 'governance_calls' %}" class="dir-link" style="font-size:var(--size-sm);">⟵ Back to calls</a>
+  <h2 style="margin:var(--spacing-3) 0 var(--spacing-5);">{% if call %}Edit call{% else %}New call{% endif %}</h2>
+
+  <form method="post" class="jadmin-card" style="padding:var(--spacing-6);">
+    {% csrf_token %}
+    <div style="margin-bottom:var(--spacing-4);">
+      <label class="form__label">Title *</label>
+      <input type="text" name="title" value="{{ call.title|default:'' }}" class="form__input" style="width:100%;" required>
+    </div>
+    <div style="margin-bottom:var(--spacing-4);">
+      <label class="form__label">Description</label>
+      <textarea name="description" class="form__input" rows="4" style="width:100%;">{{ call.description|default:'' }}</textarea>
+    </div>
+    <div style="display:flex;gap:var(--spacing-4);margin-bottom:var(--spacing-4);flex-wrap:wrap;">
+      <div style="flex:1;min-width:180px;">
+        <label class="form__label">Opens</label>
+        <input type="date" name="opens_at" value="{{ call.opens_at|date:'Y-m-d'|default:'' }}" class="form__input" style="width:100%;">
+      </div>
+      <div style="flex:1;min-width:180px;">
+        <label class="form__label">Closes (deadline)</label>
+        <input type="date" name="closes_at" value="{{ call.closes_at|date:'Y-m-d'|default:'' }}" class="form__input" style="width:100%;">
+      </div>
+    </div>
+    <div style="margin-bottom:var(--spacing-4);">
+      <label class="form__label">Linked issue</label>
+      <select name="issue_id" class="form__select" style="width:100%;">
+        <option value="">— None —</option>
+        {% for i in issues %}
+        <option value="{{ i.pk }}" {% if call.issue_id == i.pk %}selected{% endif %}>#{{ i.number }} — Vol.{{ i.volume }} ({{ i.year }}){% if i.title %} · {{ i.title|truncatechars:40 }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="margin-bottom:var(--spacing-4);">
+      <label class="form__label">Linked news post (where the call is published)</label>
+      <select name="news_id" class="form__select" style="width:100%;">
+        <option value="">— None —</option>
+        {% for n in news_posts %}
+        <option value="{{ n.pk }}" {% if call.news_post_id == n.pk %}selected{% endif %}>{{ n.title|truncatechars:60 }}{% if not n.is_published %} (draft){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="margin-bottom:var(--spacing-5);">
+      <label style="display:flex;align-items:center;gap:var(--spacing-2);cursor:pointer;">
+        <input type="checkbox" name="is_active" {% if not call or call.is_active %}checked{% endif %}>
+        <span>Active (shown in pickers)</span>
+      </label>
+    </div>
+    <div style="display:flex;gap:var(--spacing-3);">
+      <button type="submit" class="btn btn-primary">Save call</button>
+      <a href="{% url 'governance_calls' %}" class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

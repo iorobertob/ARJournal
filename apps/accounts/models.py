@@ -49,6 +49,17 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     roles = models.JSONField(default=list, blank=True)
     orcid_id = models.CharField(max_length=50, blank=True, default='')
+    governance_access = models.BooleanField(
+        default=False,
+        help_text='Grants access to the Governance section (minutes, reports, planning) '
+                  'to a user who is not an admin / senior editor — e.g. an editorial secretary.',
+    )
+    governance_blocked = models.BooleanField(
+        default=False,
+        help_text='Explicitly removes Governance access from a user who would otherwise '
+                  'have it via their role (admin / senior editor). Overrides both the role '
+                  'and an explicit grant; leaves all other roles and permissions untouched.',
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -110,6 +121,19 @@ class User(AbstractUser):
             UserRole.JOURNAL_ADMIN, UserRole.SYSTEM_ADMIN,
             UserRole.EDITOR_IN_CHIEF, UserRole.MANAGING_EDITOR,
         )
+
+    def has_governance_access(self):
+        """Access to the Governance section: admins + senior editors (same gate as
+        the journal admin dashboard), plus any user explicitly granted it — unless
+        they have been explicitly blocked. A superuser can never be blocked out."""
+        if self.governance_blocked and not self.is_superuser:
+            return False
+        return self.has_journal_admin_access() or bool(self.governance_access)
+
+    def can_grant_governance_access(self):
+        """Only admins / senior editors may grant, revoke, or block governance
+        access for other users (a granted secretary cannot grant it onward)."""
+        return self.has_journal_admin_access()
 
     def can_purge_content(self):
         """Prerogative to PERMANENTLY delete articles/records — an override of the

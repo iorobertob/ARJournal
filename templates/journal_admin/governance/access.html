@@ -1,0 +1,113 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Governance — Access{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Governance</h1>
+{% include "journal_admin/governance/_subnav.html" %}
+
+<p style="color:var(--color-muted);font-size:var(--size-sm);margin-top:-8px;margin-bottom:var(--spacing-5);">
+  Admins and senior editors always have governance access through their role. Below you can grant access to
+  other individuals — e.g. an editorial secretary.
+  {% if not can_grant %}<br><strong>You can view this page but only admins / senior editors can change access.</strong>{% endif %}
+</p>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--spacing-6);">
+
+  <!-- Explicitly granted -->
+  <div class="jadmin-card">
+    <div class="jadmin-card__title">Granted individuals</div>
+    {% if granted %}
+    <table class="jadmin-table">
+      <tbody>
+      {% for u in granted %}
+      <tr>
+        <td>{{ u.display_name }}<div style="font-size:var(--size-xs);color:var(--color-muted);">{{ u.email }}</div></td>
+        <td style="text-align:right;">
+          {% if can_grant %}
+          <form method="post" data-confirm="Revoke governance access from {{ u.display_name }}?" data-confirm-ok="Revoke">
+            {% csrf_token %}
+            <input type="hidden" name="user_id" value="{{ u.pk }}">
+            <input type="hidden" name="action" value="revoke">
+            <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-accent-dark);">Revoke</button>
+          </form>
+          {% else %}<span style="color:var(--color-muted);font-size:var(--size-xs);">granted</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:var(--color-muted);font-size:var(--size-sm);margin:0;">No individuals have been granted access.</p>
+    {% endif %}
+  </div>
+
+  <!-- Grant to someone -->
+  {% if can_grant %}
+  <div class="jadmin-card">
+    <div class="jadmin-card__title">Grant access</div>
+    <form method="post" style="display:flex;gap:var(--spacing-2);align-items:flex-end;flex-wrap:wrap;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="grant">
+      <div style="flex:1;min-width:200px;">
+        <label class="form__label" style="font-size:var(--size-xs);">User</label>
+        <select name="user_id" class="form__select" style="width:100%;" required>
+          <option value="">Choose a user…</option>
+          {% for u in candidates %}
+          <option value="{{ u.pk }}">{{ u.display_name }} ({{ u.email }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Grant</button>
+    </form>
+    <p style="font-size:var(--size-xs);color:var(--color-muted);margin:var(--spacing-3) 0 0;">
+      Admins and senior editors are not listed — they already have access.
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- Role-based -->
+  <div class="jadmin-card">
+    <div class="jadmin-card__title">Access via role</div>
+    <table class="jadmin-table">
+      <tbody>
+      {% for u in role_based %}
+      <tr>
+        <td>
+          {{ u.display_name }}
+          <div style="font-size:var(--size-xs);color:var(--color-muted);">{{ u.get_roles_display|join:", " }}</div>
+          {% if u.governance_blocked %}<div style="font-size:var(--size-xs);color:var(--color-accent-dark);font-weight:600;">Governance access revoked</div>{% endif %}
+        </td>
+        <td style="text-align:right;white-space:nowrap;">
+          {% if u.is_superuser %}
+            <span style="color:var(--color-muted);font-size:var(--size-xs);">always</span>
+          {% elif u.pk == request.user.pk %}
+            <span style="color:var(--color-muted);font-size:var(--size-xs);">you</span>
+          {% elif can_grant %}
+            {% if u.governance_blocked %}
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="user_id" value="{{ u.pk }}">
+              <input type="hidden" name="action" value="unblock">
+              <button type="submit" class="btn btn-sm btn-primary">Restore</button>
+            </form>
+            {% else %}
+            <form method="post" data-confirm="Revoke governance access from {{ u.display_name }}? They keep all their other roles and permissions but will no longer be able to open or edit the Governance section." data-confirm-ok="Revoke">
+              {% csrf_token %}
+              <input type="hidden" name="user_id" value="{{ u.pk }}">
+              <input type="hidden" name="action" value="block">
+              <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-accent-dark);">Revoke</button>
+            </form>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td style="color:var(--color-muted);">None.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

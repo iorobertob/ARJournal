@@ -1,0 +1,48 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Governance — {% if meeting %}Edit minutes{% else %}New meeting{% endif %}{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Governance</h1>
+{% include "journal_admin/governance/_subnav.html" %}
+
+<div style="max-width:820px;">
+  <a href="{% url 'governance_meetings' %}" class="dir-link" style="font-size:var(--size-sm);">⟵ Back to meetings</a>
+  <h2 style="margin:var(--spacing-3) 0 var(--spacing-5);">{% if meeting %}Edit minutes{% else %}New meeting{% endif %}</h2>
+
+  <form method="post" class="jadmin-card" style="padding:var(--spacing-6);">
+    {% csrf_token %}
+    <div style="display:flex;gap:var(--spacing-4);margin-bottom:var(--spacing-4);flex-wrap:wrap;">
+      <div style="flex:2;min-width:240px;">
+        <label class="form__label">Title *</label>
+        <input type="text" name="title" value="{{ meeting.title|default:'' }}" class="form__input" style="width:100%;" required>
+      </div>
+      <div style="flex:1;min-width:150px;">
+        <label class="form__label">Date *</label>
+        <input type="date" name="meeting_date" value="{{ meeting.meeting_date|date:'Y-m-d'|default:'' }}" class="form__input" style="width:100%;" required>
+      </div>
+    </div>
+    <div style="margin-bottom:var(--spacing-4);">
+      <label class="form__label">Team / subteam</label>
+      <input type="text" name="team_label" value="{{ meeting.team_label|default:'' }}" class="form__input" style="width:100%;" placeholder="e.g. Editorial board, Review subteam">
+    </div>
+    <div style="margin-bottom:var(--spacing-4);">
+      <label class="form__label">Attendees</label>
+      <select name="attendees" class="form__select" multiple size="7" style="width:100%;">
+        {% for u in users %}
+        <option value="{{ u.pk }}" {% if u.pk in selected_ids %}selected{% endif %}>{{ u.display_name }} ({{ u.email }})</option>
+        {% endfor %}
+      </select>
+      <div style="font-size:var(--size-xs);color:var(--color-muted);margin-top:4px;">Hold ⌘/Ctrl to select several.</div>
+    </div>
+    <div style="margin-bottom:var(--spacing-5);">
+      <label class="form__label">Minutes — decisions, TODO items &amp; planned actions</label>
+      <textarea name="minutes" class="form__input" rows="16" style="width:100%;font-family:inherit;" placeholder="Agenda, decisions, TODO: …, Action: … (assign to name) — written as plain text.">{{ meeting.minutes|default:'' }}</textarea>
+    </div>
+    <div style="display:flex;gap:var(--spacing-3);">
+      <button type="submit" class="btn btn-primary">Save minutes</button>
+      <a href="{% url 'governance_meetings' %}" class="btn" style="background:var(--color-surface);border:1px solid var(--color-border);">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

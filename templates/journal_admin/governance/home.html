@@ -1,0 +1,135 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Governance — Overview &amp; Report{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Governance</h1>
+{% include "journal_admin/governance/_subnav.html" %}
+
+<!-- Filters -->
+<form method="get" class="jadmin-card" style="padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-6);">
+  <div style="display:flex;flex-wrap:wrap;gap:var(--spacing-3);align-items:flex-end;">
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Call</label>
+      <select name="call" class="form__select">
+        <option value="">All calls</option>
+        <option value="none" {% if filters.call == 'none' %}selected{% endif %}>— Unassigned —</option>
+        {% for c in calls %}
+        <option value="{{ c.pk }}" {% if filters.call == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Issue</label>
+      <select name="issue" class="form__select">
+        <option value="">All issues</option>
+        {% for i in issues %}
+        <option value="{{ i.pk }}" {% if filters.issue == i.pk|stringformat:"s" %}selected{% endif %}>#{{ i.number }} ({{ i.year }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Year</label>
+      <select name="year" class="form__select">
+        <option value="">All years</option>
+        {% for y in years %}
+        <option value="{{ y }}" {% if filters.year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Status</label>
+      <select name="status" class="form__select">
+        <option value="">All statuses</option>
+        {% for val, label in statuses %}
+        <option value="{{ val }}" {% if filters.status == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">From</label>
+      <input type="date" name="date_from" value="{{ filters.date_from }}" class="form__input">
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">To</label>
+      <input type="date" name="date_to" value="{{ filters.date_to }}" class="form__input">
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Search</label>
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="Title or author…" class="form__input" style="width:180px;">
+    </div>
+    <button type="submit" class="btn btn-primary">Apply</button>
+    <a href="{% url 'governance_home' %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Clear</a>
+  </div>
+</form>
+
+<!-- Headline stats -->
+<div class="stat-grid" style="margin-bottom:var(--spacing-6);">
+  <div class="stat-box">
+    <div class="stat-box__num">{{ agg.total }}</div>
+    <div class="stat-box__label">Submissions in report</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-box__num">{{ calls_count }}</div>
+    <div class="stat-box__label">Calls</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-box__num">{{ meetings_count }}</div>
+    <div class="stat-box__label">Meetings logged</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-box__num">{{ open_actions_count }}</div>
+    <div class="stat-box__label">Upcoming milestones</div>
+  </div>
+</div>
+
+<!-- Export -->
+<div style="display:flex;gap:var(--spacing-3);margin-bottom:var(--spacing-6);align-items:center;">
+  <span style="color:var(--color-muted);font-size:var(--size-sm);">Export this report:</span>
+  <a href="{% url 'governance_report_csv' %}?{{ query_string }}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">CSV ⟶</a>
+  <a href="{% url 'governance_report_pdf' %}?{{ query_string }}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);" target="_blank" rel="noopener">PDF ⟶</a>
+</div>
+
+<!-- Charts -->
+<div class="gov-report-grid" style="margin-bottom:var(--spacing-6);">
+  {% include "journal_admin/governance/_bars.html" with group=agg.by_status title="By status" %}
+  {% include "journal_admin/governance/_bars.html" with group=agg.by_call title="By call" %}
+  {% include "journal_admin/governance/_bars.html" with group=agg.by_discipline title="By discipline" %}
+  {% include "journal_admin/governance/_bars.html" with group=agg.by_year title="By year" %}
+  {% include "journal_admin/governance/_bars.html" with group=agg.by_issue title="By issue" %}
+</div>
+
+<!-- Submission table -->
+<div class="jadmin-card">
+  <div class="jadmin-card__title" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>Submissions</span>
+    <a href="{% url 'governance_submissions' %}?{{ query_string }}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Manage assignments ⟶</a>
+  </div>
+  {% if submissions %}
+  <div class="table-responsive">
+  <table class="jadmin-table">
+    <thead>
+      <tr><th style="width:34%;">Topic / Title</th><th>Author</th><th>Disciplines</th><th>Call</th><th>Status</th><th>Submitted</th></tr>
+    </thead>
+    <tbody>
+    {% for s in submissions %}
+    <tr>
+      <td><a href="{% url 'journal_admin_article' s.pk %}" style="font-weight:600;color:var(--color-text);text-decoration:none;">{{ s.title|truncatechars:70 }}</a></td>
+      <td style="white-space:nowrap;">{{ s.author.display_name }}</td>
+      <td style="font-size:var(--size-xs);color:var(--color-muted);">{{ s.disciplines|join:", "|default:"—" }}</td>
+      <td style="font-size:var(--size-sm);">{{ s.call.title|default:"—" }}</td>
+      <td><span class="status-badge status-badge--{{ s.status }}" style="font-size:var(--size-xs);white-space:nowrap;">{{ s.get_status_display }}</span></td>
+      <td style="white-space:nowrap;color:var(--color-muted);font-size:var(--size-sm);">{{ s.submission_date|date:"d M Y"|default:s.created_at|date:"d M Y" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if submissions_truncated %}
+  <p style="color:var(--color-muted);font-size:var(--size-xs);margin:var(--spacing-3) 0 0;">Showing first 200 rows. Export CSV for the full set.</p>
+  {% endif %}
+  {% else %}
+  <p style="color:var(--color-muted);">No submissions match the current filters.</p>
+  {% endif %}
+</div>
+{% endblock %}

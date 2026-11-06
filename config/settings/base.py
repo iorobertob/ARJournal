@@ -78,6 +78,7 @@ LOCAL_APPS = [
     'apps.reviews',
     'apps.notifications',
     'apps.production',
+    'apps.governance',
     'apps.api',
 ]
 

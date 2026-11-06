@@ -1,0 +1,19 @@
+{# Expects: group (dict with .rows and .max), title #}
+<div class="jadmin-card">
+  <div class="jadmin-card__title">{{ title }}</div>
+  {% if group.rows %}
+  <div class="gov-bars">
+    {% for row in group.rows %}
+    <div class="gov-bar__row">
+      <div class="gov-bar__label" title="{{ row.label }}">{{ row.label }}</div>
+      <div class="gov-bar__track">
+        <div class="gov-bar__fill" style="width:{% widthratio row.count group.max 100 %}%;"></div>
+      </div>
+      <div class="gov-bar__val">{{ row.count }} · {{ row.pct }}%</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:var(--color-muted);font-size:var(--size-sm);margin:0;">No data.</p>
+  {% endif %}
+</div>

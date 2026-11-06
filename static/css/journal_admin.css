@@ -498,3 +498,71 @@ input[type="file"].form-control::file-selector-button:hover {
   .jadmin-board-row__body { grid-area: body; }
   .jadmin-board-row__actions { grid-area: actions; justify-content: flex-end; }
 }
+
+/* ----------------------------------------------------------------------- */
+/* Governance — subnav, report charts, planning chips, timeline            */
+/* ----------------------------------------------------------------------- */
+.gov-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-2);
+}
+.gov-subnav a {
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: 2px;
+  font-size: var(--size-sm);
+  font-weight: 600;
+  color: var(--color-muted);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.gov-subnav a:hover { color: var(--color-text); background: var(--color-surface); }
+.gov-subnav a.active { color: var(--color-accent); border-color: var(--color-border); background: var(--color-bg); }
+
+/* Horizontal bar chart (pure CSS — no JS dependency) */
+.gov-bars { display: flex; flex-direction: column; gap: var(--spacing-3); }
+.gov-bar__row { display: grid; grid-template-columns: 160px 1fr 54px; align-items: center; gap: var(--spacing-3); }
+.gov-bar__label { font-size: var(--size-sm); color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gov-bar__track { background: var(--color-surface); border-radius: 2px; height: 20px; overflow: hidden; }
+.gov-bar__fill { background: var(--color-accent); height: 100%; border-radius: 2px; min-width: 2px; }
+.gov-bar__val { font-size: var(--size-sm); color: var(--color-muted); text-align: right; white-space: nowrap; }
+
+.gov-report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--spacing-6); }
+
+/* Planning chips (planned reviewers) */
+.gov-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  padding: 2px var(--spacing-2);
+  font-size: var(--size-xs);
+  margin: 2px 2px 2px 0;
+}
+.gov-chip form { display: inline; margin: 0; }
+.gov-chip button {
+  background: none; border: none; cursor: pointer;
+  color: var(--color-muted); font-size: var(--size-sm); line-height: 1; padding: 0;
+}
+.gov-chip button:hover { color: var(--color-accent-dark); }
+
+/* Timeline */
+.gov-timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+.gov-timeline::before {
+  content: ""; position: absolute; left: 7px; top: 4px; bottom: 4px;
+  width: 2px; background: var(--color-border);
+}
+.gov-timeline li { position: relative; padding: var(--spacing-3) 0 var(--spacing-3) var(--spacing-8); }
+.gov-timeline__dot {
+  position: absolute; left: 0; top: var(--spacing-4);
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--color-bg); border: 3px solid var(--color-accent);
+}
+.gov-timeline__dot--past { border-color: var(--color-muted); background: var(--color-muted); }
+.gov-timeline__date { font-weight: 600; font-size: var(--size-sm); }
+.gov-timeline__meta { color: var(--color-muted); font-size: var(--size-xs); }

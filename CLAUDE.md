@@ -69,7 +69,10 @@ Video & audio are **never served as a downloadable file**. On upload they are tr
 | `reviews` | Review form, annotations, moderation |
 | `notifications` | Celery email tasks, in-app notifications, AuditEvent |
 | `production` | HTMLBuild (published articles), PDF export, Crossref DOI |
+| `governance` | Meeting minutes, submission reports (CSV/PDF), per-call planning, milestone timeline, access grants |
 | `api` | DRF viewsets + APIViews for REST endpoints |
+
+**Governance** (`/journal-admin/governance/`, sidebar tab "Governance"): minutes, reports and planning for editorial teams. Access = admins + senior editors (same gate as journal admin) **or** `User.governance_access=True` (granted by senior editors to e.g. a secretary) — see `User.has_governance_access()`. A **`journal.Call`** entity (optional, nullable FK `Submission.call`; links to an `Issue` and a `NewsPost`) groups submissions "per call"; existing submissions stay valid and are assigned retroactively from the governance submissions page. Assigning a handling editor or reviewer here is **internal and sends NO email** — it writes `EditorialAssignment` / `governance.ReviewerPlan` directly, deliberately bypassing `editorial.assign_editor` (which notifies). Real reviewer invitations are still triggered from the editorial workspace. Report charts are pure CSS (no JS charting dep); PDF reuses WeasyPrint.
 
 ## Feature Flags (in .env)
 - `ORCID_OAUTH_ENABLED` — ORCID login via allauth

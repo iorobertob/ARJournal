@@ -33,6 +33,7 @@
 <div class="jadmin-layout">
   <aside class="jadmin-sidebar">
     <div class="jadmin-sidebar__title">Journal Admin</div>
+    {% if user.has_journal_admin_access %}
     <a href="{% url 'journal_admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'journal_admin_dashboard' %}active{% endif %}">
       Overview
     </a>
@@ -66,7 +67,15 @@
     <a href="{% url 'journal_admin_audit_log' %}" class="{% if request.resolver_match.url_name == 'journal_admin_audit_log' %}active{% endif %}">
       Audit Log
     </a>
+    {% endif %}
+    {% if user.has_governance_access %}
+    <a href="{% url 'governance_home' %}" class="{% if 'governance_' in request.resolver_match.url_name %}active{% endif %}">
+      Governance
+    </a>
+    {% endif %}
+    {% if user.has_editorial_access %}
     <a href="{% url 'editorial_dashboard' %}">Editorial Dashboard</a>
+    {% endif %}
     {% if user.is_staff %}
     <a href="{% url 'admin:index' %}">Django Admin</a>
     {% endif %}

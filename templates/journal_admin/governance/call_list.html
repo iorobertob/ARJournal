@@ -1,0 +1,50 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Governance — Calls{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Governance</h1>
+{% include "journal_admin/governance/_subnav.html" %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-5);">
+  <p style="color:var(--color-muted);font-size:var(--size-sm);margin:0;">Calls for submissions. Assigning submissions to a call never affects the submission itself.</p>
+  <a href="{% url 'governance_call_create' %}" class="btn btn-primary">+ New call</a>
+</div>
+
+<div class="jadmin-card">
+  {% if calls %}
+  <div class="table-responsive">
+  <table class="jadmin-table">
+    <thead><tr><th>Call</th><th>Window</th><th>Issue</th><th>News post</th><th style="text-align:center;">Submissions</th><th></th></tr></thead>
+    <tbody>
+    {% for c in calls %}
+    <tr>
+      <td>
+        <span style="font-weight:600;">{{ c.title }}</span>
+        {% if not c.is_active %}<span style="color:var(--color-muted);font-size:var(--size-xs);"> · inactive</span>{% endif %}
+      </td>
+      <td style="white-space:nowrap;font-size:var(--size-sm);">
+        {{ c.opens_at|date:"d M Y"|default:"—" }} → {{ c.closes_at|date:"d M Y"|default:"—" }}
+        {% if c.is_open %}<span style="color:var(--color-accent);"> · open</span>{% endif %}
+      </td>
+      <td style="font-size:var(--size-sm);color:var(--color-muted);">{% if c.issue %}#{{ c.issue.number }} ({{ c.issue.year }}){% else %}—{% endif %}</td>
+      <td style="font-size:var(--size-sm);color:var(--color-muted);">{% if c.news_post %}{{ c.news_post.title|truncatechars:30 }}{% else %}—{% endif %}</td>
+      <td style="text-align:center;">{{ c.n_subs }}</td>
+      <td style="white-space:nowrap;text-align:right;">
+        <a href="{% url 'governance_call_edit' c.pk %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Edit</a>
+        <form method="post" action="{% url 'governance_call_delete' c.pk %}" style="display:inline;"
+              data-confirm="Delete the call “{{ c.title }}”? Its {{ c.n_subs }} submission{{ c.n_subs|pluralize }} will be kept and become unassigned." data-confirm-ok="Delete">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-accent-dark);">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p style="color:var(--color-muted);">No calls yet. Create one to start grouping submissions.</p>
+  {% endif %}
+</div>
+{% endblock %}

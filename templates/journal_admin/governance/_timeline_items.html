@@ -1,0 +1,57 @@
+{# Expects: items (Milestone queryset), today #}
+{% if items %}
+<ul class="gov-timeline">
+  {% for m in items %}
+  <li x-data="{ edit: false }">
+    <span class="gov-timeline__dot {% if m.due_date and m.due_date < today %}gov-timeline__dot--past{% endif %}"></span>
+
+    <div x-show="!edit" style="display:flex;justify-content:space-between;align-items:flex-start;gap:var(--spacing-4);flex-wrap:wrap;">
+      <div>
+        <span class="gov-timeline__date">{{ m.due_date|date:"d M Y"|default:"Date TBD" }}</span>
+        — {{ m.display_label }}
+        {% if m.note %}<div class="gov-timeline__meta">{{ m.note }}</div>{% endif %}
+      </div>
+      <div style="white-space:nowrap;">
+        <button type="button" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);" @click="edit = true">Edit</button>
+        <form method="post" style="display:inline;" data-confirm="Delete this milestone?" data-confirm-ok="Delete">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="milestone_id" value="{{ m.pk }}">
+          <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-accent-dark);">Delete</button>
+        </form>
+      </div>
+    </div>
+
+    <form x-show="edit" x-cloak method="post" style="display:flex;flex-wrap:wrap;gap:var(--spacing-2);align-items:flex-end;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="edit">
+      <input type="hidden" name="milestone_id" value="{{ m.pk }}">
+      <div>
+        <label class="form__label" style="font-size:var(--size-xs);">Milestone</label>
+        <select name="kind" class="form__select">
+          {% for val, label in kinds %}
+          <option value="{{ val }}" {% if m.kind == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form__label" style="font-size:var(--size-xs);">Label</label>
+        <input type="text" name="label" value="{{ m.label }}" class="form__input" style="width:150px;">
+      </div>
+      <div>
+        <label class="form__label" style="font-size:var(--size-xs);">Date</label>
+        <input type="date" name="due_date" value="{{ m.due_date|date:'Y-m-d' }}" class="form__input">
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <label class="form__label" style="font-size:var(--size-xs);">Note</label>
+        <input type="text" name="note" value="{{ m.note }}" class="form__input" style="width:100%;">
+      </div>
+      <button type="submit" class="btn btn-sm btn-primary">Save</button>
+      <button type="button" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);" @click="edit = false">Cancel</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p style="color:var(--color-muted);font-size:var(--size-sm);margin:0;">No milestones yet.</p>
+{% endif %}

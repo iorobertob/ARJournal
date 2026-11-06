@@ -1,0 +1,70 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Governance — Timeline{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Governance</h1>
+{% include "journal_admin/governance/_subnav.html" %}
+
+<p style="color:var(--color-muted);font-size:var(--size-sm);margin-top:-8px;margin-bottom:var(--spacing-5);">
+  Editable schedule of milestones per call or issue — submission deadlines, review deadlines, decision and publication dates. Dates are planned by editors.
+</p>
+
+<!-- Add milestone -->
+<form method="post" class="jadmin-card" style="padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-6);">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="add">
+  <div class="jadmin-card__title" style="margin-bottom:var(--spacing-3);">Add a milestone</div>
+  <div style="display:flex;flex-wrap:wrap;gap:var(--spacing-3);align-items:flex-end;">
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">For</label>
+      <select name="target" class="form__select" required>
+        <option value="">— Choose call / issue —</option>
+        {% if calls %}
+        <optgroup label="Calls">
+          {% for c in calls %}<option value="call:{{ c.pk }}">{{ c.title }}</option>{% endfor %}
+        </optgroup>
+        {% endif %}
+        <optgroup label="Issues">
+          {% for i in all_issues %}<option value="issue:{{ i.pk }}">#{{ i.number }} ({{ i.year }})</option>{% endfor %}
+        </optgroup>
+      </select>
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Milestone</label>
+      <select name="kind" class="form__select">
+        {% for val, label in kinds %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Label (optional)</label>
+      <input type="text" name="label" class="form__input" placeholder="Custom label" style="width:160px;">
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Date</label>
+      <input type="date" name="due_date" class="form__input">
+    </div>
+    <button type="submit" class="btn btn-primary">Add</button>
+  </div>
+</form>
+
+{% for c in calls %}
+<div class="jadmin-card" style="margin-bottom:var(--spacing-5);padding:var(--spacing-4) var(--spacing-6);">
+  <div class="jadmin-card__title">Call · {{ c.title }}</div>
+  {% include "journal_admin/governance/_timeline_items.html" with items=c.milestones.all today=today kinds=kinds %}
+</div>
+{% endfor %}
+
+{% for i in issues_with %}
+<div class="jadmin-card" style="margin-bottom:var(--spacing-5);padding:var(--spacing-4) var(--spacing-6);">
+  <div class="jadmin-card__title">Issue · #{{ i.number }} — Vol.{{ i.volume }} ({{ i.year }})</div>
+  {% include "journal_admin/governance/_timeline_items.html" with items=i.milestones.all today=today kinds=kinds %}
+</div>
+{% endfor %}
+
+{% if not calls and not issues_with %}
+<div class="jadmin-card" style="padding:var(--spacing-6);text-align:center;color:var(--color-muted);">
+  No milestones yet. Add one above.
+</div>
+{% endif %}
+{% endblock %}

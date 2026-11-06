@@ -1,0 +1,146 @@
+{% extends "journal_admin/base.html" %}
+
+{% block title %}Governance — Submissions{% endblock %}
+
+{% block jadmin_content %}
+<h1 class="jadmin-page-title">Governance</h1>
+{% include "journal_admin/governance/_subnav.html" %}
+
+<p style="color:var(--color-muted);font-size:var(--size-sm);margin-top:-8px;margin-bottom:var(--spacing-5);">
+  Assign a call, handling editor, and planned reviewers here. These are recorded internally for
+  planning — <strong>no emails or invitations are sent</strong>. Send real reviewer invitations from the
+  editorial workspace when ready.
+</p>
+
+<!-- Filters -->
+<form method="get" class="jadmin-card" style="padding:var(--spacing-4) var(--spacing-6);margin-bottom:var(--spacing-6);">
+  <div style="display:flex;flex-wrap:wrap;gap:var(--spacing-3);align-items:flex-end;">
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Call</label>
+      <select name="call" class="form__select">
+        <option value="">All calls</option>
+        <option value="none" {% if filters.call == 'none' %}selected{% endif %}>— Unassigned —</option>
+        {% for c in calls %}
+        <option value="{{ c.pk }}" {% if filters.call == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Status</label>
+      <select name="status" class="form__select">
+        <option value="">All statuses</option>
+        {% for val, label in statuses %}
+        <option value="{{ val }}" {% if filters.status == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Year</label>
+      <select name="year" class="form__select">
+        <option value="">All years</option>
+        {% for y in years %}
+        <option value="{{ y }}" {% if filters.year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Search</label>
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="Title or author…" class="form__input" style="width:180px;">
+    </div>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    <a href="{% url 'governance_submissions' %}" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Clear</a>
+  </div>
+</form>
+
+{% for r in rows %}
+<div class="jadmin-card" style="margin-bottom:var(--spacing-4);padding:var(--spacing-4) var(--spacing-6);">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:var(--spacing-4);flex-wrap:wrap;">
+    <div style="flex:1;min-width:240px;">
+      <a href="{% url 'journal_admin_article' r.sub.pk %}" style="font-weight:600;color:var(--color-text);text-decoration:none;font-size:var(--size-md);">{{ r.sub.title|truncatechars:90 }}</a>
+      <div style="font-size:var(--size-xs);color:var(--color-muted);margin-top:2px;">
+        {{ r.sub.author.display_name }}
+        · <span class="status-badge status-badge--{{ r.sub.status }}" style="font-size:var(--size-xs);">{{ r.sub.get_status_display }}</span>
+        {% if r.sub.disciplines %}· {{ r.sub.disciplines|join:", " }}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--spacing-4);margin-top:var(--spacing-4);">
+    <!-- Call -->
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Call</label>
+      <form method="post" style="display:flex;gap:var(--spacing-2);">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="set_call">
+        <input type="hidden" name="submission_id" value="{{ r.sub.pk }}">
+        <input type="hidden" name="return_qs" value="{{ query_string }}">
+        <select name="call_id" class="form__select" style="flex:1;" onchange="this.form.requestSubmit()">
+          <option value="">— Unassigned —</option>
+          {% for c in calls %}
+          <option value="{{ c.pk }}" {% if r.sub.call_id == c.pk %}selected{% endif %}>{{ c.title }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary">Set</button>
+      </form>
+    </div>
+
+    <!-- Handling editor -->
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Handling editor</label>
+      <form method="post" style="display:flex;gap:var(--spacing-2);">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="set_handling_editor">
+        <input type="hidden" name="submission_id" value="{{ r.sub.pk }}">
+        <input type="hidden" name="return_qs" value="{{ query_string }}">
+        <select name="editor_id" class="form__select" style="flex:1;" onchange="this.form.requestSubmit()">
+          <option value="">— None —</option>
+          {% for e in editor_candidates %}
+          <option value="{{ e.pk }}" {% if r.handling_editor and r.handling_editor.pk == e.pk %}selected{% endif %}>{{ e.display_name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary">Set</button>
+      </form>
+    </div>
+
+    <!-- Planned reviewers -->
+    <div>
+      <label class="form__label" style="font-size:var(--size-xs);">Planned reviewers <span style="font-weight:400;">(internal)</span></label>
+      <div style="margin-bottom:var(--spacing-2);">
+        {% for plan in r.reviewer_plans %}
+        <span class="gov-chip">
+          {{ plan.reviewer.display_name }}
+          <form method="post" data-confirm="Remove {{ plan.reviewer.display_name }} from the plan?" data-confirm-ok="Remove">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="remove_reviewer_plan">
+            <input type="hidden" name="submission_id" value="{{ r.sub.pk }}">
+            <input type="hidden" name="plan_id" value="{{ plan.pk }}">
+            <input type="hidden" name="return_qs" value="{{ query_string }}">
+            <button type="submit" title="Remove">×</button>
+          </form>
+        </span>
+        {% empty %}
+        <span style="color:var(--color-muted);font-size:var(--size-xs);">None yet.</span>
+        {% endfor %}
+      </div>
+      <form method="post" style="display:flex;gap:var(--spacing-2);">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_reviewer_plan">
+        <input type="hidden" name="submission_id" value="{{ r.sub.pk }}">
+        <input type="hidden" name="return_qs" value="{{ query_string }}">
+        <select name="reviewer_id" class="form__select" style="flex:1;">
+          <option value="">Add reviewer…</option>
+          {% for rv in reviewer_candidates %}
+          <option value="{{ rv.pk }}">{{ rv.display_name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm" style="background:var(--color-surface);border:1px solid var(--color-border);">Add</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% empty %}
+<div class="jadmin-card" style="padding:var(--spacing-6);text-align:center;color:var(--color-muted);">
+  No submissions match the current filters.
+</div>
+{% endfor %}
+{% endblock %}

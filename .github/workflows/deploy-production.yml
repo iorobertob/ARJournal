@@ -25,6 +25,12 @@ jobs:
     needs: guard
     environment: production       # add required reviewers in GitHub Settings for extra safety
 
+    # manage.py defaults to config.settings.development; without this every
+    # collectstatic/migrate step below would run under dev settings. Pin the
+    # production settings module for the whole job.
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+
     # Set the repo variable PRODUCTION_PATH to /var/www/inact in
     # GitHub → Settings → Secrets and variables → Actions → Variables.
     steps:

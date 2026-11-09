@@ -10,6 +10,12 @@ jobs:
     runs-on: self-hosted          # executes directly on the VPS — no SSH needed
     environment: staging
 
+    # manage.py defaults to config.settings.development; without this every
+    # collectstatic/migrate step below would run under dev settings (DEBUG=True,
+    # dev-only storages, etc.). Pin the staging settings module for the whole job.
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.staging
+
     steps:
       - name: Pull latest code
         run: |

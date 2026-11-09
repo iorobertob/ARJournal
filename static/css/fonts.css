@@ -27,37 +27,36 @@
       must be re-rendered as text.
    ============================================================ */
 
-/* ── FK Grotesk Neue (drop-in, licensed) ──────────────────── */
-/* woff2 (web-optimised) takes priority when present;
-   OTF from FONT/ is the active fallback until woff2 is purchased. */
+/* ── FK Grotesk Neue (drop-in, licensed) ──────────────────────
+   Served from the committed woff2 files in fonts/fk-grotesk-neue/.
+   The source OTFs live in fonts/FONT/ but are gitignored (licensed,
+   not in the repo), so they are deliberately NOT referenced here —
+   a url() pointing at an un-deployed file breaks ManifestStaticFiles-
+   Storage's collectstatic. woff2 covers every supported browser. */
 @font-face {
   font-family: 'FK Grotesk Neue';
-  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Regular.woff2') format('woff2'),
-       url('../fonts/FONT/FKGroteskNeue-Regular.otf') format('opentype');
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'FK Grotesk Neue';
-  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Italic.woff2') format('woff2'),
-       url('../fonts/FONT/FKGroteskNeue-Italic.otf') format('opentype');
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Italic.woff2') format('woff2');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
 }
 @font-face {
   font-family: 'FK Grotesk Neue';
-  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Bold.woff2') format('woff2'),
-       url('../fonts/FONT/FKGroteskNeue-Bold.otf') format('opentype');
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'FK Grotesk Neue';
-  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-BoldItalic.woff2') format('woff2'),
-       url('../fonts/FONT/FKGroteskNeue-BoldItalic.otf') format('opentype');
+  src: url('../fonts/fk-grotesk-neue/FKGroteskNeue-BoldItalic.woff2') format('woff2');
   font-weight: 700;
   font-style: italic;
   font-display: swap;

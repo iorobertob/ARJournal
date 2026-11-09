@@ -201,7 +201,9 @@ USE_TZ = True
 STATIC_URL = f'{_prefix}/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Static/media storage backends are configured together in the STORAGES dict
+# below (after USE_S3 is known). Django 5.x ignores the old STATICFILES_STORAGE /
+# DEFAULT_FILE_STORAGE settings, so those must NOT be used here.
 
 # Media files
 USE_S3 = env('USE_S3')
@@ -211,11 +213,26 @@ if USE_S3:
     AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='')
     AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL', default='')
     AWS_DEFAULT_ACL = 'private'
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/'
 else:
     MEDIA_URL = f'{_prefix}/media/'
     MEDIA_ROOT = BASE_DIR / env('MEDIA_ROOT', default='media')
+
+# Storage backends (Django 5.x STORAGES API — replaces the removed
+# STATICFILES_STORAGE / DEFAULT_FILE_STORAGE settings).
+#  • staticfiles → WhiteNoise: compresses assets and writes content-hashed
+#    filenames + a manifest, so collectstatic busts caches on every deploy.
+#  • default (media) → S3 when USE_S3 is on, otherwise local filesystem.
+# development.py overrides this dict (plain + cache-busting static storage).
+STORAGES = {
+    'default': {
+        'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage' if USE_S3
+        else 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 # ── Media streaming / protected delivery ─────────────────────────────────────
 # Video & audio are transcoded to HLS and served only through signed, short-lived

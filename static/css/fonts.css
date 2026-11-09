@@ -100,12 +100,12 @@
   font-display: swap;
 }
 
-/* ── G.B. Jones (logotype, drop-in) ───────────────────────── */
-@font-face {
-  font-family: 'GB Jones';
-  src: url('../fonts/gb-jones/GBJones.woff2') format('woff2'),
-       url('../fonts/gb-jones/GBJones.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/* ── G.B. Jones (logotype, drop-in) ───────────────────────────
+   Not bundled. To enable, drop GBJones.woff2 / GBJones.otf into
+   static/fonts/gb-jones/ (see README.txt there) and restore the
+   @font-face below. Kept out of the stylesheet for now because an
+   unresolved url() reference breaks ManifestStaticFilesStorage's
+   collectstatic (it scans url() even inside comments, so the paths
+   here are written as plain text, not url(), on purpose):
+     font-family 'GB Jones', src -> gb-jones/GBJones.woff2 + .otf
+   ───────────────────────────────────────────────────────────── */

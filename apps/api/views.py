@@ -136,6 +136,8 @@ class ReviewDetailView(APIView):
 
     def get(self, request, review_id):
         review = get_object_or_404(Review, pk=review_id)
+        if review.reviewer != request.user and not request.user.has_editorial_access():
+            return Response(status=403)
         return Response(ReviewSerializer(review).data)
 
 
@@ -144,6 +146,8 @@ class ReviewAnnotationView(APIView):
 
     def post(self, request, review_id):
         review = get_object_or_404(Review, pk=review_id)
+        if review.reviewer != request.user and not request.user.has_editorial_access():
+            return Response(status=403)
         serializer = ReviewAnnotationSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(review=review)
@@ -158,6 +162,9 @@ class PDFExportView(APIView):
 
     def post(self, request, document_id):
         doc = get_object_or_404(CanonicalDocument, pk=document_id)
+        submission = doc.revision.submission
+        if submission.author_id != request.user.id and not request.user.has_editorial_access():
+            return Response(status=403)
         ser = PDFExportRequestSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         from datetime import timedelta

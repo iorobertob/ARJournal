@@ -85,7 +85,7 @@ Video & audio are **never served as a downloadable file**. On upload they are tr
 - `apps/reviewers/scorer.py` — weighted reviewer suggestion engine
 - `apps/documents/parsers/latex_parser.py` — `.tex` → canonical JSON
 - `apps/documents/renderers/html_renderer.py` — canonical JSON → HTML. **Referencing = Cambridge author–date ("CambridgeA").** In-text `(Surname Year)` with "et al" (no period) for 3+ authors and `a/b/c` suffixes for same author+year (`_cite_label` / `_prepare_citations`); reference list titled **References**, sorted alphabetically, authors bold as "Surname Initials", sentence-case article titles, italic book/journal titles, `Place: Publisher`, DOIs (`_format_bib_item`). Bib fields come from `_parse_bib` in `apps/production/tasks.py`.
-- `apps/production/tasks.py` — Celery: ingest, build, PDF generation
+- `apps/production/tasks.py` — Celery: ingest, build, PDF generation. The canonical JSON is produced by the parser **at ingest time** and cached on `CanonicalDocument`, so after a parser/renderer fix existing articles keep their old (possibly broken) JSON until re-ingested. Rebuild it with `python manage.py reingest_submissions <id…>` (or `--all`), which re-runs `ingest_submission` synchronously (no broker needed); `--dry-run` lists what would change and touches nothing. **Caveat:** re-ingest regenerates block IDs, which can re-anchor existing reviewer annotations — prefer targeting specific submissions over `--all` for articles already under review. Command: `apps/production/management/commands/reingest_submissions.py`.
 - `apps/journal/context_processors.py` — injects `journal` into all templates
 - `config/settings/base.py` — all settings with django-environ
 

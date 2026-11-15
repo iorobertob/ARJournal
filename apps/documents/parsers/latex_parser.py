@@ -555,7 +555,9 @@ def _parse_section_content(
         elif kind == 'table':
             caption, raw_latex, tbl_label = data
             tbl_id = _uid('blk_tbl', counters)
-            columns, rows = _parse_tabular(raw_latex)
+            columns, rows = _parse_tabular(
+                raw_latex, footnote_list, cite_keys, counters, sec_id
+            )
             tbl_block: dict = {
                 'id': tbl_id,
                 'type': 'table',
@@ -628,6 +630,27 @@ _LATEX_CHAR_CMDS: list[tuple[str, str]] = [
 ]
 
 
+def _normalize_inline_text(nodes: list[dict]) -> list[dict]:
+    """In-place: apply LaTeX dash / escaped-punctuation typography to text nodes.
+
+    Mirrors the typography that _clean_cell applies to the plain-text form, so a
+    cell rendered from its inline nodes keeps the same em/en dashes as before.
+    """
+    for nd in nodes:
+        if nd.get('type') == 'text' and nd.get('text'):
+            t = nd['text'].replace('---', '—').replace('--', '–')
+            t = (t.replace(r'\%', '%').replace(r'\&', '&')
+                  .replace(r'\$', '$').replace(r'\#', '#'))
+            nd['text'] = t
+    return nodes
+
+
+def _inline_nodes_to_text(nodes: list[dict]) -> str:
+    """Flatten inline nodes to a plain-text string (ToC labels, heading fallback)."""
+    out = ''.join(nd.get('text', '') for nd in nodes)
+    return re.sub(r'\s+', ' ', out).strip()
+
+
 def _clean_cell(text: str) -> str:
     """Strip common LaTeX formatting from a table cell, returning plain text."""
     # Flatten \makecell{A \\ B} → 'A B' (handle one level of nested braces)
@@ -652,18 +675,37 @@ def _clean_cell(text: str) -> str:
     return ' '.join(text.split())
 
 
-def _parse_tabular(raw_latex: str) -> tuple[list[dict], list[list[dict]]]:
+def _parse_tabular(
+    raw_latex: str,
+    footnote_list: list | None = None,
+    cite_keys: set | None = None,
+    counters: dict | None = None,
+    sec_id: str = '',
+) -> tuple[list[dict], list[list[dict]]]:
     """
     Parse a tabular / tabularx / tabular* block into (columns, rows).
 
     Returns:
-        columns — list of {'label': str} dicts derived from the first data row.
-        rows    — list of rows; each row is a list of {'value': str} dicts.
+        columns — list of {'label': str, 'content': [inline nodes]} derived from
+                  the first data row.
+        rows    — list of rows; each row is a list of {'value': str,
+                  'content': [inline nodes]} dicts.
 
-    The first row is treated as a header row (column labels).
+    'label'/'value' are a plain-text fallback; 'content' carries parsed inline
+    nodes so the renderer shows emphasis (\\emph) and real citation links
+    (\\citep) inside cells. The first row is treated as a header row.
     """
+    footnote_list = footnote_list if footnote_list is not None else []
+    cite_keys = cite_keys if cite_keys is not None else set()
+    counters = counters if counters is not None else {}
+
+    # Balanced one-level brace group — lets us skip the optional width arg AND a
+    # column spec that itself contains braces, e.g.
+    #   {>{\raggedright\arraybackslash}p{2.6cm} ...}
+    # which the old `\{[^}]*\}` truncated, leaking the spec into the first cell.
+    braced = r'\{(?:[^{}]|\{[^{}]*\})*\}'
     body_m = re.search(
-        r'\\begin\{tabular[Xx*]?\}(?:\{[^}]*\})?\{[^}]*\}(.*?)\\end\{tabular[Xx*]?\}',
+        r'\\begin\{tabular[Xx*]?\}\s*(?:' + braced + r'\s*)*(.*?)\\end\{tabular[Xx*]?\}',
         raw_latex, re.DOTALL,
     )
     if not body_m:
@@ -684,17 +726,25 @@ def _parse_tabular(raw_latex: str) -> tuple[list[dict], list[list[dict]]]:
     # Split on \\ (row separator); ignore empty fragments
     row_strings = [r.strip() for r in re.split(r'\\\\', body) if r.strip()]
 
+    def _cell(text: str) -> dict:
+        # Strip the cell's outer whitespace (from '&'/newline splitting) so the
+        # rendered node doesn't carry leading/trailing spaces.
+        nodes = _normalize_inline_text(
+            _parse_inline_content(text.strip(), footnote_list, cite_keys, counters, sec_id)
+        )
+        return {'value': _clean_cell(text), 'content': nodes}
+
     columns: list[dict] = []
     rows: list[list[dict]] = []
 
     for i, row_str in enumerate(row_strings):
-        cells = [_clean_cell(c) for c in row_str.split('&')]
-        if not any(cells):
+        cells = [_cell(c) for c in row_str.split('&')]
+        if not any(c['value'] for c in cells):
             continue
         if i == 0:
-            columns = [{'label': c} for c in cells]
+            columns = [{'label': c['value'], 'content': c['content']} for c in cells]
         else:
-            rows.append([{'value': c} for c in cells])
+            rows.append([{'value': c['value'], 'content': c['content']} for c in cells])
 
     return columns, rows
 
@@ -718,6 +768,15 @@ def parse_latex(tex_source: str, submission_metadata: dict | None = None) -> dic
     title = _extract_macro(tex_source, 'ARJtitle') or meta.get('title', '')
     subtitle = _extract_macro(tex_source, 'ARJsubtitle') or meta.get('subtitle', '')
     abstract = _extract_macro(tex_source, 'ARJabstract') or meta.get('abstract', '')
+    # Inline-parse the abstract so \emph / \citep inside it render as emphasis and
+    # citation links rather than literal LaTeX. Done before the bibliography block
+    # is built (below) so any abstract-only cite keys still reach the reference list.
+    abstract_nodes = (
+        _normalize_inline_text(
+            _parse_inline_content(abstract, footnote_list, cite_keys, counters, 'abstract')
+        )
+        if isinstance(abstract, str) and abstract.strip() else []
+    )
     author_name = _extract_macro(tex_source, 'ARJauthor') or meta.get('author_name', '')
     affiliation = _extract_macro(tex_source, 'ARJaffiliation') or ''
     email = _extract_macro(tex_source, 'ARJemail') or ''
@@ -760,25 +819,39 @@ def parse_latex(tex_source: str, submission_metadata: dict | None = None) -> dic
     # ── Parse sections ────────────────────────────────────────────────────────
     # The lookahead uses \n before \section so that \verb|\section{...}| inside
     # paragraph text is not mistaken for a section boundary.
+    # The title group allows one level of nested braces so a title containing an
+    # inline command — e.g. \section{\emph{Palimpsest}: Naming Without Permanence}
+    # — is captured whole instead of being truncated at the first '}'.
     section_pattern = re.compile(
-        r'(?P<cmd>\\(?:sub)*section)\*?\{(?P<title>[^}]+)\}(?P<content>.*?)(?=\n[ \t]*\\(?:sub)*section|\Z)',
+        r'(?P<cmd>\\(?:sub)*section)\*?'
+        r'\{(?P<title>(?:[^{}]|\{[^{}]*\})*)\}'
+        r'(?P<content>.*?)(?=\n[ \t]*\\(?:sub)*section|\Z)',
         re.DOTALL,
     )
     section_num = 0
     for sec_match in section_pattern.finditer(body):
         cmd = sec_match.group('cmd')
-        sec_title = sec_match.group('title').strip()
+        sec_title_raw = sec_match.group('title').strip()
         sec_content = sec_match.group('content').strip()
         level = cmd.count('sub') + 1
         section_num += 1
         sec_id = f'sec_{section_num}'
+
+        # Parse the title's inline LaTeX (\emph, \textit, \citep …) into nodes so
+        # the heading renders emphasis/citations; keep a flat text form for the
+        # table of contents and numbering.
+        title_nodes = _normalize_inline_text(
+            _parse_inline_content(sec_title_raw, footnote_list, cite_keys, counters, sec_id)
+        )
+        sec_title_text = _inline_nodes_to_text(title_nodes) or sec_title_raw
 
         h_id = _uid('blk_h', counters)
         content_blocks.append({
             'id': h_id,
             'type': 'heading',
             'level': level,
-            'text': sec_title,
+            'text': sec_title_text,
+            'content': title_nodes,
             'numbering': str(section_num),
             'sectionId': sec_id,
         })
@@ -838,7 +911,8 @@ def parse_latex(tex_source: str, submission_metadata: dict | None = None) -> dic
         ],
         'metadata': {
             'title': {'main': title, 'subtitle': subtitle},
-            'abstract': [{'lang': meta.get('language', 'en'), 'text': abstract}],
+            'abstract': [{'lang': meta.get('language', 'en'), 'text': abstract,
+                          'content': abstract_nodes}],
             'keywords': keywords,
             'disciplines': meta.get('disciplines', []),
             'articleType': article_type,

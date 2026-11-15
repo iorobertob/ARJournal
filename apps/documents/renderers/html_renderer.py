@@ -203,24 +203,10 @@ def render_html(canonical_data: dict, submission=None, revision=None, reviewer_m
             + '</div>'
         )
 
-    # Abstract
-    for ab in meta.get('abstract', []):
-        parts.append(
-            f'<div class="article-abstract" id="abstract">'
-            f'<h2>Abstract</h2>'
-            f'<p>{escape(ab.get("text", ""))}</p>'
-            f'</div>'
-        )
-
-    # Keywords
-    keywords = meta.get('keywords', [])
-    if keywords:
-        kw_html = ', '.join(f'<span class="keyword">{escape(k)}</span>' for k in keywords)
-        parts.append(f'<div class="article-keywords">{kw_html}</div>')
-
     # Build cite_map (Cambridge author-date labels, with a/b/c suffixes) and sort
     # the references alphabetically. The same display-year (incl. suffix) is carried
     # onto the bibliography block so in-text citations and the list agree.
+    # (Built before the abstract so citations inside the abstract resolve too.)
     cite_map, _ordered_cites = _prepare_citations(
         (canonical_data.get('citations') or {}).get('items') or []
     )
@@ -235,6 +221,27 @@ def render_html(canonical_data: dict, submission=None, revision=None, reviewer_m
 
     # Build label_map: 'fig:label' → figure number (sequential across all figures/media).
     label_map = _build_label_map(content)
+
+    # Abstract — render parsed inline nodes (emphasis, citations) when present,
+    # else fall back to the flat text (older canonical documents).
+    for ab in meta.get('abstract', []):
+        ab_content = ab.get('content')
+        if ab_content:
+            ab_inner = ''.join(_render_inline(c, cite_map, label_map) for c in ab_content)
+        else:
+            ab_inner = escape(ab.get('text', ''))
+        parts.append(
+            f'<div class="article-abstract" id="abstract">'
+            f'<h2>Abstract</h2>'
+            f'<p>{ab_inner}</p>'
+            f'</div>'
+        )
+
+    # Keywords
+    keywords = meta.get('keywords', [])
+    if keywords:
+        kw_html = ', '.join(f'<span class="keyword">{escape(k)}</span>' for k in keywords)
+        parts.append(f'<div class="article-keywords">{kw_html}</div>')
 
     # Content blocks
     for block in content:
@@ -365,7 +372,7 @@ def _format_bib_item(item: dict) -> str:
     journal = item.get('journal', '')
     volume = item.get('volume', '')
     number = item.get('number', '')
-    pages = (item.get('pages', '') or '').replace('--', '–')
+    pages = escape((item.get('pages', '') or '').replace('--', '–'))
     publisher = item.get('publisher', '')
     booktitle = item.get('booktitle', '')
     address = item.get('address', '')
@@ -464,6 +471,18 @@ def _render_list_items(items: list, cm: dict, lm: dict) -> str:
     return out
 
 
+def _render_cell(cell: dict, cm: dict, lm: dict, plain_key: str) -> str:
+    """Render a table cell/header: inline nodes when present, else plain text.
+
+    Legacy canonical documents store only a flat 'label'/'value' string; newer
+    ones also carry parsed inline 'content' (emphasis, citations) — preferred.
+    """
+    content = cell.get('content')
+    if content:
+        return ''.join(_render_inline(c, cm, lm) for c in content)
+    return escape(str(cell.get(plain_key, '')))
+
+
 def _render_block(
     block: dict,
     assets: dict,
@@ -479,8 +498,12 @@ def _render_block(
     # ── Heading ───────────────────────────────────────────────────────────────
     if btype == 'heading':
         level = block.get('level', 2)
-        text = escape(block.get('text', ''))
-        return f'<h{level} id="{bid}" class="article-heading" data-block-id="{bid}">{text}</h{level}>'
+        content = block.get('content')
+        if content:
+            inner = ''.join(_render_inline(c, cm, lm) for c in content)
+        else:
+            inner = escape(block.get('text', ''))
+        return f'<h{level} id="{bid}" class="article-heading" data-block-id="{bid}">{inner}</h{level}>'
 
     # ── Paragraph ─────────────────────────────────────────────────────────────
     if btype == 'paragraph':
@@ -641,9 +664,9 @@ def _render_block(
         tbl_num = lm.get(tbl_label, 0) if tbl_label else 0
         caption_prefix = f'Table {tbl_num}. ' if tbl_num else ''
         if columns and rows:
-            headers = ''.join(f'<th>{escape(c["label"])}</th>' for c in columns)
+            headers = ''.join(f'<th>{_render_cell(c, cm, lm, "label")}</th>' for c in columns)
             body_rows = ''.join(
-                '<tr>' + ''.join(f'<td>{escape(str(cell.get("value", "")))}</td>' for cell in row) + '</tr>'
+                '<tr>' + ''.join(f'<td>{_render_cell(cell, cm, lm, "value")}</td>' for cell in row) + '</tr>'
                 for row in rows
             )
             return (
